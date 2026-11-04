@@ -72,6 +72,14 @@ sudo virsh domifaddr fedora-niri
 
 The VM does not automatically start when the Ubuntu host reboots. Run the VM playbook again if DHCP changes its address so that `.local/vm.yml` is refreshed.
 
+## Verification
+
+On November 4, 2026, the VM playbook completed on Ubuntu 26.04.1 with Fedora 45, Niri 26.04 and Noctalia 5.4.1. A repeat of the entire VM playbook reported zero changes on both host and guest. The repository was also cloned into Fedora, bootstrapped there, and applied locally with the native defaults. Its second local run reported zero changes.
+
+The VNC console delivered a 1280×800 framebuffer showing Niri and Noctalia. Sending Super+T through the VNC protocol opened Alacritty. PipeWire and WirePlumber were active. Syntax checks and Ansible Lint passed. Mac client behavior and physical Framework hardware still require testing on those devices.
+
+The VM opens Noctalia's first-run welcome screen. Automatic login may also prompt to create or unlock a keyring. Those interactive choices can be made in the guest. Record any desktop settings chosen during experiments in the shared role before relying on them for the laptop installation.
+
 ## Sources
 
 Fedora publishes Niri and Noctalia packages in its repositories. Noctalia's Niri integration documents the startup command and IPC bindings used here. [Niri package](https://packages.fedoraproject.org/pkgs/niri/niri/), [Noctalia package](https://packages.fedoraproject.org/pkgs/noctalia/noctalia/), [Noctalia integration](https://docs.noctalia.dev/noctalia/compositor-settings/niri/)
