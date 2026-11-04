@@ -1,0 +1,30 @@
+---
+- name: Provision the Fedora rehearsal VM on Ubuntu
+  hosts: localhost
+  connection: local
+  become: true
+  vars:
+    # Ubuntu's sudo-rs prompt is incompatible with Ansible's password detection.
+    ansible_become_exe: "{{ lookup('ansible.builtin.first_found', ['/usr/bin/sudo.ws', '/usr/bin/sudo']) }}"
+  vars_files:
+    - vars/vm.yml
+  roles:
+    - vm
+
+- name: Apply the native Fedora desktop setup to the rehearsal VM
+  hosts: fedora_vm
+  become: true
+  pre_tasks:
+    - name: Wait for the initial cloud image setup
+      ansible.builtin.command: cloud-init status --wait --long
+      register: vm_cloud_init
+      changed_when: false
+      # Exit 2 means completed with recoverable warnings, such as hostname setup.
+      failed_when: vm_cloud_init.rc not in [0, 2]
+
+    - name: Report recoverable cloud image warnings
+      ansible.builtin.debug:
+        var: vm_cloud_init.stdout_lines
+      when: vm_cloud_init.rc == 2
+  roles:
+    - desktop

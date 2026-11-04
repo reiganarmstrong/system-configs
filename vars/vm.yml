@@ -1,0 +1,14 @@
+---
+vm_name: fedora-niri
+vm_user: "{{ lookup('env', 'USER') }}"
+vm_memory_mib: 8192
+vm_vcpus: 4
+vm_disk_gib: 60
+vm_vnc_port: 5901
+vm_render_node: /dev/dri/renderD128
+vm_mac: '52:54:00:fe:45:01'
+vm_image_url: https://download.fedoraproject.org/pub/fedora/linux/releases/45/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-45-1.4.x86_64.qcow2
+vm_image_checksum: sha256:50bdc5e70f6a24f540932d15411c1c6ae9fcfa40fb990d876d83c5cc823b2ad0
+vm_directory: "/var/lib/libvirt/images/{{ vm_name }}"
+vm_local_directory: "{{ playbook_dir }}/.local"
+vm_private_key: "{{ vm_local_directory }}/id_ed25519"

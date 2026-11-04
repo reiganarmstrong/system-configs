@@ -1,0 +1,134 @@
+---
+- name: Require Fedora 45 or newer and an explicit desktop account
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.distribution == 'Fedora'
+      - ansible_facts.distribution_major_version | int >= 45
+      - desktop_user | length > 0
+      - desktop_user != 'root'
+      - not desktop_autologin or desktop_vm
+    fail_msg: Use an existing regular account on Fedora 45 or newer. Automatic login requires desktop_vm=true.
+
+- name: Find the desktop account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ desktop_user }}"
+
+- name: Record the account home and primary group
+  ansible.builtin.set_fact:
+    desktop_home: "{{ ansible_facts.getent_passwd[desktop_user][4] }}"
+    desktop_group: "{{ ansible_facts.getent_passwd[desktop_user][2] }}"
+
+- name: Install the desktop packages from Fedora repositories
+  ansible.builtin.dnf:
+    name: "{{ desktop_packages }}"
+    state: present
+
+- name: Create the Niri configuration and screenshot directories
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/{{ item }}"
+    state: directory
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+  loop:
+    - .config
+    - .config/niri
+    - Pictures
+    - Pictures/Screenshots
+
+- name: Install and validate the shared Niri configuration
+  ansible.builtin.template:
+    src: config.kdl.j2
+    dest: "{{ desktop_home }}/.config/niri/config.kdl"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    backup: true
+    validate: /usr/bin/niri validate --config %s
+
+- name: Create the AccountsService user directory
+  ansible.builtin.file:
+    path: /var/lib/AccountsService/users
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Select Niri for the desktop account
+  community.general.ini_file:
+    path: "/var/lib/AccountsService/users/{{ desktop_user }}"
+    section: User
+    option: XSession
+    value: niri
+    owner: root
+    group: root
+    mode: '0600'
+    no_extra_spaces: true
+
+- name: Configure the automatic login policy
+  community.general.ini_file:
+    path: /etc/gdm/custom.conf
+    section: daemon
+    option: AutomaticLoginEnable
+    value: "{{ desktop_autologin | ternary('True', 'False') }}"
+    mode: '0644'
+    no_extra_spaces: true
+
+- name: Set the automatic login account for the test VM
+  community.general.ini_file:
+    path: /etc/gdm/custom.conf
+    section: daemon
+    option: AutomaticLogin
+    value: "{{ desktop_user }}"
+    state: "{{ desktop_autologin | ternary('present', 'absent') }}"
+    mode: '0644'
+    no_extra_spaces: true
+
+- name: Enable the graphical login service
+  ansible.builtin.systemd_service:
+    name: gdm
+    enabled: true
+
+- name: Inspect the default boot target
+  ansible.builtin.command: systemctl get-default
+  register: desktop_boot_target
+  changed_when: false
+
+- name: Boot into the graphical login screen
+  ansible.builtin.command: systemctl set-default graphical.target
+  when: desktop_boot_target.stdout != 'graphical.target'
+
+- name: Install VM integration packages
+  ansible.builtin.dnf:
+    name: qemu-guest-agent
+    state: present
+  when: desktop_vm
+
+- name: Start VM integration
+  ansible.builtin.systemd_service:
+    name: qemu-guest-agent
+    enabled: true
+    state: started
+  when: desktop_vm
+
+- name: Start the test VM desktop
+  ansible.builtin.systemd_service:
+    name: gdm
+    state: started
+  when: desktop_vm
+
+- name: Enable and start the desktop audio services
+  become_user: "{{ desktop_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts.getent_passwd[desktop_user][1] }}"
+  ansible.builtin.systemd_service:
+    scope: user
+    name: "{{ item }}"
+    daemon_reload: true
+    enabled: true
+    state: started
+  loop:
+    - pipewire.socket
+    - pipewire-pulse.socket
+    - wireplumber.service

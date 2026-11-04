@@ -1,0 +1,28 @@
+---
+desktop_user: "{{ lookup('env', 'USER') }}"
+desktop_autologin: false
+desktop_vm: false
+desktop_output: ""
+desktop_output_mode: "1280x800"
+desktop_packages:
+  - git
+  - python3-pip
+  - niri
+  - noctalia
+  - gdm
+  - alacritty
+  - firefox
+  - nautilus
+  - xwayland-satellite
+  - xdg-desktop-portal-gnome
+  - xdg-desktop-portal-gtk
+  - xdg-user-dirs
+  - mesa-dri-drivers
+  - pipewire
+  - pipewire-pulseaudio
+  - wireplumber
+  - gnome-keyring
+  - wl-clipboard
+  - brightnessctl
+  - google-noto-sans-fonts
+  - google-noto-emoji-color-fonts

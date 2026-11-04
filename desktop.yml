@@ -1,0 +1,6 @@
+---
+- name: Configure the Fedora desktop
+  hosts: desktops
+  become: true
+  roles:
+    - desktop
