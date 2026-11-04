@@ -10,13 +10,13 @@ Install Fedora 45 Workstation or newer and create your normal user account with 
 
 ```bash
 sudo dnf install -y git python3-pip
-git clone reagan@192.168.1.215:/home/reagan/documents/github/fedora-desktop
+git clone reagan@100.79.178.44:/home/reagan/documents/github/fedora-desktop
 cd fedora-desktop
 ./bootstrap.sh
 .local/ansible/bin/ansible-playbook desktop.yml --ask-become-pass
 ```
 
-The clone command reads this Git repository over SSH from the Ubuntu server. Substitute a Git hosting URL if it is published later. Run Ansible as your normal user. It configures that account by default. Use `-e desktop_user=NAME` to select another existing account.
+The clone command reads this Git repository over SSH from the Ubuntu server's Tailscale address. Connect the laptop to the same tailnet first. Substitute a Git hosting URL if it is published later. Run Ansible as your normal user. It configures that account by default. Use `-e desktop_user=NAME` to select another existing account.
 
 The bootstrap script installs Ansible Core 2.22.0 and the collection versions in `requirements.yml` into ignored `.local/` directories. Ansible 2.22 supports Fedora 45's Python 3.15. Older controller versions fail before running desktop tasks.
 
@@ -50,13 +50,13 @@ Run the same command again to check that it reports no unintended changes. To ch
 
 ## Connect from the Mac
 
-Forward the VM console through SSH to the Ubuntu host.
+Connect Tailscale on the Mac to the same tailnet as the Ubuntu host. The server's Tailscale address is `100.79.178.44`, and its MagicDNS name is `pc.taila028da.ts.net`. Forward the VM console through SSH over Tailscale.
 
 ```bash
-ssh -N -L 5901:127.0.0.1:5901 reagan@192.168.1.215
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:5901:127.0.0.1:5901 reagan@100.79.178.44
 ```
 
-Keep that terminal running. Connect a VNC viewer to `127.0.0.1` on port `5901`. The built-in macOS Screen Sharing application can be opened with `open vnc://127.0.0.1:5901`. The console listens only on the Ubuntu host's loopback address and uses SSH for access. Substitute your host address when using another machine or Tailscale.
+Keep that terminal running. In another terminal, run `open vnc://127.0.0.1:5901` to open macOS Screen Sharing. Another VNC viewer can connect to `127.0.0.1` on port `5901`. The console listens only on the Ubuntu host's loopback address, and SSH carries the connection over Tailscale. On the home LAN, `192.168.1.215` can also be used as the SSH server address. [SSH over Tailscale](https://tailscale.com/docs/reference/ssh-over-tailscale)
 
 Super is Command when the VNC client forwards the Mac Command key as Super. Start a terminal with Super+T, open the launcher with Super+Space, toggle the overview with Super+Tab, and show the bindings with Super+Shift+/. Mac shortcuts may require configuring the viewer to pass them through.
 
