@@ -8,6 +8,8 @@
       - desktop_user != 'root'
       - not desktop_autologin or desktop_vm
       - desktop_theme_mode in ['light', 'dark']
+      - desktop_surface_opacity | float > 0
+      - desktop_surface_opacity | float <= 1
     fail_msg: Use an existing regular account on Fedora 45 or newer. Automatic login requires desktop_vm=true.
 
 - name: Find the desktop account
@@ -74,7 +76,33 @@
     path: "{{ desktop_home }}/.local/state/noctalia/settings.toml"
   register: desktop_noctalia_settings
 
+- name: Read GUI-managed Noctalia overrides
+  ansible.builtin.slurp:
+    src: "{{ desktop_home }}/.local/state/noctalia/settings.toml"
+  register: desktop_noctalia_settings_data
+  when: desktop_noctalia_settings.stat.exists
+  no_log: true
+
+- name: Parse the existing GUI overrides
+  ansible.builtin.set_fact:
+    desktop_noctalia_gui_overrides: >-
+      {{
+        desktop_noctalia_settings_data.content | b64decode | community.general.from_toml
+        if desktop_noctalia_settings.stat.exists
+        else {}
+      }}
+  no_log: true
+
 - name: Clear GUI overrides for the managed appearance settings
+  vars:
+    desktop_noctalia_section_path: "{{ item.section.split('.') }}"
+    desktop_noctalia_section_data: "{{ desktop_noctalia_gui_overrides.get(desktop_noctalia_section_path[0], {}) }}"
+    desktop_noctalia_section_options: >-
+      {{
+        desktop_noctalia_section_data.get(desktop_noctalia_section_path[1], {})
+        if desktop_noctalia_section_path | length > 1
+        else desktop_noctalia_section_data
+      }}
   community.general.ini_file:
     path: "{{ desktop_home }}/.local/state/noctalia/settings.toml"
     section: "{{ item.section }}"
@@ -98,7 +126,12 @@
     - { section: dock, option: compositor_blur }
     - { section: notification, option: background_opacity }
     - { section: osd, option: background_opacity }
-  when: desktop_noctalia_settings.stat.exists
+    - { section: backdrop, option: enabled }
+    - { section: backdrop, option: blur_intensity }
+    - { section: lockscreen, option: blurred_desktop }
+    - { section: lockscreen, option: blur_intensity }
+  # Skip absent keys so ini_file's EOF newline normalization cannot trigger a reload.
+  when: item.option in desktop_noctalia_section_options
 
 - name: Install the matching translucent terminal configuration
   ansible.builtin.template:

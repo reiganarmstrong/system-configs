@@ -5,8 +5,10 @@ desktop_vm: false
 desktop_output: ""
 desktop_output_mode: "3840x2160@60"
 desktop_output_scale: 2
-desktop_theme_mode: light
+desktop_theme_mode: dark
 desktop_glass: true
+desktop_blur: false
+desktop_surface_opacity: 0.96
 desktop_packages:
   - git
   - python3-pip

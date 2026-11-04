@@ -26,9 +26,9 @@ Fedora 45 is the tested starting release. Packages track Fedora's repositories, 
 
 ## Appearance and display
 
-The shared desktop role configures a macOS-inspired light palette with blue accents, silver-gray surfaces, Inter typography, soft shadows and rounded windows. Noctalia panels and the bar use transparency with Niri compositor blur. Alacritty has a matching translucent background. The palette includes a dark variant. Set `desktop_theme_mode=dark` when applying the desktop playbook to choose it.
+The shared desktop role configures a macOS-inspired dark palette with blue accents, charcoal surfaces, Inter typography, soft shadows and rounded windows. Noctalia panels, the bar, the dock and Alacritty use 96% opacity for slight glass transparency. Notifications and OSD popups use 97% opacity. The palette also includes a light variant. Set `desktop_theme_mode=light` when applying the desktop playbook to choose it. Noctalia's interactive mode control is under Settings → Appearance → Theme, or use `noctalia msg theme-mode-toggle` inside the desktop session.
 
-`desktop_glass` enables the glass effects. The curated files live under `roles/desktop/templates/`, and the palette is `roles/desktop/files/macos.json`. The palette uses the complete legacy format, including terminal colors, required by Noctalia 5.4.1's shell renderer. Current Noctalia also accepts that format. GUI overrides for the managed theme, font and transparency settings are cleared when Ansible runs. [Noctalia palette formats](https://docs.noctalia.dev/noctalia/theming/palette/)
+`desktop_glass` controls transparency separately from `desktop_blur`, which defaults to false. `desktop_surface_opacity` controls the shared 96% opacity. Noctalia draws floating panels solid, and a Niri layer rule applies their subtle transparency because Noctalia 5.4.1's built-in translucent panel presets are substantially more transparent. Attached panels inherit the bar's 96% opacity. The configuration disables compositor blur for windows and all layer surfaces, bar and dock blur requests, overview backdrop blur and lock-screen background blur. The curated files live under `roles/desktop/templates/`, and the palette is `roles/desktop/files/macos.json`. The palette uses the complete legacy format, including terminal colors, required by Noctalia 5.4.1's shell renderer. Current Noctalia also accepts that format. Existing GUI overrides for the managed theme, font, transparency and blur settings are cleared when Ansible runs. [Noctalia palette formats](https://docs.noctalia.dev/noctalia/theming/palette/)
 
 The VM output is 3840×2160 at 60 Hz with 2× scaling, giving a 1920×1080 logical workspace. `desktop_output_mode` and `desktop_output_scale` control those values when a specific output is selected. Native installs start with automatic monitor selection and scaling because `desktop_output` is empty. Set it to the laptop panel's connector name if you want to manage that panel explicitly.
 
@@ -107,17 +107,15 @@ The VM does not automatically start when the Ubuntu host reboots. Run the VM pla
 
 On November 4, 2026, the VM playbook completed on Ubuntu 26.04.1 with Fedora 45, Niri 26.04 and Noctalia 5.4.1. A repeat of the entire VM playbook reported zero changes on both host and guest. The repository was also cloned into Fedora, bootstrapped there, and applied locally with the native defaults. Its second local run reported zero changes.
 
-The VNC console delivered a 1280×800 framebuffer showing Niri and Noctalia. Sending Super+T through the VNC protocol opened Alacritty. PipeWire and WirePlumber were active. Syntax checks and Ansible Lint passed. Mac client behavior and physical Framework hardware still require testing on those devices.
+The running desktop was verified at 3840×2160 at 60 Hz with 2× scaling, dark mode, 96% surface opacity and background blur disabled. A launcher screenshot confirmed faint transparency with sharp wallpaper and Settings content behind it. Noctalia and GTK both reported dark mode. Sending Super+T through VNC opened Alacritty. PipeWire and WirePlumber were active. The appearance playbook's repeat run reported zero changes. Syntax checks and Ansible Lint passed. Physical Framework hardware still requires testing on that device.
 
-The subsequent appearance update was verified at 3840×2160 at 60 Hz with 2× scaling. The light custom palette, blue accents and frosted control-center panel were checked in the running desktop. The appearance playbook's repeat run reported zero changes, and the VNC authentication check returned the 4K framebuffer dimensions.
-
-macOS Screen Sharing subsequently requested a password for the connection. The VM now requires classic VNC password authentication. Its challenge-response exchange accepted the configured password and returned a 1280×800 console. Run the regression check against the running VM from the Ubuntu host with the default local password file.
+The VM requires classic VNC password authentication for macOS Screen Sharing. Its challenge-response exchange accepted the configured password and returned a 3840×2160 console. Run the regression check against the running VM from the Ubuntu host with the default local password file.
 
 ```bash
 .local/ansible/bin/python tests/check_vnc_auth.py
 ```
 
-The VM opens Noctalia's first-run welcome screen. Automatic login may also prompt to create or unlock a keyring. Those interactive choices can be made in the guest. Record any desktop settings chosen during experiments in the shared role before relying on them for the laptop installation.
+On first launch, Noctalia may show its welcome screen. Automatic login may also prompt to create or unlock a keyring. Those interactive choices can be made in the guest. Record any desktop settings chosen during experiments in the shared role before relying on them for the laptop installation.
 
 ## Sources
 

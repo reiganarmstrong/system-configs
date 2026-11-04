@@ -52,7 +52,7 @@ window-rule {
     geometry-corner-radius 16
     clip-to-geometry true
     background-effect {
-        blur {{ desktop_glass | ternary('true', 'false') }}
+        blur {{ desktop_blur | ternary('true', 'false') }}
         xray false
     }
 }
@@ -63,18 +63,15 @@ window-rule {
 }
 
 layer-rule {
-    match namespace="^noctalia-"
     background-effect {
-        blur {{ desktop_glass | ternary('true', 'false') }}
+        blur {{ desktop_blur | ternary('true', 'false') }}
         xray false
     }
 }
 
-blur {
-    passes 2
-    offset 3.0
-    noise 0.02
-    saturation 1.05
+layer-rule {
+    match namespace="^noctalia-panel$"
+    opacity {{ desktop_glass | ternary(desktop_surface_opacity, 1.0) }}
 }
 
 debug {
