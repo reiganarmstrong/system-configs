@@ -1,0 +1,81 @@
+---
+- name: Create the user icon and source cache directories
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/{{ item }}"
+    state: directory
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+  loop:
+    - .cache/fedora-desktop
+    - .local/share/icons
+    - .config/gtk-3.0
+    - .config/gtk-4.0
+
+- name: Fetch the pinned WhiteSur icon sources
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/vinceliuice/WhiteSur-icon-theme.git
+    dest: "{{ desktop_home }}/.cache/fedora-desktop/WhiteSur-icon-theme"
+    version: "{{ desktop_whitesur_revision }}"
+    depth: 1
+  register: desktop_whitesur_source
+
+- name: Inspect the installed WhiteSur variants and revision marker
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/{{ item }}"
+  loop:
+    - .local/share/icons/WhiteSur/index.theme
+    - .local/share/icons/WhiteSur-dark/index.theme
+    - .local/share/icons/WhiteSur-light/index.theme
+    - ".cache/fedora-desktop/whitesur-{{ desktop_whitesur_revision }}-alternative-bold.installed"
+  register: desktop_whitesur_installed
+
+- name: Install WhiteSur with macOS file-manager icons and bold symbols
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/bash
+      - "{{ desktop_home }}/.cache/fedora-desktop/WhiteSur-icon-theme/install.sh"
+      - --dest
+      - "{{ desktop_home }}/.local/share/icons"
+      - --alternative
+      - --bold
+  when: >-
+    desktop_whitesur_source.changed or
+    desktop_whitesur_installed.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+  register: desktop_whitesur_install
+  changed_when: true
+
+- name: Record the successfully installed icon revision and options
+  ansible.builtin.copy:
+    content: "{{ desktop_whitesur_revision }} --alternative --bold\n"
+    dest: "{{ desktop_home }}/.cache/fedora-desktop/whitesur-{{ desktop_whitesur_revision }}-alternative-bold.installed"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+  when: desktop_whitesur_install.changed
+
+- name: Select WhiteSur for GTK applications and Noctalia's app icons
+  become: true
+  become_user: "{{ desktop_user }}"
+  community.general.dconf:
+    key: /org/gnome/desktop/interface/icon-theme
+    value: "'{{ desktop_icon_theme }}'"
+    state: present
+
+- name: Set the matching GTK icon theme fallback
+  community.general.ini_file:
+    path: "{{ desktop_home }}/.config/{{ item }}/settings.ini"
+    section: Settings
+    option: gtk-icon-theme-name
+    value: "{{ desktop_icon_theme }}"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    no_extra_spaces: true
+  loop:
+    - gtk-3.0
+    - gtk-4.0

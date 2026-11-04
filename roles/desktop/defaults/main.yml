@@ -9,8 +9,13 @@ desktop_theme_mode: dark
 desktop_glass: true
 desktop_blur: false
 desktop_surface_opacity: 0.96
+desktop_icon_theme: "WhiteSur-{{ desktop_theme_mode }}"
+desktop_whitesur_revision: 73d8040da51a9ed74e47c7366e7e9ff437601a5c
 desktop_packages:
   - git
+  - dconf
+  - python3-psutil
+  - gtk-update-icon-cache
   - python3-pip
   - niri
   - noctalia

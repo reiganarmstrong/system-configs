@@ -27,6 +27,9 @@
     name: "{{ desktop_packages }}"
     state: present
 
+- name: Install and select the macOS-style icons
+  ansible.builtin.include_tasks: icons.yml
+
 - name: Create the Niri configuration and screenshot directories
   ansible.builtin.file:
     path: "{{ desktop_home }}/{{ item }}"
