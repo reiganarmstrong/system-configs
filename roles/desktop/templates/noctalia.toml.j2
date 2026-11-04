@@ -24,6 +24,11 @@ alpha = 0.22
 background_opacity = {{ desktop_glass | ternary(desktop_surface_opacity, 1.0) }}
 compositor_blur = {{ desktop_blur | ternary('true', 'false') }}
 
+[widget.workspaces]
+occupied_color = "#FFFFFF"
+empty_color = "#FFFFFF"
+change_color_on_hover = false
+
 [dock]
 background_opacity = {{ desktop_glass | ternary(desktop_surface_opacity, 1.0) }}
 compositor_blur = {{ desktop_blur | ternary('true', 'false') }}

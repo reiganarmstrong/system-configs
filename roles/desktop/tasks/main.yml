@@ -122,6 +122,9 @@
     - { section: shell.panel, option: transparency_mode }
     - { section: bar.main, option: background_opacity }
     - { section: bar.main, option: compositor_blur }
+    - { section: widget.workspaces, option: occupied_color }
+    - { section: widget.workspaces, option: empty_color }
+    - { section: widget.workspaces, option: change_color_on_hover }
     - { section: dock, option: background_opacity }
     - { section: dock, option: compositor_blur }
     - { section: notification, option: background_opacity }
