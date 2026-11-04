@@ -12,3 +12,5 @@ vm_image_checksum: sha256:50bdc5e70f6a24f540932d15411c1c6ae9fcfa40fb990d876d83c5
 vm_directory: "/var/lib/libvirt/images/{{ vm_name }}"
 vm_local_directory: "{{ playbook_dir }}/.local"
 vm_private_key: "{{ vm_local_directory }}/id_ed25519"
+vm_vnc_password_file: "{{ vm_local_directory }}/vnc-password"
+vm_vnc_password: "{{ lookup('ansible.builtin.file', vm_vnc_password_file) }}"

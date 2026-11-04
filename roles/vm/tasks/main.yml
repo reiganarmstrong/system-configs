@@ -10,6 +10,29 @@
       - vm_vnc_port | int >= 5900
       - vm_vnc_port | int <= 5999
 
+- name: Check for the local VNC password file
+  become: false
+  ansible.builtin.stat:
+    path: "{{ vm_vnc_password_file }}"
+  register: vm_vnc_password_state
+
+- name: Require a VNC password for macOS Screen Sharing
+  ansible.builtin.assert:
+    that: vm_vnc_password_state.stat.exists
+    fail_msg: Create .local/vnc-password with an 8-character password as described in README.md.
+
+- name: Validate the VNC password without logging it
+  ansible.builtin.assert:
+    that: vm_vnc_password is match('^[!-~]{8}$')
+    fail_msg: The VNC password must contain exactly 8 printable ASCII characters without spaces.
+  no_log: true
+
+- name: Restrict access to the local VNC password file
+  become: false
+  ansible.builtin.file:
+    path: "{{ vm_vnc_password_file }}"
+    mode: '0600'
+
 - name: Install host virtualization packages
   ansible.builtin.apt:
     name:
@@ -157,6 +180,7 @@
     dest: "{{ vm_directory }}/domain.xml"
     mode: '0600'
   register: vm_definition
+  no_log: true
 
 - name: Read the last successfully applied VM definition
   ansible.builtin.stat:
@@ -201,6 +225,7 @@
     command: define
     xml: "{{ lookup('template', 'domain.xml.j2') }}"
   when: vm_hardware_changed or vm_name not in vm_domains.list_vms
+  no_log: true
 
 - name: Record the successfully applied VM definition
   ansible.builtin.copy:

@@ -26,7 +26,25 @@ Fedora 45 is the tested starting release. Packages track Fedora's repositories, 
 
 ## Rehearsal VM on Ubuntu
 
-Install Git and Python's venv support on the Ubuntu host with `sudo apt install git python3-venv`. Clone this repository and run `./bootstrap.sh`. Then run the VM playbook as your normal host user.
+Install Git and Python's venv support on the Ubuntu host with `sudo apt install git python3-venv`. Clone this repository and run `./bootstrap.sh`. Before the first VM run, create its VNC password file with this private prompt. Classic VNC authentication uses eight characters. Choose exactly eight printable ASCII characters without spaces.
+
+```bash
+python3 - <<'PY'
+import getpass
+import os
+from pathlib import Path
+
+password = getpass.getpass('Choose an 8-character VNC password: ')
+if len(password) != 8 or not all('!' <= character <= '~' for character in password):
+    raise SystemExit('Use exactly 8 printable ASCII characters without spaces.')
+path = Path('.local/vnc-password')
+descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+with os.fdopen(descriptor, 'w') as output:
+    output.write(password)
+PY
+```
+
+This file stays in ignored `.local/` state. The playbook redacts password-bearing tasks and stores libvirt's generated definitions with root-only permissions. Then run the VM playbook as your normal host user.
 
 ```bash
 .local/ansible/bin/ansible-playbook vm.yml --ask-become-pass
@@ -46,17 +64,22 @@ To apply a desktop change to the VM, run this from the Ubuntu host.
 
 Run the same command again to check that it reports no unintended changes. To check the native configuration without applying changes, add `--check --diff` to the native command on an already configured Fedora installation.
 
-`vars/vm.yml` contains the VM resources and image checksum. Changes to virtual hardware trigger a graceful VM shutdown and definition update on the next VM playbook run. Shut down the guest before increasing its disk size. Cloud-init account changes require a fresh VM. The playbook preserves existing guest disks and does not rebuild them on another run. A new host must have `/dev/kvm`, hardware virtualization enabled and a GPU render device suitable for headless EGL.
+`vars/vm.yml` contains the VM resources and image checksum. Changes to virtual hardware or the VNC password trigger a graceful VM shutdown and definition update on the next VM playbook run. Shut down the guest before increasing its disk size. Cloud-init account changes require a fresh VM. The playbook preserves existing guest disks and does not rebuild them on another run. A new host must have `/dev/kvm`, hardware virtualization enabled and a GPU render device suitable for headless EGL.
 
 ## Connect from the Mac
 
 Connect Tailscale on the Mac to the same tailnet as the Ubuntu host. The server's Tailscale address is `100.79.178.44`, and its MagicDNS name is `pc.taila028da.ts.net`. Forward the VM console through SSH over Tailscale.
 
 ```bash
-ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:5901:127.0.0.1:5901 reagan@100.79.178.44
+ssh -N \
+  -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=15 \
+  -o ServerAliveCountMax=3 \
+  -L 127.0.0.1:5901:127.0.0.1:5901 \
+  reagan@pc.taila028da.ts.net
 ```
 
-Keep that terminal running. In another terminal, run `open vnc://127.0.0.1:5901` to open macOS Screen Sharing. Another VNC viewer can connect to `127.0.0.1` on port `5901`. The console listens only on the Ubuntu host's loopback address, and SSH carries the connection over Tailscale. On the home LAN, `192.168.1.215` can also be used as the SSH server address. [SSH over Tailscale](https://tailscale.com/docs/reference/ssh-over-tailscale)
+Keep that terminal running. In another terminal, run `open vnc://127.0.0.1:5901` to open macOS Screen Sharing. Enter the VNC password chosen during VM setup when Screen Sharing prompts. Another VNC viewer can connect to `127.0.0.1` on port `5901`. The console listens only on the Ubuntu host's loopback address, and SSH carries the connection over Tailscale. On the home LAN, `192.168.1.215` can also be used as the SSH server address. [SSH over Tailscale](https://tailscale.com/docs/reference/ssh-over-tailscale)
 
 Super is Command when the VNC client forwards the Mac Command key as Super. Start a terminal with Super+T, open the launcher with Super+Space, toggle the overview with Super+Tab, and show the bindings with Super+Shift+/. Mac shortcuts may require configuring the viewer to pass them through.
 
@@ -77,6 +100,12 @@ The VM does not automatically start when the Ubuntu host reboots. Run the VM pla
 On November 4, 2026, the VM playbook completed on Ubuntu 26.04.1 with Fedora 45, Niri 26.04 and Noctalia 5.4.1. A repeat of the entire VM playbook reported zero changes on both host and guest. The repository was also cloned into Fedora, bootstrapped there, and applied locally with the native defaults. Its second local run reported zero changes.
 
 The VNC console delivered a 1280×800 framebuffer showing Niri and Noctalia. Sending Super+T through the VNC protocol opened Alacritty. PipeWire and WirePlumber were active. Syntax checks and Ansible Lint passed. Mac client behavior and physical Framework hardware still require testing on those devices.
+
+macOS Screen Sharing subsequently requested a password for the connection. The VM now requires classic VNC password authentication. Its challenge-response exchange accepted the configured password and returned a 1280×800 console. Run the regression check against the running VM from the Ubuntu host with the default local password file.
+
+```bash
+.local/ansible/bin/python tests/check_vnc_auth.py
+```
 
 The VM opens Noctalia's first-run welcome screen. Automatic login may also prompt to create or unlock a keyring. Those interactive choices can be made in the guest. Record any desktop settings chosen during experiments in the shared role before relying on them for the laptop installation.
 
