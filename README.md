@@ -24,6 +24,14 @@ Reboot after the first run, then select Niri from the login screen's session men
 
 Fedora 45 is the tested starting release. Packages track Fedora's repositories, so later runs can install newer dependency versions. This repository reproduces the configuration and package selection rather than an immutable OS image.
 
+## Appearance and display
+
+The shared desktop role configures a macOS-inspired light palette with blue accents, silver-gray surfaces, Inter typography, soft shadows and rounded windows. Noctalia panels and the bar use transparency with Niri compositor blur. Alacritty has a matching translucent background. The palette includes a dark variant. Set `desktop_theme_mode=dark` when applying the desktop playbook to choose it.
+
+`desktop_glass` enables the glass effects. The curated files live under `roles/desktop/templates/`, and the palette is `roles/desktop/files/macos.json`. The palette uses the complete legacy format, including terminal colors, required by Noctalia 5.4.1's shell renderer. Current Noctalia also accepts that format. GUI overrides for the managed theme, font and transparency settings are cleared when Ansible runs. [Noctalia palette formats](https://docs.noctalia.dev/noctalia/theming/palette/)
+
+The VM output is 3840×2160 at 60 Hz with 2× scaling, giving a 1920×1080 logical workspace. `desktop_output_mode` and `desktop_output_scale` control those values when a specific output is selected. Native installs start with automatic monitor selection and scaling because `desktop_output` is empty. Set it to the laptop panel's connector name if you want to manage that panel explicitly.
+
 ## Rehearsal VM on Ubuntu
 
 Install Git and Python's venv support on the Ubuntu host with `sudo apt install git python3-venv`. Clone this repository and run `./bootstrap.sh`. Before the first VM run, create its VNC password file with this private prompt. Classic VNC authentication uses eight characters. Choose exactly eight printable ASCII characters without spaces.
@@ -54,7 +62,7 @@ The VM playbook installs QEMU/libvirt, downloads the checksum-pinned Fedora 45 c
 
 The cloud image only bootstraps the account and SSH access. All desktop installation and configuration happens in Ansible. VM administration uses a generated SSH key and passwordless sudo inside the guest. Private keys, known hosts and the generated inventory stay in ignored `.local/` state. Guest disks and seed files live under `/var/lib/libvirt/images/fedora-niri/`.
 
-VM-only settings enable automatic login, select a 1280×800 virtual display, disable Noctalia blur, and install the QEMU guest agent. The virtual GPU uses VirtIO 3D and headless EGL through the host's Arc GPU at `/dev/dri/renderD128`. QEMU receives membership in the host's `render` group. Niri rejected the initial software-only virtual display. Native installations use their physical display and normal graphics defaults. Virtualization and graphics performance in this VM do not validate laptop Wi-Fi, suspend, fingerprint, battery or display scaling.
+VM-only settings enable automatic login, select the 4K virtual display, and install the QEMU guest agent. The virtual GPU uses VirtIO 3D and headless EGL through the host's Arc GPU at `/dev/dri/renderD128`. QEMU receives membership in the host's `render` group. Niri rejected the initial software-only virtual display. Native installations use their physical display and normal graphics defaults. Virtualization and graphics performance in this VM do not validate laptop Wi-Fi, suspend, fingerprint, battery or display scaling.
 
 To apply a desktop change to the VM, run this from the Ubuntu host.
 
@@ -100,6 +108,8 @@ The VM does not automatically start when the Ubuntu host reboots. Run the VM pla
 On November 4, 2026, the VM playbook completed on Ubuntu 26.04.1 with Fedora 45, Niri 26.04 and Noctalia 5.4.1. A repeat of the entire VM playbook reported zero changes on both host and guest. The repository was also cloned into Fedora, bootstrapped there, and applied locally with the native defaults. Its second local run reported zero changes.
 
 The VNC console delivered a 1280×800 framebuffer showing Niri and Noctalia. Sending Super+T through the VNC protocol opened Alacritty. PipeWire and WirePlumber were active. Syntax checks and Ansible Lint passed. Mac client behavior and physical Framework hardware still require testing on those devices.
+
+The subsequent appearance update was verified at 3840×2160 at 60 Hz with 2× scaling. The light custom palette, blue accents and frosted control-center panel were checked in the running desktop. The appearance playbook's repeat run reported zero changes, and the VNC authentication check returned the 4K framebuffer dimensions.
 
 macOS Screen Sharing subsequently requested a password for the connection. The VM now requires classic VNC password authentication. Its challenge-response exchange accepted the configured password and returned a 1280×800 console. Run the regression check against the running VM from the Ubuntu host with the default local password file.
 

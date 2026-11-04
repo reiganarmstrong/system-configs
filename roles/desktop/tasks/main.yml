@@ -7,6 +7,7 @@
       - desktop_user | length > 0
       - desktop_user != 'root'
       - not desktop_autologin or desktop_vm
+      - desktop_theme_mode in ['light', 'dark']
     fail_msg: Use an existing regular account on Fedora 45 or newer. Automatic login requires desktop_vm=true.
 
 - name: Find the desktop account
@@ -34,6 +35,9 @@
   loop:
     - .config
     - .config/niri
+    - .config/noctalia
+    - .config/noctalia/palettes
+    - .config/alacritty
     - Pictures
     - Pictures/Screenshots
 
@@ -46,6 +50,64 @@
     mode: '0644'
     backup: true
     validate: /usr/bin/niri validate --config %s
+
+- name: Install the macOS color palette
+  ansible.builtin.copy:
+    src: macos.json
+    dest: "{{ desktop_home }}/.config/noctalia/palettes/macos.json"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+- name: Install and validate the Noctalia glass appearance
+  ansible.builtin.template:
+    src: noctalia.toml.j2
+    dest: "{{ desktop_home }}/.config/noctalia/appearance.toml"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    backup: true
+    validate: /usr/bin/noctalia config validate %s
+
+- name: Inspect GUI-managed Noctalia settings
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/.local/state/noctalia/settings.toml"
+  register: desktop_noctalia_settings
+
+- name: Clear GUI overrides for the managed appearance settings
+  community.general.ini_file:
+    path: "{{ desktop_home }}/.local/state/noctalia/settings.toml"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    state: absent
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0600'
+    backup: true
+  loop:
+    - { section: theme, option: source }
+    - { section: theme, option: custom_palette }
+    - { section: theme, option: mode }
+    - { section: theme, option: shell_mode }
+    - { section: shell, option: font_family }
+    - { section: shell, option: corner_radius_scale }
+    - { section: shell.panel, option: transparency_mode }
+    - { section: bar.main, option: background_opacity }
+    - { section: bar.main, option: compositor_blur }
+    - { section: dock, option: background_opacity }
+    - { section: dock, option: compositor_blur }
+    - { section: notification, option: background_opacity }
+    - { section: osd, option: background_opacity }
+  when: desktop_noctalia_settings.stat.exists
+
+- name: Install the matching translucent terminal configuration
+  ansible.builtin.template:
+    src: alacritty.toml.j2
+    dest: "{{ desktop_home }}/.config/alacritty/alacritty.toml"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    backup: true
 
 - name: Create the AccountsService user directory
   ansible.builtin.file:

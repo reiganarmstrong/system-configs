@@ -3,7 +3,10 @@ desktop_user: "{{ lookup('env', 'USER') }}"
 desktop_autologin: false
 desktop_vm: false
 desktop_output: ""
-desktop_output_mode: "1280x800"
+desktop_output_mode: "3840x2160@60"
+desktop_output_scale: 2
+desktop_theme_mode: light
+desktop_glass: true
 desktop_packages:
   - git
   - python3-pip
@@ -26,3 +29,4 @@ desktop_packages:
   - brightnessctl
   - google-noto-sans-fonts
   - google-noto-emoji-color-fonts
+  - rsms-inter-fonts

@@ -1,0 +1,34 @@
+# Managed by Ansible. GUI overrides for these settings are cleared on each run.
+[theme]
+# The complete legacy palette supports Noctalia 5.4.1's shell renderer.
+source = "custom"
+custom_palette = "macos"
+mode = "{{ desktop_theme_mode }}"
+shell_mode = "follow"
+
+[shell]
+font_family = "Inter"
+corner_radius_scale = 1.15
+
+[shell.panel]
+transparency_mode = "{{ desktop_glass | ternary('glass', 'solid') }}"
+border_color = "outline_variant"
+border_width = 1.0
+shadow = true
+
+[shell.shadow]
+alpha = 0.22
+
+[bar.main]
+background_opacity = {{ desktop_glass | ternary(0.74, 1.0) }}
+compositor_blur = {{ desktop_glass | ternary('true', 'false') }}
+
+[dock]
+background_opacity = {{ desktop_glass | ternary(0.68, 1.0) }}
+compositor_blur = {{ desktop_glass | ternary('true', 'false') }}
+
+[notification]
+background_opacity = {{ desktop_glass | ternary(0.84, 1.0) }}
+
+[osd]
+background_opacity = {{ desktop_glass | ternary(0.8, 1.0) }}

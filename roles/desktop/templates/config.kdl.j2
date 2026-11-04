@@ -15,7 +15,7 @@ input {
 {% if desktop_output | length > 0 %}
 output "{{ desktop_output }}" {
     mode "{{ desktop_output_mode }}"
-    scale 1
+    scale {{ desktop_output_scale }}
 }
 {% endif %}
 
@@ -30,10 +30,17 @@ layout {
     default-column-width { proportion 0.5; }
     focus-ring {
         width 2
-        active-color "#89b4fa"
-        inactive-color "#45475a"
+        active-color "#007AFF"
+        inactive-color "#C7C7CC"
     }
     border { off; }
+    shadow {
+        on
+        softness 28
+        spread 2
+        offset x=0 y=8
+        color "#00000026"
+    }
 }
 
 spawn-at-startup "noctalia"
@@ -42,8 +49,12 @@ prefer-no-csd
 screenshot-path "~/Pictures/Screenshots/%Y-%m-%d-%H-%M-%S.png"
 
 window-rule {
-    geometry-corner-radius 12
+    geometry-corner-radius 16
     clip-to-geometry true
+    background-effect {
+        blur {{ desktop_glass | ternary('true', 'false') }}
+        xray false
+    }
 }
 
 window-rule {
@@ -51,13 +62,20 @@ window-rule {
     open-floating true
 }
 
-{% if desktop_vm %}
-// Keep the software-rendered VM responsive. Native hardware uses Niri defaults.
 layer-rule {
     match namespace="^noctalia-"
-    background-effect { blur false; }
+    background-effect {
+        blur {{ desktop_glass | ternary('true', 'false') }}
+        xray false
+    }
 }
-{% endif %}
+
+blur {
+    passes 2
+    offset 3.0
+    noise 0.02
+    saturation 1.05
+}
 
 debug {
     honor-xdg-activation-with-invalid-serial
