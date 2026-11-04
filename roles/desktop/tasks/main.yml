@@ -122,6 +122,7 @@
     - { section: theme, option: shell_mode }
     - { section: shell, option: font_family }
     - { section: shell, option: corner_radius_scale }
+    - { section: shell.animation, option: enabled }
     - { section: shell.panel, option: transparency_mode }
     - { section: bar.main, option: background_opacity }
     - { section: bar.main, option: compositor_blur }
