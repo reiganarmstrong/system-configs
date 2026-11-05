@@ -5,6 +5,7 @@ import qs.services
 Glass {
     default property alias content: row.data
     property real padding: 12
+    property alias spacing: row.spacing
     property bool clickable: false
     signal clicked
 

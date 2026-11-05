@@ -26,32 +26,46 @@ PanelWindow {
         enabled: Session.caffeine
     }
 
-    // Workspaces: a dot for each, the active one stretched into a bar.
+    // Workspaces: a number for each, the active one on a white circle.
     Pill {
+        padding: 4
+        spacing: 2
+
         anchors.left: parent.left
         anchors.leftMargin: 8
         anchors.verticalCenter: parent.verticalCenter
 
         Repeater {
-            model: Hyprland.workspaces.values.filter(w => w.id > 0 && w.monitor === bar.monitor)
+            model: Hyprland.workspaces.values
+                .filter(w => w.id > 0 && w.monitor === bar.monitor)
+                .sort((a, b) => a.id - b.id)
 
             Rectangle {
                 required property var modelData
                 readonly property bool current: modelData.active
 
                 anchors.verticalCenter: parent.verticalCenter
-                width: current ? 22 : 7
-                height: 7
-                radius: 4
-                color: current ? Theme.colors.text : Theme.withAlpha(Theme.colors.text, 0.45)
+                width: 20
+                height: 20
+                radius: 10
+                color: current ? Theme.colors.accent : area.containsMouse ? Theme.tileFillHover : "transparent"
 
-                Behavior on width {
-                    NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+                Behavior on color {
+                    ColorAnimation { duration: 160 }
+                }
+
+                Label {
+                    anchors.centerIn: parent
+                    text: parent.modelData.id
+                    size: Theme.textSmall
+                    weight: parent.current ? Font.Bold : Font.Medium
+                    color: parent.current ? Theme.colors.accentText : Theme.colors.textDim
                 }
 
                 MouseArea {
+                    id: area
                     anchors.fill: parent
-                    anchors.margins: -4
+                    hoverEnabled: true
                     onClicked: parent.modelData.activate()
                 }
             }
