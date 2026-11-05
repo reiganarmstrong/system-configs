@@ -27,7 +27,7 @@ hl.layer_rule({
 })
 hl.layer_rule({
     name = "shell-blur",
-    match = { namespace = "^shell-(bar|dock|control|launcher|notifications|osd)$" },
+    match = { namespace = "^shell-(bar|dock|control|dash|launcher|notifications|osd)$" },
     blur = true,
     ignore_alpha = 0.3,
 })
