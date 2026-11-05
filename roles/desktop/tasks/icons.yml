@@ -58,7 +58,7 @@
     mode: '0644'
   when: desktop_whitesur_install.changed
 
-- name: Select WhiteSur for GTK applications and Noctalia's app icons
+- name: Select the WhiteSur icon theme
   become: true
   become_user: "{{ desktop_user }}"
   community.general.dconf:

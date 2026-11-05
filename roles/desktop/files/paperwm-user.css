@@ -1,9 +1,111 @@
 /* Managed by Ansible (roles/desktop/files/paperwm-user.css). */
 
 /* Solid black top bar, including in the overview. PaperWM's own top bar
-   styling is disabled in dconf, so WhiteSur's #panel rules apply here. */
+   styling is disabled in dconf, so these #panel rules apply. */
 #panel,
 #panel:overview {
     background-color: #000000;
     box-shadow: none;
+}
+
+/* Quick settings menu: compact, squarer tiles spaced well apart, each
+   with a uniform light rim. */
+.popup-menu-content.quick-settings {
+    padding: 20px;
+    border-radius: 30px;
+    background-color: #242428;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.45);
+}
+
+.quick-settings-grid {
+    spacing-rows: 20px;
+    spacing-columns: 20px;
+}
+
+.quick-toggle,
+.quick-toggle-has-menu {
+    min-width: 165px;
+    max-width: 165px;
+    min-height: 66px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.quick-toggle > StBoxLayout {
+    spacing: 10px;
+}
+
+.quick-toggle:ltr > StBoxLayout {
+    padding-left: 14px;
+}
+
+.quick-toggle,
+.quick-toggle-has-menu,
+.quick-settings-system-item .icon-button {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.quick-toggle,
+.quick-toggle-has-menu .quick-toggle-menu-button,
+.quick-settings-system-item .icon-button {
+    background-color: #38383d;
+}
+
+.quick-toggle:hover,
+.quick-toggle-has-menu .quick-toggle-menu-button:hover,
+.quick-settings-system-item .icon-button:hover {
+    background-color: #434349;
+}
+
+.quick-toggle:checked,
+.quick-toggle-has-menu .quick-toggle-menu-button:checked {
+    background-color: -st-accent-color;
+}
+
+.quick-toggle:checked:hover,
+.quick-toggle-has-menu .quick-toggle-menu-button:checked:hover {
+    background-color: st-lighten(-st-accent-color, 6%);
+}
+
+/* Split toggles: the rim goes around the pair, not each half. The pair
+   gets the tile's fill so its rim blends over the same color as a
+   plain toggle's. */
+.quick-toggle-has-menu {
+    background-color: #38383d;
+}
+
+.quick-toggle-has-menu:checked {
+    background-color: -st-accent-color;
+}
+
+.quick-toggle-has-menu .quick-toggle {
+    min-width: auto;
+    max-width: auto;
+    border-width: 0;
+}
+
+.quick-toggle-has-menu .quick-toggle-menu-button {
+    border-width: 0;
+    padding: 0 10px;
+}
+
+.quick-toggle-has-menu .quick-toggle:ltr {
+    border-radius: 19px 0 0 19px;
+}
+
+.quick-toggle-has-menu .quick-toggle:ltr:last-child {
+    border-radius: 19px;
+}
+
+.quick-toggle-has-menu .quick-toggle-menu-button:ltr {
+    border-radius: 0 19px 19px 0;
+}
+
+.quick-settings-system-item .icon-button {
+    padding: 10px;
+}
+
+.quick-settings-system-item > StBoxLayout {
+    spacing: 12px;
 }

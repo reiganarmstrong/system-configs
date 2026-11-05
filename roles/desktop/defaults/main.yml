@@ -7,14 +7,12 @@ desktop_output_mode: "3840x2160@60"
 desktop_output_scale: 2
 desktop_theme_mode: dark
 desktop_icon_theme: WhiteSur-dark
-desktop_gtk_theme: WhiteSur-Dark-solid
 desktop_whitesur_revision: 73d8040da51a9ed74e47c7366e7e9ff437601a5c
-desktop_whitesur_gtk_revision: d5782652d412137e26fb8ff55b55a5572e4c6995
 desktop_paperwm_revision: 2d460db8365b2dee235dde15103161e67df83247
 desktop_extensions:
   - paperwm@paperwm.github.com
-  - user-theme@gnome-shell-extensions.gcampax.github.com
   - dash-to-dock@micxgx.gmail.com
+  - quick-settings-fit@fedora-desktop
 desktop_packages:
   - git
   - zsh
@@ -31,8 +29,6 @@ desktop_packages:
   - python3-psutil
   - python3-gobject
   - gtk-update-icon-cache
-  - glib2-devel
-  - sassc
   - gnome-shell
   - gnome-session
   - gnome-settings-daemon
@@ -40,7 +36,6 @@ desktop_packages:
   - gnome-control-center
   - gnome-tweaks
   - gnome-extensions-app
-  - gnome-shell-extension-user-theme
   - gnome-shell-extension-dash-to-dock
   # Opens terminal apps (Terminal=true) in the terminal named in ~/.config/xdg-terminals.list.
   - xdg-terminal-exec

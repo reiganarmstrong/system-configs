@@ -1,0 +1,6 @@
+{
+  "uuid": "quick-settings-fit@fedora-desktop",
+  "name": "Quick Settings Fit",
+  "description": "Sizes the quick settings menu from its visible toggles only. Managed by Ansible (roles/desktop/files/quick-settings-fit).",
+  "shell-version": ["51"]
+}

@@ -1,8 +1,8 @@
 # Fedora desktop
 
-Ansible configures Fedora Workstation's GNOME with the [PaperWM](https://github.com/paperwm/PaperWM) scrolling window manager and a macOS-style look. The Fedora VM is the rehearsal for installing the same desktop on a Framework laptop after the Fedora installer finishes.
+Ansible configures Fedora Workstation's GNOME with the [PaperWM](https://github.com/paperwm/PaperWM) scrolling window manager, stock GNOME styling and macOS-style icons. The Fedora VM is the rehearsal for installing the same desktop on a Framework laptop after the Fedora installer finishes.
 
-The `desktop` role owns the GNOME packages, PaperWM, the theme, icons, wallpaper, key bindings, portals, audio services and default login session. Both the VM and native laptop execute that role. Changes made while experimenting belong in the role and are reapplied with Ansible.
+The `desktop` role owns the GNOME packages, PaperWM, icons, wallpaper, key bindings, portals, audio services and default login session. Both the VM and native laptop execute that role. Changes made while experimenting belong in the role and are reapplied with Ansible.
 
 ## Native Fedora installation
 
@@ -20,20 +20,19 @@ The clone command reads this Git repository over SSH from the Ubuntu server's Ta
 
 The bootstrap script installs Ansible Core 2.22.0 and the collection versions in `requirements.yml` into ignored `.local/` directories. Ansible 2.22 supports Fedora 45's Python 3.15. Older controller versions fail before running desktop tasks.
 
-Reboot after the first run. The GNOME session starts with PaperWM, User Themes and Dash to Dock enabled. Automatic login is disabled for native installations. Subsequent runs use the same command; they add missing extensions and shortcuts without removing ones you enabled yourself.
+Reboot after the first run. The GNOME session starts with PaperWM, Dash to Dock and Quick Settings Fit enabled. Automatic login is disabled for native installations. Subsequent runs use the same command; they add missing extensions and shortcuts without removing ones you enabled yourself.
 
 Fedora 45 is the tested starting release. Packages track Fedora's repositories, so later runs can install newer dependency versions. This repository reproduces the configuration and package selection rather than an immutable OS image.
 
 ## Appearance
 
-- **GNOME Shell and GTK theme:** [WhiteSur](https://github.com/vinceliuice/WhiteSur-gtk-theme) `WhiteSur-Dark-solid`, pinned to `desktop_whitesur_gtk_revision` and built with its installer into `~/.local/share/themes`. The shell theme is applied through the User Themes extension. A marker file in `~/.cache/fedora-desktop` records a completed install, so repeat runs skip the build. A new pin uses a fresh checkout because the installer edits its own Sass sources.
+- **GNOME Shell and GTK theme:** GNOME's stock Adwaita in dark mode. No custom shell or GTK theme is installed, so the shell, GTK 3, libadwaita and Flatpak apps all use GNOME's own styling and window buttons.
 - **Icons:** [WhiteSur](https://github.com/vinceliuice/WhiteSur-icon-theme) `WhiteSur-dark`, pinned to `desktop_whitesur_revision` (`roles/desktop/tasks/icons.yml`).
-- **Top bar:** solid black, including in the overview. PaperWM normally makes the bar translucent, so its top bar styling (`disable-topbar-styling`) is turned off, and `roles/desktop/files/paperwm-user.css` is installed as `~/.config/paperwm/user.css`. PaperWM reads that file only when it is enabled, so Ansible disables and re-enables PaperWM when the file changes. The lock and login screens keep WhiteSur's transparent bar.
-- **Dock:** Fedora's Dash to Dock package, at the bottom, with 48 px icons in macOS's dark dock gray (`#2C2C2E`) at 96% opacity. WhiteSur's own dock background is light even in its dark variant. The dock stays hidden, even on an empty desktop, and appears only when the pointer touches the bottom edge of the screen. It doesn't require pushing against the edge (`require-pressure-to-show` is off), because VNC's absolute pointer can't push past the screen edge.
-- **Windows:** macOS-style close/minimize/maximize buttons on the left, Inter as the interface font, dark mode with a blue accent, and hot corners disabled.
+- **Top bar:** solid black, including in the overview. PaperWM normally makes the bar translucent, so its top bar styling (`disable-topbar-styling`) is turned off, and `roles/desktop/files/paperwm-user.css` is installed as `~/.config/paperwm/user.css`. PaperWM reads that file only when it is enabled, so Ansible disables and re-enables PaperWM when the file changes.
+- **Quick settings:** the same `paperwm-user.css` makes the quick settings menu compact: 165 × 66 px tiles with 20 px gaps, 20 px rounded corners, a uniform faint light rim, and a slightly lighter fill than the menu. GNOME sizes the menu's columns from every toggle, including hidden ones that never pick up `user.css`, so the role also installs a small local extension, Quick Settings Fit (`roles/desktop/files/quick-settings-fit`), that sizes them from visible toggles only. Without it, the menu can't shrink below GNOME's stock width.
+- **Dock:** Fedora's Dash to Dock package, at the bottom, with 48 px icons on a translucent muted gray (`rgb(94,92,100)`) at 35% opacity. The dock stays hidden, even on an empty desktop, and appears only when the pointer touches the bottom edge of the screen. It doesn't require pushing against the edge (`require-pressure-to-show` is off), because VNC's absolute pointer can't push past the screen edge.
+- **Windows:** GNOME's default window buttons, Inter as the interface font, dark mode with a blue accent, and hot corners disabled.
 - **Wallpaper:** `roles/desktop/files/wallpaper.svg`.
-
-libadwaita (GTK 4) apps such as Files, Settings and Text Editor ignore GTK themes, so the installer also runs with `--libadwaita`, which writes WhiteSur's stylesheet and assets into `~/.config/gtk-4.0/`. libadwaita loads that file regardless of the theme setting. GNOME doesn't support this kind of override, so a libadwaita update can leave widgets looking off until the WhiteSur pin is raised. Deleting `gtk.css`, `gtk-dark.css`, `gtk-Light.css`, `gtk-Dark.css`, `assets` and `windows-assets` from that folder restores the stock look. It is always the dark variant, even in light mode. When Flatpak is installed, Ansible grants Flatpak apps read access to the folder (`flatpak override --user --filesystem=xdg-config/gtk-4.0:ro`) so they pick up the same styling.
 
 ## Packages and apps
 
@@ -46,7 +45,7 @@ Developer tools come from the same places:
 
 - **Node.js 24, npm, pnpm and uv** come from Fedora's packages. `nodejs24-bin` and `nodejs24-npm-bin` make Node 24 (the server's major version) own `node`, `npm` and `npx` instead of Fedora's default Node 22. Fedora's pnpm is 10.x. It switches to the version a project pins in its `packageManager` field, so projects that require pnpm 11 still use 11.
 - **Claude Code** comes from Anthropic's signed dnf repository. `apps.yml` imports the key only if its fingerprint matches the one Anthropic publishes. `desktop_claude_code_channel` selects `latest`, the native installer's default, or `stable`, which runs about a week behind. dnf installs don't update themselves; `sudo dnf upgrade` picks up new versions.
-- **Ghostty** is the default terminal. It isn't in Fedora or on Flathub, so it comes from the community `scottames/ghostty` COPR that Ghostty's install docs point Fedora users to. That build comes from a third party, not from Fedora or the Ghostty project. On Linux, Ghostty uses GTK4 and libadwaita, so it picks up the WhiteSur libadwaita styling and macOS window buttons. foot, the other option considered, would draw its own plain title bar under GNOME. Super+T opens Ghostty. `~/.config/xdg-terminals.list` makes it the terminal that `xdg-terminal-exec` (and therefore GLib) uses for terminal apps. `roles/desktop/files/ghostty.config` sets Catppuccin Mocha, the palette the Starship prompt was designed for, and `ssh-env`. With `ssh-env`, SSH sessions advertise `xterm-256color` instead of `xterm-ghostty`, a terminal type most servers don't recognize. Fedora Workstation's own terminal stays installed as a fallback.
+- **Ghostty** is the default terminal. It isn't in Fedora or on Flathub, so it comes from the community `scottames/ghostty` COPR that Ghostty's install docs point Fedora users to. That build comes from a third party, not from Fedora or the Ghostty project. On Linux, Ghostty uses GTK4 and libadwaita, so it matches other GNOME apps. foot, the other option considered, would draw its own plain title bar under GNOME. Super+T opens Ghostty. `~/.config/xdg-terminals.list` makes it the terminal that `xdg-terminal-exec` (and therefore GLib) uses for terminal apps. `roles/desktop/files/ghostty.config` sets Catppuccin Mocha, the palette the Starship prompt was designed for, with a neutral `#212121` background, and `ssh-env`. With `ssh-env`, SSH sessions advertise `xterm-256color` instead of `xterm-ghostty`, a terminal type most servers don't recognize. Fedora Workstation's own terminal stays installed as a fallback.
 - **T3 Code** has no RPM or Flatpak. Ansible downloads the official AppImage once to `~/Applications/T3-Code.AppImage`, checks it against `desktop_t3code_sha256`, and adds a launcher entry with the app's icon. After that the app updates itself in place, and Ansible never replaces a newer copy. The AppImage includes its own FUSE support, so no extra FUSE packages are needed. The server's `t3` alias (`npx --yes t3@nightly`) works too, through Node 24.
 
 `sudo dnf upgrade` and `flatpak update` update the two sets, and GNOME Software updates both. Starship and the zsh plugins are the exceptions: they come from pinned upstream releases (see Shell).
@@ -67,7 +66,7 @@ The `sleep` alias suspends the machine (`sudo systemd-run --on-active=5s systemc
 
 ## PaperWM
 
-PaperWM, pinned to `desktop_paperwm_revision`, is cloned into `~/.local/share/gnome-shell/extensions`. Ansible stops if the installed GNOME Shell major version isn't listed in the pinned PaperWM's `metadata.json`. After a Fedora upgrade, raise the pin to a release that supports the new GNOME version. The role sets 12 px gaps and margins, a 2 px focus border and the wallpaper as the workspace background.
+PaperWM, pinned to `desktop_paperwm_revision`, is cloned into `~/.local/share/gnome-shell/extensions`. Ansible stops if the installed GNOME Shell major version isn't listed in the pinned PaperWM's `metadata.json`. After a Fedora upgrade, raise the pin to a release that supports the new GNOME version. The role sets 12 px gaps and margins and the wallpaper as the workspace background. PaperWM's focus border is turned off (`selection-border-size` 0). Focus uses PaperWM's default mode, which scrolls only as far as needed so side-by-side windows stay in place. Super+Shift+C switches a workspace to center mode, which scrolls each focused window to the middle.
 
 | Keys | Action |
 | --- | --- |
@@ -181,6 +180,8 @@ A second run reported zero changes.
 
 On November 4, 2026, `desktop.yml` completed against the Fedora 45 VM with GNOME Shell 51.1, and a repeat run reported zero changes. PaperWM, User Themes and Dash to Dock were active, and `WhiteSur-Dark-solid` was selected for both the shell and GTK, and the libadwaita stylesheet in `~/.config/gtk-4.0/` loaded in Text Editor without CSS errors. After a guest reboot, GDM logged in automatically and the session came up at 3840×2160 at 60 Hz with 2× scaling from the saved `monitors.xml`. Physical Framework hardware still requires testing on that device.
 
+The WhiteSur shell and GTK theme and the User Themes extension were removed after these tests. The desktop now uses GNOME's stock Adwaita theme with WhiteSur icons.
+
 Check VNC authentication against the running VM from the Ubuntu host with the default local password file.
 
 ```bash
@@ -191,6 +192,6 @@ The VM account has no password, so automatic login can't unlock the "Login" keyr
 
 ## Sources
 
-[PaperWM](https://github.com/paperwm/PaperWM), [WhiteSur GTK theme](https://github.com/vinceliuice/WhiteSur-gtk-theme), [WhiteSur icon theme](https://github.com/vinceliuice/WhiteSur-icon-theme), [Dash to Dock](https://micheleg.github.io/dash-to-dock/).
+[PaperWM](https://github.com/paperwm/PaperWM), [WhiteSur icon theme](https://github.com/vinceliuice/WhiteSur-icon-theme), [Dash to Dock](https://micheleg.github.io/dash-to-dock/).
 
 The Fedora 45 cloud image checksum was verified against Fedora's signed release manifest using Fedora's published signing keys. [Fedora cloud downloads](https://fedoraproject.org/cloud/download/), [Signing keys](https://fedoraproject.org/security/)

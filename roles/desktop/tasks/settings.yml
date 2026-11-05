@@ -31,8 +31,6 @@
       value: "'prefer-dark'"
     - key: /org/gnome/desktop/interface/accent-color
       value: "'blue'"
-    - key: /org/gnome/desktop/interface/gtk-theme
-      value: "'{{ desktop_gtk_theme }}'"
     - key: /org/gnome/desktop/interface/font-name
       value: "'Inter 11'"
     - key: /org/gnome/desktop/interface/document-font-name
@@ -41,16 +39,12 @@
       value: 'false'
     - key: /org/gnome/desktop/interface/show-battery-percentage
       value: 'true'
-    - key: /org/gnome/desktop/wm/preferences/button-layout
-      value: "'close,minimize,maximize:'"
     - key: /org/gnome/desktop/peripherals/touchpad/tap-to-click
       value: 'true'
     - key: /org/gnome/desktop/background/picture-uri
       value: "'file://{{ desktop_home }}/.local/share/backgrounds/fedora-desktop.svg'"
     - key: /org/gnome/desktop/background/picture-uri-dark
       value: "'file://{{ desktop_home }}/.local/share/backgrounds/fedora-desktop.svg'"
-    - key: /org/gnome/shell/extensions/user-theme/name
-      value: "'{{ desktop_gtk_theme }}'"
     - key: /org/gnome/shell/extensions/paperwm/window-gap
       value: '12'
     - key: /org/gnome/shell/extensions/paperwm/horizontal-margin
@@ -59,8 +53,12 @@
       value: '12'
     - key: /org/gnome/shell/extensions/paperwm/vertical-margin-bottom
       value: '12'
+    # No focus border around the active window.
     - key: /org/gnome/shell/extensions/paperwm/selection-border-size
-      value: '2'
+      value: '0'
+    # Scroll only as far as needed, so side-by-side windows stay in place.
+    - key: /org/gnome/shell/extensions/paperwm/default-focus-mode
+      value: '0'
     - key: /org/gnome/shell/extensions/paperwm/workspace-colors
       value: "['#1C1C1E']"
     - key: /org/gnome/shell/extensions/paperwm/use-default-background
@@ -89,14 +87,14 @@
     - key: /org/gnome/shell/extensions/dash-to-dock/transparency-mode
       value: "'FIXED'"
     - key: /org/gnome/shell/extensions/dash-to-dock/background-opacity
-      value: '0.96'
+      value: '0.35'
     - key: /org/gnome/shell/extensions/dash-to-dock/custom-theme-shrink
       value: 'true'
-    # WhiteSur's dock background is light even in the dark variant; use macOS's dark dock gray.
+    # Translucent muted gray.
     - key: /org/gnome/shell/extensions/dash-to-dock/custom-background-color
       value: 'true'
     - key: /org/gnome/shell/extensions/dash-to-dock/background-color
-      value: "'#2C2C2E'"
+      value: "'rgb(94,92,100)'"
     - key: /org/gnome/shell/keybindings/toggle-overview
       value: "['<Super>space']"
     - key: /org/gnome/desktop/wm/keybindings/switch-input-source
