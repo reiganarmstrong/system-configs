@@ -6,9 +6,11 @@
 {
   networking.hostName = "vm";
 
+  # The Framework's layout (2880x1920 at 2x) at 1x, so VNC viewers that
+  # aren't HiDPI-aware, like TigerVNC on a Mac, show it at a sensible size.
   desktop = {
     enable = true;
-    display.scale = 2;
+    display.scale = 1;
   };
 
   # Throwaway test machine: a fixed password, so the lock screen can be tested.
@@ -26,8 +28,8 @@
     cores = 4;
     diskSize = 20480;
     resolution = {
-      x = 3840;
-      y = 2160;
+      x = 1440;
+      y = 960;
     };
     forwardPorts = [
       {
@@ -38,7 +40,7 @@
       }
     ];
     qemu.options = [
-      "-device virtio-vga-gl,xres=3840,yres=2160"
+      "-device virtio-vga-gl,xres=1440,yres=960"
       "-display egl-headless,rendernode=/dev/dri/renderD128"
       "-object secret,id=vncpass,file=$VNC_PASSWORD_FILE"
       "-vnc 127.0.0.1:2,password-secret=vncpass"
