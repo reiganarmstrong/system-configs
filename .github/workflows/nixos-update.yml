@@ -1,0 +1,41 @@
+# Weekly: move flake.lock to the newest packages on the pinned stable release
+# and commit it only if the laptop configuration still builds. The laptop
+# upgrades daily from whatever this commits.
+name: NixOS update
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nixos-lock
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Free disk space for the system build
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+      - name: Update the lock file
+        run: nix flake update
+      - name: Build both hosts
+        run: |
+          nix build --no-link .#nixosConfigurations.framework.config.system.build.toplevel
+          nix build --no-link .#nixosConfigurations.vm.config.system.build.toplevel
+      - name: Commit the lock file
+        run: |
+          if git diff --quiet flake.lock; then
+            echo "Already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(nixos): update flake.lock" flake.lock
+          git push

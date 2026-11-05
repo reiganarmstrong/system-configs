@@ -1,0 +1,57 @@
+# Monthly on the 20th: if the next NixOS release exists, open a pull request
+# moving to it. Releases land at the end of May and November, so the first
+# run sees a release about three weeks old, past its early fixes. Merging is
+# the one manual step, twice a year.
+name: NixOS release upgrade
+
+on:
+  schedule:
+    - cron: "0 9 20 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Find the next release
+        id: release
+        run: |
+          current=$(grep -oP 'nixos-\K[0-9]{2}\.[0-9]{2}' flake.nix | head -1)
+          year=${current%.*}
+          month=${current#*.}
+          if [ "$month" = "05" ]; then next="$year.11"; else next="$((10#$year + 1)).05"; fi
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code https://github.com/NixOS/nixpkgs "refs/heads/nixos-$next" >/dev/null \
+            && git ls-remote --exit-code https://github.com/nix-community/home-manager "refs/heads/release-$next" >/dev/null; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Free disk space for the system build
+        if: steps.release.outputs.available == 'true'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+      - name: Move to the next release
+        if: steps.release.outputs.available == 'true'
+        env:
+          CURRENT: ${{ steps.release.outputs.current }}
+          NEXT: ${{ steps.release.outputs.next }}
+        run: |
+          sed -i "s/nixos-$CURRENT/nixos-$NEXT/; s/release-$CURRENT/release-$NEXT/" flake.nix
+          nix flake update
+          nix build --no-link .#nixosConfigurations.framework.config.system.build.toplevel
+      - name: Open the pull request
+        if: steps.release.outputs.available == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: nixos-${{ steps.release.outputs.next }}
+          title: "feat(nixos): upgrade to NixOS ${{ steps.release.outputs.next }}"
+          commit-message: "feat(nixos): upgrade to NixOS ${{ steps.release.outputs.next }}"
+          body: |
+            Moves nixpkgs and Home Manager from ${{ steps.release.outputs.current }} to ${{ steps.release.outputs.next }}. The laptop configuration builds.
+
+            Before merging, check the release notes for renamed options and test the desktop in the VM (`nixos/README.md`).

@@ -20,6 +20,12 @@ PanelWindow {
 
     readonly property var monitor: Hyprland.monitorFor(screen)
 
+    // The control centre's Caffeine keeps the screen awake through this.
+    IdleInhibitor {
+        window: bar
+        enabled: Session.caffeine
+    }
+
     // Workspaces: a dot for each, the active one stretched into a bar.
     Pill {
         anchors.left: parent.left
@@ -52,9 +58,11 @@ PanelWindow {
         }
     }
 
-    // Clock.
+    // Clock; opens the notification centre.
     Pill {
         anchors.centerIn: parent
+        clickable: true
+        onClicked: ShellState.toggle("dash")
 
         SystemClock {
             id: clock
@@ -77,6 +85,8 @@ PanelWindow {
         anchors.right: parent.right
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
+        clickable: true
+        onClicked: ShellState.toggle("control")
 
         Icon { name: Net.icon; size: 15 }
         Icon { name: Audio.icon; size: 15 }

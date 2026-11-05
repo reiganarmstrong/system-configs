@@ -30,6 +30,15 @@ in
         description = "Display scale factor.";
       };
     };
+    dock.pinned = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "com.mitchellh.ghostty"
+        "app.zen_browser.zen"
+        "t3code"
+      ];
+      description = "Desktop entry IDs always shown in the dock, in order.";
+    };
     autoLogin = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -102,7 +111,9 @@ in
       pkgs.grim
       pkgs.slurp
       pkgs.hyprpicker
+      pkgs.hyprsunset
       pkgs.libnotify
+      pkgs.gnome-keyring
     ];
 
     desktop.theme.wallpaper = lib.mkDefault (

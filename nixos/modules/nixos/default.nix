@@ -9,5 +9,6 @@
     ./base.nix
     ./updates.nix
     ./desktop.nix
+    ./apps.nix
   ];
 }

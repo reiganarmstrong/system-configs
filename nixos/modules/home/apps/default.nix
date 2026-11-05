@@ -1,5 +1,9 @@
 # Applications and their styling.
 { ... }:
 {
-  imports = [ ./ghostty.nix ];
+  imports = [
+    ./ghostty.nix
+    ./shell.nix
+    ./dev.nix
+  ];
 }

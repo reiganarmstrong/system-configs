@@ -28,6 +28,8 @@ let
               name = osConfig.desktop.user;
               fullName = osConfig.desktop.fullName;
             };
+            dock.pinned = osConfig.desktop.dock.pinned;
+            lockOnStart = osConfig.desktop.autoLogin;
           }
         );
         passAsFile = [ "theme" ];
@@ -43,5 +45,16 @@ let
 in
 {
   home.packages = [ pkgs.quickshell ];
+
+  # The lock screen creates and unlocks the "login" keyring with the account
+  # password. Marking it the default stops apps asking to create another.
+  home.activation.defaultKeyring = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    keyrings="$HOME/.local/share/keyrings"
+    if [ ! -e "$keyrings/default" ]; then
+      run mkdir -p "$keyrings"
+      run chmod 700 "$keyrings"
+      run sh -c "printf login > '$keyrings/default'"
+    fi
+  '';
   xdg.configFile."quickshell".source = config;
 }
