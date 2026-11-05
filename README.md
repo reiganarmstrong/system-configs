@@ -10,7 +10,7 @@ Install Fedora 45 Workstation or newer and create your normal user account with 
 
 ```bash
 sudo dnf install -y git python3-pip
-git clone reagan@100.79.178.44:/home/reagan/documents/github/fedora-desktop
+git clone https://github.com/reiganarmstrong/fedora-desktop.git
 cd fedora-desktop
 ./bootstrap.sh
 .local/ansible/bin/ansible-playbook desktop.yml --ask-become-pass
