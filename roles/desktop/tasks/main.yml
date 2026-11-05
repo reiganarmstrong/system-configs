@@ -1,5 +1,5 @@
 ---
-- name: Require Fedora 45 or newer and an explicit desktop account
+- name: Require Fedora and a regular desktop account
   ansible.builtin.assert:
     that:
       - ansible_facts.distribution == 'Fedora'
@@ -7,30 +7,25 @@
       - desktop_user | length > 0
       - desktop_user != 'root'
       - not desktop_autologin or desktop_vm
-      - desktop_theme_mode in ['light', 'dark']
-      - desktop_surface_opacity | float > 0
-      - desktop_surface_opacity | float <= 1
-    fail_msg: Use an existing regular account on Fedora 45 or newer. Automatic login requires desktop_vm=true.
+    fail_msg: Use an existing regular account on Fedora 45 or newer. Automatic login is limited to the rehearsal VM.
 
 - name: Find the desktop account
   ansible.builtin.getent:
     database: passwd
     key: "{{ desktop_user }}"
 
-- name: Record the account home and primary group
+- name: Record the desktop account details
   ansible.builtin.set_fact:
     desktop_home: "{{ ansible_facts.getent_passwd[desktop_user][4] }}"
     desktop_group: "{{ ansible_facts.getent_passwd[desktop_user][2] }}"
+    desktop_uid: "{{ ansible_facts.getent_passwd[desktop_user][1] }}"
 
-- name: Install the desktop packages from Fedora repositories
+- name: Install GNOME and the supported desktop tools
   ansible.builtin.dnf:
     name: "{{ desktop_packages }}"
     state: present
 
-- name: Install and select the macOS-style icons
-  ansible.builtin.include_tasks: icons.yml
-
-- name: Create the Niri configuration and screenshot directories
+- name: Create the desktop configuration directories
   ansible.builtin.file:
     path: "{{ desktop_home }}/{{ item }}"
     state: directory
@@ -39,115 +34,27 @@
     mode: '0755'
   loop:
     - .config
-    - .config/niri
-    - .config/noctalia
-    - .config/noctalia/palettes
-    - .config/alacritty
-    - Pictures
+    - .cache/fedora-desktop
+    - .local/bin
+    - .local/share/backgrounds
+    - .local/share/gnome-shell/extensions
+    - .local/share/themes
     - Pictures/Screenshots
 
-- name: Install and validate the shared Niri configuration
-  ansible.builtin.template:
-    src: config.kdl.j2
-    dest: "{{ desktop_home }}/.config/niri/config.kdl"
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_group }}"
-    mode: '0644'
-    backup: true
-    validate: /usr/bin/niri validate --config %s
+- name: Install the Flathub desktop apps
+  ansible.builtin.include_tasks: apps.yml
 
-- name: Install the macOS color palette
-  ansible.builtin.copy:
-    src: macos.json
-    dest: "{{ desktop_home }}/.config/noctalia/palettes/macos.json"
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_group }}"
-    mode: '0644'
+- name: Set up zsh, oh-my-zsh and Starship
+  ansible.builtin.include_tasks: shell.yml
 
-- name: Install and validate the Noctalia glass appearance
-  ansible.builtin.template:
-    src: noctalia.toml.j2
-    dest: "{{ desktop_home }}/.config/noctalia/appearance.toml"
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_group }}"
-    mode: '0644'
-    backup: true
-    validate: /usr/bin/noctalia config validate %s
+- name: Install the macOS-style icons
+  ansible.builtin.include_tasks: icons.yml
 
-- name: Inspect GUI-managed Noctalia settings
-  ansible.builtin.stat:
-    path: "{{ desktop_home }}/.local/state/noctalia/settings.toml"
-  register: desktop_noctalia_settings
+- name: Install PaperWM and the GNOME theme
+  ansible.builtin.include_tasks: appearance.yml
 
-- name: Read GUI-managed Noctalia overrides
-  ansible.builtin.slurp:
-    src: "{{ desktop_home }}/.local/state/noctalia/settings.toml"
-  register: desktop_noctalia_settings_data
-  when: desktop_noctalia_settings.stat.exists
-  no_log: true
-
-- name: Parse the existing GUI overrides
-  ansible.builtin.set_fact:
-    desktop_noctalia_gui_overrides: >-
-      {{
-        desktop_noctalia_settings_data.content | b64decode | community.general.from_toml
-        if desktop_noctalia_settings.stat.exists
-        else {}
-      }}
-  no_log: true
-
-- name: Clear GUI overrides for the managed appearance settings
-  vars:
-    desktop_noctalia_section_path: "{{ item.section.split('.') }}"
-    desktop_noctalia_section_data: "{{ desktop_noctalia_gui_overrides.get(desktop_noctalia_section_path[0], {}) }}"
-    desktop_noctalia_section_options: >-
-      {{
-        desktop_noctalia_section_data.get(desktop_noctalia_section_path[1], {})
-        if desktop_noctalia_section_path | length > 1
-        else desktop_noctalia_section_data
-      }}
-  community.general.ini_file:
-    path: "{{ desktop_home }}/.local/state/noctalia/settings.toml"
-    section: "{{ item.section }}"
-    option: "{{ item.option }}"
-    state: absent
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_group }}"
-    mode: '0600'
-    backup: true
-  loop:
-    - { section: theme, option: source }
-    - { section: theme, option: custom_palette }
-    - { section: theme, option: mode }
-    - { section: theme, option: shell_mode }
-    - { section: shell, option: font_family }
-    - { section: shell, option: corner_radius_scale }
-    - { section: shell.animation, option: enabled }
-    - { section: shell.panel, option: transparency_mode }
-    - { section: bar.main, option: background_opacity }
-    - { section: bar.main, option: compositor_blur }
-    - { section: widget.workspaces, option: occupied_color }
-    - { section: widget.workspaces, option: empty_color }
-    - { section: widget.workspaces, option: change_color_on_hover }
-    - { section: dock, option: background_opacity }
-    - { section: dock, option: compositor_blur }
-    - { section: notification, option: background_opacity }
-    - { section: osd, option: background_opacity }
-    - { section: backdrop, option: enabled }
-    - { section: backdrop, option: blur_intensity }
-    - { section: lockscreen, option: blurred_desktop }
-    - { section: lockscreen, option: blur_intensity }
-  # Skip absent keys so ini_file's EOF newline normalization cannot trigger a reload.
-  when: item.option in desktop_noctalia_section_options
-
-- name: Install the matching translucent terminal configuration
-  ansible.builtin.template:
-    src: alacritty.toml.j2
-    dest: "{{ desktop_home }}/.config/alacritty/alacritty.toml"
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_group }}"
-    mode: '0644'
-    backup: true
+- name: Apply the shared native GNOME desktop settings
+  ansible.builtin.include_tasks: settings.yml
 
 - name: Create the AccountsService user directory
   ansible.builtin.file:
@@ -157,12 +64,12 @@
     group: root
     mode: '0700'
 
-- name: Select Niri for the desktop account
+- name: Select the GNOME Wayland session
   community.general.ini_file:
     path: "/var/lib/AccountsService/users/{{ desktop_user }}"
     section: User
     option: XSession
-    value: niri
+    value: gnome
     owner: root
     group: root
     mode: '0600'
@@ -177,7 +84,7 @@
     mode: '0644'
     no_extra_spaces: true
 
-- name: Set the automatic login account for the test VM
+- name: Configure the VM automatic login account
   community.general.ini_file:
     path: /etc/gdm/custom.conf
     section: daemon
@@ -200,35 +107,20 @@
 - name: Boot into the graphical login screen
   ansible.builtin.command: systemctl set-default graphical.target
   when: desktop_boot_target.stdout != 'graphical.target'
+  changed_when: true
 
-- name: Install VM integration packages
-  ansible.builtin.dnf:
-    name: qemu-guest-agent
-    state: present
+- name: Start and configure the rehearsal VM session
+  ansible.builtin.include_tasks: vm-session.yml
   when: desktop_vm
 
-- name: Start VM integration
-  ansible.builtin.systemd_service:
-    name: qemu-guest-agent
-    enabled: true
-    state: started
-  when: desktop_vm
-
-- name: Start the test VM desktop
-  ansible.builtin.systemd_service:
-    name: gdm
-    state: started
-  when: desktop_vm
-
-- name: Enable and start the desktop audio services
+- name: Enable the desktop audio services
   become: true
   become_user: "{{ desktop_user }}"
   environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts.getent_passwd[desktop_user][1] }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ desktop_uid }}"
   ansible.builtin.systemd_service:
     scope: user
     name: "{{ item }}"
-    daemon_reload: true
     enabled: true
     state: started
   loop:

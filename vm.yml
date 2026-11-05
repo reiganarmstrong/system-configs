@@ -1,5 +1,6 @@
 ---
 - name: Provision the Fedora rehearsal VM on Ubuntu
+  tags: provision
   hosts: localhost
   connection: local
   become: true
@@ -12,6 +13,7 @@
     - vm
 
 - name: Apply the native Fedora desktop setup to the rehearsal VM
+  tags: desktop
   hosts: fedora_vm
   become: true
   pre_tasks:

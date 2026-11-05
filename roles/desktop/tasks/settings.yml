@@ -1,0 +1,142 @@
+---
+- name: Read the existing extension and custom shortcut selections
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/python3
+      - -c
+      - |
+        import json
+        from gi.repository import Gio
+        print(json.dumps({
+            'extensions': list(Gio.Settings.new('org.gnome.shell').get_strv('enabled-extensions')),
+            'shortcuts': list(Gio.Settings.new('org.gnome.settings-daemon.plugins.media-keys').get_strv('custom-keybindings')),
+        }))
+  environment:
+    # Read through dconf-service; the on-disk database can lag behind the session.
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ desktop_uid }}/bus"
+  register: desktop_existing_settings
+  changed_when: false
+
+- name: Apply the shared GNOME appearance and keyboard settings
+  become: true
+  become_user: "{{ desktop_user }}"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    value: "{{ item.value | string }}"
+    state: present
+  loop:
+    - key: /org/gnome/desktop/interface/color-scheme
+      value: "'prefer-dark'"
+    - key: /org/gnome/desktop/interface/accent-color
+      value: "'blue'"
+    - key: /org/gnome/desktop/interface/gtk-theme
+      value: "'{{ desktop_gtk_theme }}'"
+    - key: /org/gnome/desktop/interface/font-name
+      value: "'Inter 11'"
+    - key: /org/gnome/desktop/interface/document-font-name
+      value: "'Inter 11'"
+    - key: /org/gnome/desktop/interface/enable-hot-corners
+      value: 'false'
+    - key: /org/gnome/desktop/interface/show-battery-percentage
+      value: 'true'
+    - key: /org/gnome/desktop/wm/preferences/button-layout
+      value: "'close,minimize,maximize:'"
+    - key: /org/gnome/desktop/peripherals/touchpad/tap-to-click
+      value: 'true'
+    - key: /org/gnome/desktop/background/picture-uri
+      value: "'file://{{ desktop_home }}/.local/share/backgrounds/fedora-desktop.svg'"
+    - key: /org/gnome/desktop/background/picture-uri-dark
+      value: "'file://{{ desktop_home }}/.local/share/backgrounds/fedora-desktop.svg'"
+    - key: /org/gnome/shell/extensions/user-theme/name
+      value: "'{{ desktop_gtk_theme }}'"
+    - key: /org/gnome/shell/extensions/paperwm/window-gap
+      value: '12'
+    - key: /org/gnome/shell/extensions/paperwm/horizontal-margin
+      value: '12'
+    - key: /org/gnome/shell/extensions/paperwm/vertical-margin
+      value: '12'
+    - key: /org/gnome/shell/extensions/paperwm/vertical-margin-bottom
+      value: '12'
+    - key: /org/gnome/shell/extensions/paperwm/selection-border-size
+      value: '2'
+    - key: /org/gnome/shell/extensions/paperwm/workspace-colors
+      value: "['#1C1C1E']"
+    - key: /org/gnome/shell/extensions/paperwm/use-default-background
+      value: 'true'
+    # Leave the top bar to paperwm-user.css instead of PaperWM's translucent styles.
+    - key: /org/gnome/shell/extensions/paperwm/disable-topbar-styling
+      value: 'true'
+    - key: /org/gnome/shell/extensions/paperwm/keybindings/take-window
+      value: "['<Super><Shift>t']"
+    - key: /org/gnome/shell/extensions/dash-to-dock/dock-position
+      value: "'BOTTOM'"
+    - key: /org/gnome/shell/extensions/dash-to-dock/extend-height
+      value: 'false'
+    # Keep the dock hidden until the pointer reaches the bottom edge, even with no windows open.
+    - key: /org/gnome/shell/extensions/dash-to-dock/dock-fixed
+      value: 'false'
+    - key: /org/gnome/shell/extensions/dash-to-dock/autohide
+      value: 'true'
+    - key: /org/gnome/shell/extensions/dash-to-dock/intellihide
+      value: 'false'
+    # Reveal on touching the edge. A pressure barrier never triggers from VNC's absolute pointer.
+    - key: /org/gnome/shell/extensions/dash-to-dock/require-pressure-to-show
+      value: 'false'
+    - key: /org/gnome/shell/extensions/dash-to-dock/dash-max-icon-size
+      value: '48'
+    - key: /org/gnome/shell/extensions/dash-to-dock/transparency-mode
+      value: "'FIXED'"
+    - key: /org/gnome/shell/extensions/dash-to-dock/background-opacity
+      value: '0.96'
+    - key: /org/gnome/shell/extensions/dash-to-dock/custom-theme-shrink
+      value: 'true'
+    # WhiteSur's dock background is light even in the dark variant; use macOS's dark dock gray.
+    - key: /org/gnome/shell/extensions/dash-to-dock/custom-background-color
+      value: 'true'
+    - key: /org/gnome/shell/extensions/dash-to-dock/background-color
+      value: "'#2C2C2E'"
+    - key: /org/gnome/shell/keybindings/toggle-overview
+      value: "['<Super>space']"
+    - key: /org/gnome/desktop/wm/keybindings/switch-input-source
+      value: "['<Super><Alt>space']"
+    - key: /org/gnome/desktop/wm/keybindings/switch-input-source-backward
+      value: "['<Super><Alt><Shift>space']"
+    - key: /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/fedora-desktop-terminal/name
+      value: "'Terminal'"
+    - key: /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/fedora-desktop-terminal/command
+      value: "'ghostty'"
+    - key: /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/fedora-desktop-terminal/binding
+      value: "'<Super>t'"
+    - key: /org/gnome/shell/disable-user-extensions
+      value: 'false'
+
+# GNOME Shell reorders these lists itself, so only a missing entry counts as a change.
+- name: Add the shared GNOME list settings
+  become: true
+  become_user: "{{ desktop_user }}"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    # GVariant string-array syntax.
+    value: "['{{ (item.current | union(item.wanted)) | join(\"', '\") }}']"
+    state: present
+  loop:
+    - key: /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings
+      current: "{{ (desktop_existing_settings.stdout | from_json).shortcuts }}"
+      wanted: ['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/fedora-desktop-terminal/']
+    - key: /org/gnome/shell/enabled-extensions
+      current: "{{ (desktop_existing_settings.stdout | from_json).extensions }}"
+      wanted: "{{ desktop_extensions }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.wanted | difference(item.current) | length > 0
+
+- name: Skip the GNOME first-run wizard for an already-provisioned account
+  ansible.builtin.copy:
+    content: "yes\n"
+    dest: "{{ desktop_home }}/.config/gnome-initial-setup-done"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0600'
+    force: false

@@ -1,0 +1,182 @@
+---
+- name: Fetch the pinned PaperWM release
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/paperwm/PaperWM.git
+    dest: "{{ desktop_home }}/.local/share/gnome-shell/extensions/paperwm@paperwm.github.com"
+    version: "{{ desktop_paperwm_revision }}"
+    depth: 1
+  register: desktop_paperwm_source
+
+- name: Inspect the compiled PaperWM settings schema
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/.local/share/gnome-shell/extensions/paperwm@paperwm.github.com/schemas/gschemas.compiled"
+  register: desktop_paperwm_schema
+
+- name: Compile PaperWM's settings schema
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command:
+    argv:
+      - glib-compile-schemas
+      - "{{ desktop_home }}/.local/share/gnome-shell/extensions/paperwm@paperwm.github.com/schemas"
+  when: desktop_paperwm_source.changed or not desktop_paperwm_schema.stat.exists
+  changed_when: true
+
+- name: Check the installed GNOME Shell version
+  ansible.builtin.command: gnome-shell --version
+  register: desktop_shell_version
+  changed_when: false
+
+- name: Read PaperWM's supported GNOME versions
+  ansible.builtin.slurp:
+    src: "{{ desktop_home }}/.local/share/gnome-shell/extensions/paperwm@paperwm.github.com/metadata.json"
+  register: desktop_paperwm_metadata
+
+- name: Require a supported PaperWM and GNOME pairing
+  ansible.builtin.assert:
+    that:
+      - >-
+        (desktop_shell_version.stdout | regex_search('[0-9]+'))
+        in (desktop_paperwm_metadata.content | b64decode | from_json)['shell-version']
+    fail_msg: Update the pinned PaperWM revision to one supporting this GNOME version before enabling it.
+
+- name: Create the PaperWM user config directory
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/.config/paperwm"
+    state: directory
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+
+- name: Install the PaperWM user stylesheet
+  ansible.builtin.copy:
+    src: paperwm-user.css
+    dest: "{{ desktop_home }}/.config/paperwm/user.css"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+  register: desktop_paperwm_user_css
+
+- name: Check for a running desktop session
+  ansible.builtin.stat:
+    path: "/run/user/{{ desktop_uid }}/bus"
+  register: desktop_session_bus
+
+# PaperWM only reads user.css when it is enabled.
+- name: Reload PaperWM to apply the user stylesheet
+  become: true
+  become_user: "{{ desktop_user }}"
+  environment:
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ desktop_uid }}/bus"
+  ansible.builtin.shell: |
+    gnome-extensions disable paperwm@paperwm.github.com
+    gnome-extensions enable paperwm@paperwm.github.com
+  when:
+    - desktop_paperwm_user_css.changed
+    - desktop_session_bus.stat.exists
+  # Fails harmlessly when no GNOME Shell is running yet; the next login loads the file.
+  failed_when: false
+  changed_when: true
+
+- name: Fetch the pinned WhiteSur GNOME theme
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/vinceliuice/WhiteSur-gtk-theme.git
+    dest: "{{ desktop_home }}/.cache/fedora-desktop/WhiteSur-gtk-theme-{{ desktop_whitesur_gtk_revision }}"
+    version: "{{ desktop_whitesur_gtk_revision }}"
+    depth: 1
+    # The upstream installer edits its Sass sources. A new pin uses a new checkout.
+    update: false
+
+- name: Inspect the installed GNOME theme and revision marker
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/{{ item }}"
+  loop:
+    - ".local/share/themes/{{ desktop_gtk_theme }}/gnome-shell/gnome-shell.css"
+    - ".local/share/themes/{{ desktop_gtk_theme }}/gtk-3.0/gtk.css"
+    - .config/gtk-4.0/gtk.css
+    - ".cache/fedora-desktop/whitesur-gtk-{{ desktop_whitesur_gtk_revision }}-dark-solid-libadwaita.installed"
+  register: desktop_gtk_installed
+
+- name: Install the dark macOS-style GNOME and GTK theme
+  become: true
+  become_user: "{{ desktop_user }}"
+  environment:
+    # The installer's progress animation calls tput, which fails without a terminal type.
+    TERM: xterm-256color
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/bash
+      - "{{ desktop_home }}/.cache/fedora-desktop/WhiteSur-gtk-theme-{{ desktop_whitesur_gtk_revision }}/install.sh"
+      - --dest
+      - "{{ desktop_home }}/.local/share/themes"
+      - --color
+      - dark
+      - --opacity
+      - solid
+      - --shell
+      - -b
+      - blank
+      # Restyle libadwaita (GTK 4) apps through ~/.config/gtk-4.0/gtk.css, which they load despite ignoring GTK themes.
+      - --libadwaita
+  when: desktop_gtk_installed.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+  register: desktop_gtk_install
+  changed_when: true
+
+- name: Record the successfully installed GNOME theme revision
+  ansible.builtin.copy:
+    content: "{{ desktop_whitesur_gtk_revision }} --color dark --opacity solid --shell -b blank --libadwaita\n"
+    dest: "{{ desktop_home }}/.cache/fedora-desktop/whitesur-gtk-{{ desktop_whitesur_gtk_revision }}-dark-solid-libadwaita.installed"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+  when: desktop_gtk_install.changed
+
+- name: Install the shared dark desktop wallpaper
+  ansible.builtin.copy:
+    src: wallpaper.svg
+    dest: "{{ desktop_home }}/.local/share/backgrounds/fedora-desktop.svg"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+- name: Configure the GTK theme fallback
+  community.general.ini_file:
+    path: "{{ desktop_home }}/.config/{{ item }}/settings.ini"
+    section: Settings
+    option: gtk-theme-name
+    value: "{{ desktop_gtk_theme }}"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    no_extra_spaces: true
+  loop:
+    - gtk-3.0
+    - gtk-4.0
+
+- name: Check for Flatpak
+  ansible.builtin.stat:
+    path: /usr/bin/flatpak
+  register: desktop_flatpak
+
+- name: Read the Flatpak access overrides
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command:
+    argv: [flatpak, override, --user, --show]
+  register: desktop_flatpak_overrides
+  changed_when: false
+  when: desktop_flatpak.stat.exists
+
+- name: Let Flatpak apps read the libadwaita theme
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command:
+    argv: [flatpak, override, --user, --filesystem=xdg-config/gtk-4.0:ro]
+  when:
+    - desktop_flatpak.stat.exists
+    - "'xdg-config/gtk-4.0:ro' not in desktop_flatpak_overrides.stdout"
+  changed_when: true

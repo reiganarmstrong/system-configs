@@ -1,8 +1,8 @@
 # Fedora desktop
 
-Ansible configures Fedora with Niri and Noctalia. The Fedora VM is the rehearsal for installing the same desktop on a Framework 13 Pro after the Fedora installer finishes.
+Ansible configures Fedora Workstation's GNOME with the [PaperWM](https://github.com/paperwm/PaperWM) scrolling window manager and a macOS-style look. The Fedora VM is the rehearsal for installing the same desktop on a Framework laptop after the Fedora installer finishes.
 
-The `desktop` role owns the desktop packages, Niri configuration, Noctalia startup, key bindings, desktop portals, audio packages and default login session. Both the VM and native laptop execute that role. Changes made while experimenting belong in the role and are reapplied with Ansible.
+The `desktop` role owns the GNOME packages, PaperWM, the theme, icons, wallpaper, key bindings, portals, audio services and default login session. Both the VM and native laptop execute that role. Changes made while experimenting belong in the role and are reapplied with Ansible.
 
 ## Native Fedora installation
 
@@ -20,21 +20,75 @@ The clone command reads this Git repository over SSH from the Ubuntu server's Ta
 
 The bootstrap script installs Ansible Core 2.22.0 and the collection versions in `requirements.yml` into ignored `.local/` directories. Ansible 2.22 supports Fedora 45's Python 3.15. Older controller versions fail before running desktop tasks.
 
-Reboot after the first run, then select Niri from the login screen's session menu if needed. Automatic login is disabled for native installations. Subsequent runs use the same command. Configuration changes to Niri normally reload while the session is running.
+Reboot after the first run. The GNOME session starts with PaperWM, User Themes and Dash to Dock enabled. Automatic login is disabled for native installations. Subsequent runs use the same command; they add missing extensions and shortcuts without removing ones you enabled yourself.
 
 Fedora 45 is the tested starting release. Packages track Fedora's repositories, so later runs can install newer dependency versions. This repository reproduces the configuration and package selection rather than an immutable OS image.
 
-## Appearance and display
+## Appearance
 
-The shared desktop role configures a macOS-inspired dark palette with blue accents, neutral gray hover highlights, charcoal surfaces, Inter typography, soft shadows and rounded windows. The active workspace pill is blue, and inactive workspace pills are white with contrasting labels. Noctalia panels, the bar, the dock and Alacritty use 96% opacity for slight glass transparency. Notifications and OSD popups use 97% opacity. Noctalia shell animations are disabled through `shell.animation.enabled=false` to remove button bounce and animated hover feedback. This shared switch also makes other Noctalia UI transitions immediate. The palette also includes a light variant. Set `desktop_theme_mode=light` when applying the desktop playbook to choose it. Noctalia's interactive mode control is under Settings → Appearance → Theme, or use `noctalia msg theme-mode-toggle` inside the desktop session.
+- **GNOME Shell and GTK theme:** [WhiteSur](https://github.com/vinceliuice/WhiteSur-gtk-theme) `WhiteSur-Dark-solid`, pinned to `desktop_whitesur_gtk_revision` and built with its installer into `~/.local/share/themes`. The shell theme is applied through the User Themes extension. A marker file in `~/.cache/fedora-desktop` records a completed install, so repeat runs skip the build. A new pin uses a fresh checkout because the installer edits its own Sass sources.
+- **Icons:** [WhiteSur](https://github.com/vinceliuice/WhiteSur-icon-theme) `WhiteSur-dark`, pinned to `desktop_whitesur_revision` (`roles/desktop/tasks/icons.yml`).
+- **Top bar:** solid black, including in the overview. PaperWM normally makes the bar translucent, so its top bar styling (`disable-topbar-styling`) is turned off, and `roles/desktop/files/paperwm-user.css` is installed as `~/.config/paperwm/user.css`. PaperWM reads that file only when it is enabled, so Ansible disables and re-enables PaperWM when the file changes. The lock and login screens keep WhiteSur's transparent bar.
+- **Dock:** Fedora's Dash to Dock package, at the bottom, with 48 px icons in macOS's dark dock gray (`#2C2C2E`) at 96% opacity. WhiteSur's own dock background is light even in its dark variant. The dock stays hidden, even on an empty desktop, and appears only when the pointer touches the bottom edge of the screen. It doesn't require pushing against the edge (`require-pressure-to-show` is off), because VNC's absolute pointer can't push past the screen edge.
+- **Windows:** macOS-style close/minimize/maximize buttons on the left, Inter as the interface font, dark mode with a blue accent, and hot corners disabled.
+- **Wallpaper:** `roles/desktop/files/wallpaper.svg`.
 
-The icon theme is [WhiteSur](https://github.com/vinceliuice/WhiteSur-icon-theme), pinned to commit `73d8040da51a9ed74e47c7366e7e9ff437601a5c`. Ansible installs it under `~/.local/share/icons` with the alternative macOS-style file-manager icons and bolder symbols for high-density displays. It selects `WhiteSur-dark` through GSettings for GTK applications and Noctalia's app launcher, with matching GTK 3/4 fallback settings. Light-mode playbook runs select `WhiteSur-light`. The source revision and selected theme are controlled by `desktop_whitesur_revision` and `desktop_icon_theme`. Installation tasks are in `roles/desktop/tasks/icons.yml`; they reinstall only when the pinned revision changes or an installed variant or completion marker is missing.
+libadwaita (GTK 4) apps such as Files, Settings and Text Editor ignore GTK themes, so the installer also runs with `--libadwaita`, which writes WhiteSur's stylesheet and assets into `~/.config/gtk-4.0/`. libadwaita loads that file regardless of the theme setting. GNOME doesn't support this kind of override, so a libadwaita update can leave widgets looking off until the WhiteSur pin is raised. Deleting `gtk.css`, `gtk-dark.css`, `gtk-Light.css`, `gtk-Dark.css`, `assets` and `windows-assets` from that folder restores the stock look. It is always the dark variant, even in light mode. When Flatpak is installed, Ansible grants Flatpak apps read access to the folder (`flatpak override --user --filesystem=xdg-config/gtk-4.0:ro`) so they pick up the same styling.
 
-Noctalia 5.4.1 applies a fixed 55% alpha to empty workspace pills, so their configured white appears dimmed. Occupied inactive workspace pills use the full white color. [Workspace rendering](https://github.com/noctalia-dev/noctalia/blob/v5.4.1/src/shell/bar/widgets/workspaces_widget.cpp#L1495)
+## Packages and apps
 
-`desktop_glass` controls transparency separately from `desktop_blur`, which defaults to false. `desktop_surface_opacity` controls the shared 96% opacity. Noctalia draws floating panels solid, and a Niri layer rule applies their subtle transparency because Noctalia 5.4.1's built-in translucent panel presets are substantially more transparent. Attached panels inherit the bar's 96% opacity. The configuration disables compositor blur for windows and all layer surfaces, bar and dock blur requests, overview backdrop blur and lock-screen background blur. The curated files live under `roles/desktop/templates/`, and the palette is `roles/desktop/files/macos.json`. The palette uses the complete legacy format, including terminal colors, required by Noctalia 5.4.1's shell renderer. Current Noctalia also accepts that format. Existing GUI overrides for the managed theme, font, animation, transparency and blur settings are cleared when Ansible runs. [Noctalia palette formats](https://docs.noctalia.dev/noctalia/theming/palette/)
+The playbook uses Fedora's own package managers and lists everything in `roles/desktop/defaults/main.yml`:
 
-The VM output is 3840×2160 at 60 Hz with 2× scaling, giving a 1920×1080 logical workspace. `desktop_output_mode` and `desktop_output_scale` control those values when a specific output is selected. Native installs start with automatic monitor selection and scaling because `desktop_output` is empty. Set it to the laptop panel's connector name if you want to manage that panel explicitly.
+- **dnf** (`desktop_packages`) installs the desktop, system services and command-line tools. These are the packages Fedora tests together, and dnf is the only manager that can safely own the system layer.
+- **Flatpak from Flathub** (`desktop_flatpaks`) installs desktop apps that Fedora doesn't package. Zen Browser (`app.zen_browser.zen`) is installed this way, which is Zen's recommended Linux install. Flathub apps run sandboxed and update independently of the OS. `roles/desktop/tasks/apps.yml` adds the Flathub remote system-wide and enables it, because Fedora Workstation can ship it disabled.
+
+Developer tools come from the same places:
+
+- **Node.js 24, npm, pnpm and uv** come from Fedora's packages. `nodejs24-bin` and `nodejs24-npm-bin` make Node 24 (the server's major version) own `node`, `npm` and `npx` instead of Fedora's default Node 22. Fedora's pnpm is 10.x. It switches to the version a project pins in its `packageManager` field, so projects that require pnpm 11 still use 11.
+- **Claude Code** comes from Anthropic's signed dnf repository. `apps.yml` imports the key only if its fingerprint matches the one Anthropic publishes. `desktop_claude_code_channel` selects `latest`, the native installer's default, or `stable`, which runs about a week behind. dnf installs don't update themselves; `sudo dnf upgrade` picks up new versions.
+- **Ghostty** is the default terminal. It isn't in Fedora or on Flathub, so it comes from the community `scottames/ghostty` COPR that Ghostty's install docs point Fedora users to. That build comes from a third party, not from Fedora or the Ghostty project. On Linux, Ghostty uses GTK4 and libadwaita, so it picks up the WhiteSur libadwaita styling and macOS window buttons. foot, the other option considered, would draw its own plain title bar under GNOME. Super+T opens Ghostty. `~/.config/xdg-terminals.list` makes it the terminal that `xdg-terminal-exec` (and therefore GLib) uses for terminal apps. `roles/desktop/files/ghostty.config` sets Catppuccin Mocha, the palette the Starship prompt was designed for, and `ssh-env`. With `ssh-env`, SSH sessions advertise `xterm-256color` instead of `xterm-ghostty`, a terminal type most servers don't recognize. Fedora Workstation's own terminal stays installed as a fallback.
+- **T3 Code** has no RPM or Flatpak. Ansible downloads the official AppImage once to `~/Applications/T3-Code.AppImage`, checks it against `desktop_t3code_sha256`, and adds a launcher entry with the app's icon. After that the app updates itself in place, and Ansible never replaces a newer copy. The AppImage includes its own FUSE support, so no extra FUSE packages are needed. The server's `t3` alias (`npx --yes t3@nightly`) works too, through Node 24.
+
+`sudo dnf upgrade` and `flatpak update` update the two sets, and GNOME Software updates both. Starship and the zsh plugins are the exceptions: they come from pinned upstream releases (see Shell).
+
+Homebrew on Linux was tried and left out. It can't own the system layer, and its Linux casks install apps as AppImages, which lack Flatpak's sandboxing and integrate less fully with the desktop. Putting its `bin` directory ahead of `/usr/bin` also shadows Fedora's own `python3`, `pkg-config` and similar tools, and installing the same tool through both brew and dnf leads to version confusion. Homebrew mainly makes sense on image-based Fedora variants such as Silverblue, where dnf can't add packages freely.
+
+Sandboxed browsers can need extra setup for features that talk to other desktop programs, such as a desktop password manager's browser integration. Check Zen's Flathub page if you rely on one.
+
+## Shell
+
+`roles/desktop/tasks/shell.yml` copies the Ubuntu server's zsh setup and makes zsh the login shell. It takes effect in new terminals and the next login.
+
+- **oh-my-zsh** with the `git`, `zsh-autosuggestions` and `zsh-syntax-highlighting` plugins, each pinned to the commit the server runs (`desktop_ohmyzsh_revision`, `desktop_zsh_plugins`). oh-my-zsh's self-updater is disabled so the pin holds; raise the pins to update.
+- **Starship** `desktop_starship_version` from the upstream release, checked against `desktop_starship_sha256`, because Fedora doesn't package it. It is installed under `/opt/fedora-desktop/` and linked into `/usr/local/bin`. The prompt is the server's Catppuccin `roles/desktop/files/starship.toml`, which needs no Nerd Font.
+- **`~/.zshrc` and `~/.zshenv`** come from `roles/desktop/templates/` with the server's aliases, functions, `EDITOR=vim` and PATH entries. Ansible overwrites them, so put laptop-only additions in `~/.zshrc.local`, which `~/.zshrc` sources last. The server's `BROWSER=none` is left out because it would stop tools from opening the desktop browser.
+
+The `sleep` alias suspends the machine (`sudo systemd-run --on-active=5s systemctl suspend && exit`). It only applies in interactive shells; scripts still get the real `sleep`.
+
+## PaperWM
+
+PaperWM, pinned to `desktop_paperwm_revision`, is cloned into `~/.local/share/gnome-shell/extensions`. Ansible stops if the installed GNOME Shell major version isn't listed in the pinned PaperWM's `metadata.json`. After a Fedora upgrade, raise the pin to a release that supports the new GNOME version. The role sets 12 px gaps and margins, a 2 px focus border and the wallpaper as the workspace background.
+
+| Keys | Action |
+| --- | --- |
+| Super+T | Terminal (Ghostty) |
+| Super+Space | GNOME overview and app search |
+| Super+Left / Super+Right | Focus the window to the left or right |
+| Super+Ctrl+Left / Super+Ctrl+Right | Move the window left or right in the strip |
+| Super+R | Cycle the window width |
+| Super+I / Super+O | Stack the next window into this column / pop it back out |
+| Super+Return | New window of the focused app |
+| Super+Backspace | Close the window |
+| Super+Escape | Toggle the floating scratch window |
+| Super+Shift+T | PaperWM's "take window" (moved from Super+T) |
+
+Input-source switching moves to Super+Alt+Space so Super+Space can open the overview. The rest of PaperWM's bindings are its upstream defaults and are listed in its settings (Extensions → PaperWM).
+
+## Display
+
+The VM output is 3840×2160 at 60 Hz with 2× scaling, giving a 1920×1080 logical workspace. `desktop_output_mode` and `desktop_output_scale` control those values when `desktop_output` names a connector. Native installs leave `desktop_output` empty, so GNOME picks the panel's mode and scaling itself.
+
+In the VM, `~/.local/bin/configure-vm-display` writes the layout to `~/.config/monitors.xml` for future logins and applies it to the running session temporarily. A persistent apply through Mutter's D-Bus API would open GNOME's "Keep these display settings?" prompt and revert after 20 seconds if no one confirmed it.
 
 ## Rehearsal VM on Ubuntu
 
@@ -64,9 +118,9 @@ This file stays in ignored `.local/` state. The playbook redacts password-bearin
 
 The VM playbook installs QEMU/libvirt, downloads the checksum-pinned Fedora 45 cloud image, creates a 60 GiB expandable disk, assigns four virtual CPUs and 8 GiB RAM, and starts the guest on libvirt's default NAT network. It then runs the same `desktop` role used by `desktop.yml` on a native laptop.
 
-The cloud image only bootstraps the account and SSH access. All desktop installation and configuration happens in Ansible. VM administration uses a generated SSH key and passwordless sudo inside the guest. Private keys, known hosts and the generated inventory stay in ignored `.local/` state. Guest disks and seed files live under `/var/lib/libvirt/images/fedora-niri/`.
+The cloud image only bootstraps the account and SSH access. All desktop installation and configuration happens in Ansible. VM administration uses a generated SSH key and passwordless sudo inside the guest. Private keys, known hosts and the generated inventory stay in ignored `.local/` state. Guest disks and seed files live under `/var/lib/libvirt/images/fedora-paperwm/`.
 
-VM-only settings enable automatic login, select the 4K virtual display, and install the QEMU guest agent. The virtual GPU uses VirtIO 3D and headless EGL through the host's Arc GPU at `/dev/dri/renderD128`. QEMU receives membership in the host's `render` group. Niri rejected the initial software-only virtual display. Native installations use their physical display and normal graphics defaults. Virtualization and graphics performance in this VM do not validate laptop Wi-Fi, suspend, fingerprint, battery or display scaling.
+VM-only settings enable automatic login, disable screen locking and idle sleep, select the 4K virtual display, and install the QEMU guest agent. The virtual GPU uses VirtIO 3D and headless EGL through the host's Arc GPU at `/dev/dri/renderD128`. Native installations use their physical display and normal graphics defaults. This VM does not validate laptop Wi-Fi, suspend, fingerprint, battery, touchpad gestures or display scaling.
 
 To apply a desktop change to the VM, run this from the Ubuntu host.
 
@@ -93,38 +147,50 @@ ssh -N \
 
 Keep that terminal running. In another terminal, run `open vnc://127.0.0.1:5901` to open macOS Screen Sharing. Enter the VNC password chosen during VM setup when Screen Sharing prompts. Another VNC viewer can connect to `127.0.0.1` on port `5901`. The console listens only on the Ubuntu host's loopback address, and SSH carries the connection over Tailscale. On the home LAN, `192.168.1.215` can also be used as the SSH server address. [SSH over Tailscale](https://tailscale.com/docs/reference/ssh-over-tailscale)
 
-Super is Command when the VNC client forwards the Mac Command key as Super. Start a terminal with Super+T, open the launcher with Super+Space, toggle the overview with Super+Tab, and show the bindings with Super+Shift+/. Mac shortcuts may require configuring the viewer to pass them through.
+Super is Command when the VNC viewer forwards the Mac Command key as Super. macOS Screen Sharing intercepts many Command shortcuts, so use TigerVNC to try PaperWM's keys.
 
 For testing the Linux shortcuts from macOS, TigerVNC Viewer supports capturing system keys in full screen. Keep the SSH tunnel running and connect TigerVNC to `127.0.0.1::5901`. In its Input options, enable “Always send all keyboard input in full screen” and use full-screen mode. Allow TigerVNC under macOS System Settings → Privacy & Security → Accessibility when prompted. Current TigerVNC maps Command to Super and Option to Alt. Control+Option releases the keyboard capture, and Control+Option+M opens the viewer menu. This client setup requires verification on the Mac. [TigerVNC viewer options](https://tigervnc.org/doc/vncviewer.html), [Mac keyboard capture guidance](https://github.com/TigerVNC/tigervnc/issues/2024), [Mac modifier mapping](https://github.com/TigerVNC/tigervnc/blob/v1.16.2/vncviewer/KeyboardMacOS.mm)
 
-QEMU VNC carries the VM console. Audio forwarding and a shared clipboard are not configured. Native wayvnc access is a separate experiment because Fedora's released Niri version may still have virtual input bugs.
+QEMU VNC carries the VM console. Audio forwarding and a shared clipboard are not configured.
 
 Manage the VM on Ubuntu with libvirt.
 
 ```bash
-sudo virsh shutdown fedora-niri
-sudo virsh start fedora-niri
-sudo virsh domifaddr fedora-niri
+sudo virsh shutdown fedora-paperwm
+sudo virsh start fedora-paperwm
+sudo virsh domifaddr fedora-paperwm
 ```
 
 The VM does not automatically start when the Ubuntu host reboots. Run the VM playbook again if DHCP changes its address so that `.local/vm.yml` is refreshed.
 
 ## Verification
 
-On November 4, 2026, the VM playbook completed on Ubuntu 26.04.1 with Fedora 45, Niri 26.04 and Noctalia 5.4.1. A repeat of the entire VM playbook reported zero changes on both host and guest. The repository was also cloned into Fedora, bootstrapped there, and applied locally with the native defaults. Its second local run reported zero changes.
+On November 4, 2026, the laptop path was also tested from a fresh Fedora 45 Workstation install in a separate VM. The account was an administrator with a password, and auto-login was off, as on the Framework. After logging in at GDM and skipping the welcome tour, the test followed the "Native Fedora installation" steps exactly: `sudo dnf install -y git python3-pip`, `git clone` over HTTP, `./bootstrap.sh`, then `ansible-playbook desktop.yml --ask-become-pass`.
 
-The running desktop was verified at 3840×2160 at 60 Hz with 2× scaling, dark mode, 96% surface opacity and background blur disabled. A launcher screenshot confirmed faint transparency with sharp wallpaper and Settings content behind it. Noctalia and GTK both reported dark mode. Sending Super+T through VNC opened Alacritty. PipeWire and WirePlumber were active. WhiteSur-dark was selected in GSettings, its icon cache was present, and the launcher displayed the themed Firefox icon. The dark hover token was verified as neutral gray `#3A3A3C`. The appearance playbook's repeat run reported zero changes. Syntax checks and Ansible Lint passed. Physical Framework hardware still requires testing on that device.
+The first run found one bug: the `community.general.copr` module needs the dnf 4 Python bindings, which Workstation doesn't install, and the rehearsal VM had them only by chance. The Ghostty COPR is now defined with `yum_repository` and a fingerprint-pinned key. After that fix the playbook completed. After a reboot and password login, all of the following were confirmed:
 
-The VM requires classic VNC password authentication for macOS Screen Sharing. Its challenge-response exchange accepted the configured password and returned a 3840×2160 console. Run the regression check against the running VM from the Ubuntu host with the default local password file.
+- PaperWM, User Themes and Dash to Dock active
+- WhiteSur shell, GTK and libadwaita theming
+- black top bar and dark auto-hiding dock
+- zsh with oh-my-zsh and Starship as the login shell
+- Ghostty on Super+T and as the `xdg-terminal-exec` default
+- Zen from Flathub, Claude Code from Anthropic's dnf repo, T3 Code in `~/Applications`
+- Node 24, pnpm and uv
+
+A second run reported zero changes.
+
+On November 4, 2026, `desktop.yml` completed against the Fedora 45 VM with GNOME Shell 51.1, and a repeat run reported zero changes. PaperWM, User Themes and Dash to Dock were active, and `WhiteSur-Dark-solid` was selected for both the shell and GTK, and the libadwaita stylesheet in `~/.config/gtk-4.0/` loaded in Text Editor without CSS errors. After a guest reboot, GDM logged in automatically and the session came up at 3840×2160 at 60 Hz with 2× scaling from the saved `monitors.xml`. Physical Framework hardware still requires testing on that device.
+
+Check VNC authentication against the running VM from the Ubuntu host with the default local password file.
 
 ```bash
 .local/ansible/bin/python tests/check_vnc_auth.py
 ```
 
-On first launch, Noctalia may show its welcome screen. Automatic login may also prompt to create or unlock a keyring. Those interactive choices can be made in the guest. Record any desktop settings chosen during experiments in the shared role before relying on them for the laptop installation.
+The VM account has no password, so automatic login can't unlock the "Login" keyring (Fedora 45's `oo7-daemon`). The first app that stores a secret in each session, such as T3 Code, shows an unlock prompt and waits until it is answered. Leave the field empty and click Unlock. A normal password login on the laptop unlocks the keyring automatically. Record any desktop settings chosen during experiments in the shared role before relying on them for the laptop installation.
 
 ## Sources
 
-Fedora publishes Niri and Noctalia packages in its repositories. Noctalia's Niri integration documents the startup command and IPC bindings used here. [Niri package](https://packages.fedoraproject.org/pkgs/niri/niri/), [Noctalia package](https://packages.fedoraproject.org/pkgs/noctalia/noctalia/), [Noctalia integration](https://docs.noctalia.dev/noctalia/compositor-settings/niri/)
+[PaperWM](https://github.com/paperwm/PaperWM), [WhiteSur GTK theme](https://github.com/vinceliuice/WhiteSur-gtk-theme), [WhiteSur icon theme](https://github.com/vinceliuice/WhiteSur-icon-theme), [Dash to Dock](https://micheleg.github.io/dash-to-dock/).
 
 The Fedora 45 cloud image checksum was verified against Fedora's signed release manifest using Fedora's published signing keys. [Fedora cloud downloads](https://fedoraproject.org/cloud/download/), [Signing keys](https://fedoraproject.org/security/)

@@ -1,0 +1,156 @@
+---
+# Apps whose maintained Linux builds ship through Flathub. Flatpak keeps them
+# updated (GNOME Software or `flatpak update`), so they are not version-pinned here.
+
+- name: Add the Flathub remote
+  community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    method: system
+    state: present
+
+# Fedora Workstation can ship the remote disabled until third-party repositories are enabled.
+- name: Enable the Flathub remote
+  community.general.flatpak_remote:
+    name: flathub
+    method: system
+    enabled: true
+
+- name: Install the Flathub apps
+  community.general.flatpak:
+    name: "{{ desktop_flatpaks }}"
+    remote: flathub
+    method: system
+    state: present
+
+# Ghostty isn't in Fedora or on Flathub. Its docs point Fedora users to this
+# community COPR, which builds each Fedora release.
+# Defined directly (as `dnf copr enable` would write it) because the copr module
+# needs the dnf 4 Python bindings, which a fresh Fedora Workstation lacks.
+- name: Trust the Ghostty COPR signing key
+  ansible.builtin.rpm_key:
+    key: https://download.copr.fedorainfracloud.org/results/scottames/ghostty/pubkey.gpg
+    fingerprint: "{{ desktop_ghostty_copr_key_fingerprint }}"
+    state: present
+
+- name: Add the Ghostty COPR repository
+  ansible.builtin.yum_repository:
+    name: copr-scottames-ghostty
+    description: Copr repo for ghostty owned by scottames
+    baseurl: https://download.copr.fedorainfracloud.org/results/scottames/ghostty/fedora-$releasever-$basearch/
+    gpgcheck: true
+    gpgkey: https://download.copr.fedorainfracloud.org/results/scottames/ghostty/pubkey.gpg
+    skip_if_unavailable: true
+    enabled: true
+
+- name: Install Ghostty
+  ansible.builtin.dnf:
+    name: ghostty
+    state: present
+
+- name: Create the Ghostty config directory
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/.config/ghostty"
+    state: directory
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+
+- name: Configure Ghostty
+  ansible.builtin.copy:
+    src: ghostty.config
+    dest: "{{ desktop_home }}/.config/ghostty/config"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+# Read by xdg-terminal-exec, which GLib uses to open terminal apps.
+- name: Make Ghostty the default terminal
+  ansible.builtin.copy:
+    content: "com.mitchellh.ghostty.desktop\n"
+    dest: "{{ desktop_home }}/.config/xdg-terminals.list"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+# Anthropic publishes signed Claude Code RPMs, so dnf upgrades it with the rest of the system.
+- name: Trust the Claude Code repository signing key
+  ansible.builtin.rpm_key:
+    key: https://downloads.claude.ai/keys/claude-code.asc
+    fingerprint: "{{ desktop_claude_code_key_fingerprint }}"
+    state: present
+
+- name: Add the Claude Code repository
+  ansible.builtin.yum_repository:
+    name: claude-code
+    description: Claude Code
+    baseurl: "https://downloads.claude.ai/claude-code/rpm/{{ desktop_claude_code_channel }}"
+    gpgcheck: true
+    gpgkey: https://downloads.claude.ai/keys/claude-code.asc
+    enabled: true
+
+- name: Install Claude Code
+  ansible.builtin.dnf:
+    name: claude-code
+    state: present
+
+# T3 Code ships no RPM or Flatpak. Its AppImage updates itself in place, so
+# Ansible only performs the first download and never replaces a newer copy.
+- name: Create the user application directories
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/{{ item }}"
+    state: directory
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+  loop:
+    - Applications
+    - .local/share/applications
+    - .local/share/fedora-desktop
+
+- name: Check for an installed T3 Code
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/Applications/T3-Code.AppImage"
+  register: desktop_t3code
+
+- name: Download T3 Code
+  ansible.builtin.get_url:
+    url: "https://github.com/pingdotgg/t3code/releases/download/v{{ desktop_t3code_version }}/T3-Code-{{ desktop_t3code_version }}-x86_64.AppImage"
+    dest: "{{ desktop_home }}/Applications/T3-Code.AppImage"
+    checksum: "sha256:{{ desktop_t3code_sha256 }}"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+  when: not desktop_t3code.stat.exists
+
+- name: Extract the T3 Code icon
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.shell: |
+    set -eu
+    work=$(mktemp -d)
+    trap 'rm -rf "$work"' EXIT
+    cd "$work"
+    icon=usr/share/icons/hicolor/512x512/apps/t3code.png
+    "$HOME/Applications/T3-Code.AppImage" --appimage-extract "$icon" >/dev/null
+    install -m 0644 "squashfs-root/$icon" "$HOME/.local/share/fedora-desktop/t3code.png"
+  args:
+    creates: "{{ desktop_home }}/.local/share/fedora-desktop/t3code.png"
+
+- name: Add T3 Code to the app launcher
+  ansible.builtin.copy:
+    dest: "{{ desktop_home }}/.local/share/applications/t3code.desktop"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    content: |
+      [Desktop Entry]
+      Name=T3 Code
+      Comment=Desktop app for coding agents
+      Exec={{ desktop_home }}/Applications/T3-Code.AppImage %U
+      Icon={{ desktop_home }}/.local/share/fedora-desktop/t3code.png
+      Terminal=false
+      Type=Application
+      StartupWMClass=t3code
+      MimeType=x-scheme-handler/t3code;
+      Categories=Development;

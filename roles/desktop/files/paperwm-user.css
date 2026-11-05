@@ -1,0 +1,9 @@
+/* Managed by Ansible (roles/desktop/files/paperwm-user.css). */
+
+/* Solid black top bar, including in the overview. PaperWM's own top bar
+   styling is disabled in dconf, so WhiteSur's #panel rules apply here. */
+#panel,
+#panel:overview {
+    background-color: #000000;
+    box-shadow: none;
+}

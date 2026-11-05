@@ -94,7 +94,7 @@
       - -N
       - ''
       - -C
-      - fedora-niri-ansible
+      - fedora-desktop-ansible
       - -f
       - "{{ vm_private_key }}"
     creates: "{{ vm_private_key }}"

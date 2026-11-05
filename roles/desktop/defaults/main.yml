@@ -6,24 +6,49 @@ desktop_output: ""
 desktop_output_mode: "3840x2160@60"
 desktop_output_scale: 2
 desktop_theme_mode: dark
-desktop_glass: true
-desktop_blur: false
-desktop_surface_opacity: 0.96
-desktop_icon_theme: "WhiteSur-{{ desktop_theme_mode }}"
+desktop_icon_theme: WhiteSur-dark
+desktop_gtk_theme: WhiteSur-Dark-solid
 desktop_whitesur_revision: 73d8040da51a9ed74e47c7366e7e9ff437601a5c
+desktop_whitesur_gtk_revision: d5782652d412137e26fb8ff55b55a5572e4c6995
+desktop_paperwm_revision: 2d460db8365b2dee235dde15103161e67df83247
+desktop_extensions:
+  - paperwm@paperwm.github.com
+  - user-theme@gnome-shell-extensions.gcampax.github.com
+  - dash-to-dock@micxgx.gmail.com
 desktop_packages:
   - git
+  - zsh
+  - vim-enhanced
+  # Node 24 (matching the Ubuntu server) owns /usr/bin/node, npm and npx; Fedora's default nodejs is 22.
+  - nodejs24
+  - nodejs24-bin
+  - nodejs24-npm
+  - nodejs24-npm-bin
+  - pnpm
+  - uv
+  - make
   - dconf
   - python3-psutil
+  - python3-gobject
   - gtk-update-icon-cache
-  - python3-pip
-  - niri
-  - noctalia
+  - glib2-devel
+  - sassc
+  - gnome-shell
+  - gnome-session
+  - gnome-settings-daemon
   - gdm
-  - alacritty
+  - gnome-control-center
+  - gnome-tweaks
+  - gnome-extensions-app
+  - gnome-shell-extension-user-theme
+  - gnome-shell-extension-dash-to-dock
+  # Opens terminal apps (Terminal=true) in the terminal named in ~/.config/xdg-terminals.list.
+  - xdg-terminal-exec
+  - gnome-text-editor
+  - gnome-system-monitor
   - firefox
+  - flatpak
   - nautilus
-  - xwayland-satellite
   - xdg-desktop-portal-gnome
   - xdg-desktop-portal-gtk
   - xdg-user-dirs
@@ -33,7 +58,25 @@ desktop_packages:
   - wireplumber
   - gnome-keyring
   - wl-clipboard
-  - brightnessctl
   - google-noto-sans-fonts
   - google-noto-emoji-color-fonts
   - rsms-inter-fonts
+desktop_starship_version: 1.26.0
+desktop_starship_sha256: b7c232b0e8249d8e55a40beb79c5c43a7d370f3f9408bd215deb0170daeaadf3
+desktop_ohmyzsh_revision: 2100c630ba4bd67bb48802c3e7da893a4fdaa1a0
+desktop_zsh_plugins:
+  - name: zsh-autosuggestions
+    repo: https://github.com/zsh-users/zsh-autosuggestions.git
+    version: 85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5
+  - name: zsh-syntax-highlighting
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+    version: 1d85c692615a25fe2293bdd44b34c217d5d2bf04
+desktop_flatpaks:
+  - app.zen_browser.zen
+# Claude Code's dnf channel: latest (the native installer's default) or stable (about a week behind).
+desktop_claude_code_channel: latest
+desktop_claude_code_key_fingerprint: 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE
+# First-install T3 Code build; afterwards the app updates itself in place.
+desktop_t3code_version: 0.1.7
+desktop_t3code_sha256: faaee4094dca1276057840a1a45a6b2d00d7418afbf5735f75a7503b774e63d1
+desktop_ghostty_copr_key_fingerprint: 2DEFB319CCC3F393B6DAEAB297C83CA0FEB5DAFB

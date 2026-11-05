@@ -1,0 +1,108 @@
+#!/usr/bin/python3
+"""Apply the VM monitor mode without copying its layout to native hardware.
+
+GNOME reverts a persistent ApplyMonitorsConfig call unless someone confirms the
+"Keep these display settings?" prompt, so the saved layout is written to
+monitors.xml and the running session gets a temporary (unprompted) apply.
+"""
+
+import os
+import xml.etree.ElementTree as ElementTree
+from xml.sax.saxutils import escape
+
+from gi.repository import Gio, GLib
+
+connector = {{ desktop_output | to_json }}
+requested_mode = {{ desktop_output_mode | to_json }}
+scale = {{ desktop_output_scale | float }}
+dimensions, refresh = requested_mode.split('@')
+width, height = map(int, dimensions.split('x'))
+refresh = float(refresh)
+METHOD_TEMPORARY = 1
+
+proxy = Gio.DBusProxy.new_for_bus_sync(
+    Gio.BusType.SESSION, Gio.DBusProxyFlags.NONE, None,
+    'org.gnome.Mutter.DisplayConfig', '/org/gnome/Mutter/DisplayConfig',
+    'org.gnome.Mutter.DisplayConfig', None,
+)
+serial, monitors, logical_monitors, properties = proxy.call_sync(
+    'GetCurrentState', None, Gio.DBusCallFlags.NONE, 10000, None,
+).unpack()
+monitor = next((m for m in monitors if m[0][0] == connector), None)
+if monitor is None:
+    raise RuntimeError(f'VM display {connector} was not found')
+candidates = [m for m in monitor[1] if m[1:3] == (width, height) and scale in m[5]]
+if not candidates:
+    available = [(m[1], m[2], m[3], m[5]) for m in monitor[1]]
+    raise RuntimeError(f'{requested_mode} at {scale}x is unavailable: {available}')
+mode = min(candidates, key=lambda m: abs(m[3] - refresh))
+changed = False
+
+spec_connector, vendor, product, monitor_serial = monitor[0]
+saved_layout = f"""<monitors version="2">
+  <configuration>
+    <logicalmonitor>
+      <x>0</x>
+      <y>0</y>
+      <scale>{scale:g}</scale>
+      <primary>yes</primary>
+      <monitor>
+        <monitorspec>
+          <connector>{escape(spec_connector)}</connector>
+          <vendor>{escape(vendor)}</vendor>
+          <product>{escape(product)}</product>
+          <serial>{escape(monitor_serial)}</serial>
+        </monitorspec>
+        <mode>
+          <width>{mode[1]}</width>
+          <height>{mode[2]}</height>
+          <rate>{mode[3]:.3f}</rate>
+        </mode>
+      </monitor>
+    </logicalmonitor>
+  </configuration>
+</monitors>
+"""
+config_path = os.path.join(GLib.get_user_config_dir(), 'monitors.xml')
+
+
+def layouts(document):
+    """Reduce monitors.xml to its meaningful values; GNOME rewrites the formatting."""
+    root = ElementTree.fromstring(document)
+    return {
+        tuple(
+            (
+                float(logical.findtext('scale', '1')),
+                monitor.findtext('monitorspec/connector'),
+                monitor.findtext('mode/width'),
+                monitor.findtext('mode/height'),
+                round(float(monitor.findtext('mode/rate', '0')), 3),
+            )
+            for logical in configuration.iter('logicalmonitor')
+            for monitor in logical.iter('monitor')
+        )
+        for configuration in root.iter('configuration')
+    }
+
+
+try:
+    with open(config_path, encoding='utf-8') as existing:
+        saved = layouts(existing.read())
+except (FileNotFoundError, ElementTree.ParseError):
+    saved = set()
+if saved != layouts(saved_layout):
+    with open(config_path + '.tmp', 'w', encoding='utf-8') as staged:
+        staged.write(saved_layout)
+    os.replace(config_path + '.tmp', config_path)
+    changed = True
+
+logical = next((m for m in logical_monitors if any(s[0] == connector for s in m[5])), None)
+if not (mode[6].get('is-current', False) and logical is not None and logical[2] == scale):
+    config = GLib.Variant(
+        '(uua(iiduba(ssa{sv}))a{sv})',
+        (serial, METHOD_TEMPORARY, [(0, 0, scale, 0, True, [(connector, mode[0], {})])], {}),
+    )
+    proxy.call_sync('ApplyMonitorsConfig', config, Gio.DBusCallFlags.NONE, 10000, None)
+    changed = True
+
+print('changed' if changed else 'unchanged')

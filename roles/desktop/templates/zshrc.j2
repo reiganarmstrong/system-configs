@@ -1,0 +1,91 @@
+# {{ ansible_managed }}
+# Put machine-specific additions in ~/.zshrc.local; Ansible overwrites this file.
+
+export ZSH="$HOME/.oh-my-zsh"
+
+ZSH_THEME=""
+
+# Ansible pins oh-my-zsh; its self-updater would move it off that revision.
+zstyle ':omz:update' mode disabled
+
+plugins=(
+    git
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+)
+
+source "$ZSH/oh-my-zsh.sh"
+
+eval "$(starship init zsh)"
+
+alias sleep='sudo systemd-run --on-active=5s systemctl suspend && exit'
+alias mv='mv -i'
+alias cp='cp -i'
+alias rm='rm -i'
+alias ls='ls -laht --color=auto'
+alias t3='npx --yes t3@nightly'
+export EDITOR=vim
+export CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=2
+
+
+update_codex() {
+  codex remote-control stop
+  codex update
+  pkill -9 -f "codex.*app-server" && pkill -9 -f "codex"
+  codex remote-control start
+}
+
+
+# List MakeMKV disc titles, sorted from largest to smallest.
+# Usage: makemkv_table [device-or-MakeMKV-source]
+# Examples: makemkv_table, makemkv_table /dev/sr1, makemkv_table disc:0
+makemkv_table() {
+    emulate -L zsh
+    setopt pipefail
+
+    local source="${1:-dev:/dev/sr0}"
+    if [[ "$source" == /* ]]; then
+        source="dev:$source"
+    fi
+
+    print -u2 -- "Scanning $source..."
+
+    {
+        printf 'TITLE_ID\tBYTES\tSIZE\tDURATION\tPLAYLIST\tLANGUAGE\tOUTPUT_FILENAME\n'
+        makemkvcon --robot info "$source" |
+            awk -F, '
+                function value_from_record(record, value) {
+                    value = record
+                    sub(/^[^,]*,[^,]*,[^,]*,/, "", value)
+                    sub(/^"/, "", value)
+                    sub(/"$/, "", value)
+                    return value
+                }
+
+                /^TINFO:/ {
+                    split($1, title_field, ":")
+                    id = title_field[2]
+                    code = $2
+                    value = value_from_record($0)
+
+                    if (code == 9)  duration[id] = value
+                    if (code == 10) size[id] = value
+                    if (code == 11) bytes[id] = value
+                    if (code == 16) playlist[id] = value
+                    if (code == 27) filename[id] = value
+                    if (code == 29) language[id] = value
+                }
+
+                END {
+                    for (id in bytes) {
+                        printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", \
+                            id, bytes[id], size[id], duration[id], \
+                            playlist[id], language[id], filename[id]
+                    }
+                }
+            ' |
+            sort -t $'\t' -k2,2nr
+    } | column -t -s $'\t'
+}
+
+[[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"

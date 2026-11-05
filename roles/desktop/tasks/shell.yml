@@ -1,0 +1,80 @@
+---
+# Mirrors the Ubuntu server's interactive shell: oh-my-zsh with the git,
+# zsh-autosuggestions and zsh-syntax-highlighting plugins, plus the Starship prompt.
+
+- name: Create the Starship install directory
+  ansible.builtin.file:
+    path: "/opt/fedora-desktop/starship-{{ desktop_starship_version }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# Fedora does not package Starship, so install the pinned upstream release.
+- name: Download the pinned Starship release
+  ansible.builtin.get_url:
+    url: "https://github.com/starship/starship/releases/download/v{{ desktop_starship_version }}/starship-x86_64-unknown-linux-musl.tar.gz"
+    dest: "/opt/fedora-desktop/starship-{{ desktop_starship_version }}/starship.tar.gz"
+    checksum: "sha256:{{ desktop_starship_sha256 }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Unpack Starship
+  ansible.builtin.unarchive:
+    src: "/opt/fedora-desktop/starship-{{ desktop_starship_version }}/starship.tar.gz"
+    dest: "/opt/fedora-desktop/starship-{{ desktop_starship_version }}"
+    remote_src: true
+    owner: root
+    group: root
+    creates: "/opt/fedora-desktop/starship-{{ desktop_starship_version }}/starship"
+
+- name: Put Starship on the PATH
+  ansible.builtin.file:
+    src: "/opt/fedora-desktop/starship-{{ desktop_starship_version }}/starship"
+    dest: /usr/local/bin/starship
+    state: link
+    force: true
+
+- name: Fetch the pinned oh-my-zsh release
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.git:
+    repo: https://github.com/ohmyzsh/ohmyzsh.git
+    dest: "{{ desktop_home }}/.oh-my-zsh"
+    version: "{{ desktop_ohmyzsh_revision }}"
+
+- name: Fetch the pinned zsh plugins
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "{{ desktop_home }}/.oh-my-zsh/custom/plugins/{{ item.name }}"
+    version: "{{ item.version }}"
+  loop: "{{ desktop_zsh_plugins }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Install the zsh startup files
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ desktop_home }}/.{{ item }}"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+  loop:
+    - zshrc
+    - zshenv
+
+- name: Install the Starship prompt configuration
+  ansible.builtin.copy:
+    src: starship.toml
+    dest: "{{ desktop_home }}/.config/starship.toml"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+- name: Make zsh the login shell
+  ansible.builtin.user:
+    name: "{{ desktop_user }}"
+    shell: /usr/bin/zsh

@@ -1,0 +1,50 @@
+---
+- name: Install the VM guest agent
+  ansible.builtin.dnf:
+    name: qemu-guest-agent
+    state: present
+
+- name: Start VM integration
+  ansible.builtin.systemd_service:
+    name: qemu-guest-agent
+    enabled: true
+    state: started
+
+- name: Disable automatic screen locking only in the passwordless rehearsal VM
+  become: true
+  become_user: "{{ desktop_user }}"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+  loop:
+    - { key: /org/gnome/desktop/screensaver/lock-enabled, value: 'false' }
+    - { key: /org/gnome/desktop/session/idle-delay, value: 'uint32 0' }
+    - { key: /org/gnome/settings-daemon/plugins/power/sleep-inactive-ac-type, value: "'nothing'" }
+
+- name: Install the VM-only GNOME display setup tool
+  ansible.builtin.template:
+    src: configure-vm-display.py.j2
+    dest: "{{ desktop_home }}/.local/bin/configure-vm-display"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+
+- name: Start the GNOME rehearsal session
+  ansible.builtin.systemd_service:
+    name: gdm
+    state: started
+
+- name: Apply the 4K display mode through GNOME's display service
+  become: true
+  become_user: "{{ desktop_user }}"
+  environment:
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ desktop_uid }}/bus"
+    XDG_RUNTIME_DIR: "/run/user/{{ desktop_uid }}"
+  ansible.builtin.command:
+    argv: ["{{ desktop_home }}/.local/bin/configure-vm-display"]
+  register: desktop_vm_display
+  changed_when: "'changed' == desktop_vm_display.stdout | trim"
+  until: desktop_vm_display.rc == 0
+  retries: 30
+  delay: 2
