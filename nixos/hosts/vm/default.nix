@@ -1,5 +1,7 @@
 # Test VM built with `nixos-rebuild build-vm --flake .#vm`. It renders through
 # the host GPU (virtio-gpu with virgl) and is viewed over VNC on 127.0.0.1:5902.
+# The VNC password is read from the file named by $VNC_PASSWORD_FILE when the
+# VM starts; classic VNC authentication uses its first eight characters.
 { lib, ... }:
 {
   networking.hostName = "vm";
@@ -38,7 +40,8 @@
     qemu.options = [
       "-device virtio-vga-gl,xres=3840,yres=2160"
       "-display egl-headless,rendernode=/dev/dri/renderD128"
-      "-vnc 127.0.0.1:2"
+      "-object secret,id=vncpass,file=$VNC_PASSWORD_FILE"
+      "-vnc 127.0.0.1:2,password-secret=vncpass"
     ];
   };
 

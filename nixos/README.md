@@ -66,7 +66,7 @@ The **NixOS check** workflow builds both hosts on every change under `nixos/` or
 
 ## Testing in a VM
 
-`nixos-rebuild build-vm` builds a throwaway QEMU VM straight from the flake. The VM renders through the host GPU (virtio-gpu with virgl), which Hyprland needs, and is viewed over VNC on `127.0.0.1:5902` with no password.
+`nixos-rebuild build-vm` builds a throwaway QEMU VM straight from the flake. The VM renders through the host GPU (virtio-gpu with virgl), which Hyprland needs, and is viewed over VNC on `127.0.0.1:5902`. The VNC password is read at start-up from the file `$VNC_PASSWORD_FILE` names; VNC uses its first eight characters.
 
 On a non-NixOS host, Nix's QEMU looks for GPU drivers in `/run/opengl-driver`, which only NixOS has, so point it at Nix's Mesa. The host user must be in the `kvm` and `render` groups.
 
@@ -76,10 +76,17 @@ mesa=$(nix build --no-link --print-out-paths "$(nix eval --raw .#nixosConfigurat
 GBM_BACKENDS_PATH=$mesa/lib/gbm \
 LIBGL_DRIVERS_PATH=$mesa/lib/dri \
 __EGL_VENDOR_LIBRARY_FILENAMES=$mesa/share/glvnd/egl_vendor.d/50_mesa.json \
+VNC_PASSWORD_FILE=fedora/.local/vnc-password \
   ./result/bin/run-vm-vm
 ```
 
 The VM's password is `nixos`, and SSH from the host works on `127.0.0.1:2222` with the host user's `~/.ssh/id_ed25519.pub`. Its disk, `vm.qcow2`, is created in the current directory; delete it for a fresh first boot.
+
+To view it from another machine on the tailnet, tunnel the port over SSH, then open `vnc://localhost:5902` (on a Mac, in Finder's **Go → Connect to Server**):
+
+```bash
+ssh -N -L 5902:127.0.0.1:5902 reagan@pc.taila028da.ts.net
+```
 
 ## Installing on the Framework
 
