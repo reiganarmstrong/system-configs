@@ -66,6 +66,21 @@ in
       inactiveOpacity = number 0.33 "Shadow opacity under unfocused windows.";
     };
 
+    icons = mkOption {
+      type = types.str;
+      default = "Papirus-Dark";
+      description = ''
+        Base icon theme for apps, the launcher, the dock and Files. Images in
+        nixos/icons/ are layered on top of it, so a file there replaces the
+        theme's icon of the same name. Change iconPackage with it.
+      '';
+    };
+    iconPackage = mkOption {
+      type = types.str;
+      default = "papirus-icon-theme";
+      description = "The nixpkgs attribute that provides the icons theme.";
+    };
+
     fonts = {
       ui = mkOption {
         type = types.str;

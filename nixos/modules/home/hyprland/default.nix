@@ -2,6 +2,7 @@
 # values that come from Nix (theme, display, program paths) arrive as a
 # generated `nix.lua` table, so restyling never means editing Lua.
 {
+  config,
   osConfig,
   lib,
   pkgs,
@@ -18,6 +19,7 @@ let
       terminal = lib.getExe pkgs.ghostty;
       shell = lib.getExe' pkgs.quickshell "qs";
       cursor = "Bibata-Modern-Classic";
+      icons = config.gtk.iconTheme.name;
     };
   };
 in

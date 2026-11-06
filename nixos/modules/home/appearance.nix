@@ -2,6 +2,38 @@
 { osConfig, pkgs, ... }:
 let
   theme = osConfig.desktop.theme;
+
+  # Your own icons, layered over the base theme. Every folder in nixos/icons/
+  # becomes a scalable icon directory, and the theme inherits the base one, so
+  # an image named after an icon (apps/firefox.svg, places/folder.png)
+  # replaces it and anything missing comes from the base theme.
+  customIcons = pkgs.runCommand "custom-icon-theme" { } ''
+    dest=$out/share/icons/Custom
+    mkdir -p $dest
+    dirs=""
+    sections=""
+    for dir in ${../../icons}/*/; do
+      name=$(basename "$dir")
+      mkdir -p "$dest/$name"
+      find "$dir" -maxdepth 1 -type f \( -name '*.svg' -o -name '*.png' \) -exec cp {} "$dest/$name/" \;
+      dirs="$dirs''${dirs:+,}$name"
+      sections="$sections
+    [$name]
+    Size=64
+    MinSize=8
+    MaxSize=512
+    Type=Scalable
+    "
+    done
+    cat > $dest/index.theme <<EOF
+    [Icon Theme]
+    Name=Custom
+    Comment=Images from nixos/icons over ${theme.icons}
+    Inherits=${theme.icons},hicolor
+    Directories=$dirs
+    $sections
+    EOF
+  '';
 in
 {
   home.pointerCursor = {
@@ -12,6 +44,8 @@ in
     hyprcursor.enable = true;
   };
 
+  home.packages = [ pkgs.${theme.iconPackage} ];
+
   gtk = {
     enable = true;
     font = {
@@ -19,8 +53,8 @@ in
       size = theme.fonts.size;
     };
     iconTheme = {
-      name = "Colloid-Grey-Dark";
-      package = pkgs.colloid-icon-theme.override { colorVariants = [ "grey" ]; };
+      name = "Custom";
+      package = customIcons;
     };
     # No window buttons in app title bars: windows close with Super+Q.
     gtk3.extraConfig.gtk-decoration-layout = ":";
@@ -31,6 +65,7 @@ in
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
+      icon-theme = "Custom";
       font-name = "${theme.fonts.ui} ${toString theme.fonts.size}";
       monospace-font-name = "${theme.fonts.mono} ${toString theme.fonts.size}";
     };

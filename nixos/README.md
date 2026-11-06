@@ -153,7 +153,7 @@ The VM checks exercised Focus, Power profile switching, microphone mute, the sou
 
 ## Apps
 
-- **Files** and other apps omit close buttons in their title bars; use `Super+Q` to close a window. GVfs provides Trash, mounted drives and network locations. Deleted local files can be restored from Trash.
+- **Files** uses the Papirus icon theme, with your own images from `icons/` on top (see `icons/README.md`). App title bars omit close buttons; use `Super+Q` to close a window. GVfs provides Trash, mounted drives and network locations. Deleted local files can be restored from Trash. The base icon theme is set by `desktop.theme.icons` and `desktop.theme.iconPackage`.
 - **GNOME Calendar and Online Accounts** for Google, Microsoft 365 and CalDAV calendars.
 - **Ghostty** from nixpkgs, translucent so Hyprland blurs behind it.
 - **VSCodium** from nixpkgs, available in the app launcher and as `codium`.
