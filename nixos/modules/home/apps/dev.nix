@@ -36,6 +36,23 @@ in
     pkgs.curl
   ];
 
+  # Hyprland manages windows, so VSCodium's own minimise, maximise and close
+  # buttons are redundant. VSCodium owns settings.json, so add the key only when
+  # it's missing and leave everything else, including a later change, alone.
+  home.activation.vscodiumSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    settings=${config.xdg.configHome}/VSCodium/User/settings.json
+    jq=${pkgs.jq}/bin/jq
+    if [ -z "''${DRY_RUN:-}" ]; then
+      if [ ! -e "$settings" ]; then
+        mkdir -p "$(dirname "$settings")"
+        $jq -n '{"window.controlsStyle": "hidden"}' > "$settings"
+      elif $jq -e 'has("window.controlsStyle") | not' "$settings" >/dev/null 2>&1; then
+        tmp=$(mktemp)
+        $jq '. + {"window.controlsStyle": "hidden"}' "$settings" > "$tmp" && mv "$tmp" "$settings"
+      fi
+    fi
+  '';
+
   home.activation.t3code = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -e ${t3code.installed} ]; then
       run mkdir -p "$(dirname ${t3code.installed})"

@@ -153,7 +153,7 @@ The VM checks exercised Focus, Power profile switching, microphone mute, the sou
 
 ## Apps
 
-- **Files**: GVfs provides Trash, mounted drives and network locations. Deleted local files can be restored from Trash.
+- **Files** and other apps omit close buttons in their title bars; use `Super+Q` to close a window. GVfs provides Trash, mounted drives and network locations. Deleted local files can be restored from Trash.
 - **GNOME Calendar and Online Accounts** for Google, Microsoft 365 and CalDAV calendars.
 - **Ghostty** from nixpkgs, translucent so Hyprland blurs behind it.
 - **VSCodium** from nixpkgs, available in the app launcher and as `codium`.
