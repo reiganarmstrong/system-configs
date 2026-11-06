@@ -5,5 +5,6 @@
     ./ghostty.nix
     ./shell.nix
     ./dev.nix
+    ./monitor.nix
   ];
 }

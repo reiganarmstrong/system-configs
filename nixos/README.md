@@ -13,7 +13,7 @@ NixOS 26.05 with Hyprland and a hand-written [Quickshell](https://quickshell.org
 | `modules/nixos/theme.nix` | **The single source for the look**: colours, opacities, radii, spacing, blur, shadows, fonts, wallpaper. |
 | `modules/home/hyprland/` | Hyprland's Lua config. Nix generates `nix.lua` with the theme and display values. |
 | `modules/home/quickshell/` | The shell's QML. Nix adds `theme.json` and `icons.json` (Lucide names to glyphs). |
-| `modules/home/apps/` | Ghostty, zsh with oh-my-zsh and Starship, development tools, T3 Code and Claude Code. |
+| `modules/home/apps/` | Ghostty, zsh with oh-my-zsh and Starship, development tools, T3 Code, Claude Code, and the btop resource monitor and fastfetch. |
 | `assets/wallpaper.svg` | The wallpaper, rendered to PNG at build time. |
 
 ### Options hosts set
