@@ -70,7 +70,7 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 
 Super+drag moves a window, and Super+right-drag resizes it (Niri defaults). Shell shortcuts go through `noctalia msg`, Noctalia's IPC. `tests/check_niri_keybinds.py` checks every one against the installed Noctalia (see [Testing](#testing)).
 
-Click the time in the top-center notch to open the control center. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the notch; the keyboard shortcuts above still work.
+Click the time in the top-center notch to open the control center. The launcher is a plain search list with no category chips. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the notch; the keyboard shortcuts above still work.
 
 ## Graphite
 
@@ -106,6 +106,8 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 ### Notch
 
 One compact row shows workspaces, media, time, network, volume, Bluetooth, battery, notifications and the tray. Widgets with no device or content hide themselves. The VM usually shows just workspaces, time, wired network and volume, about 165 px wide. The row sizes to its content on every output, without connector-specific widths or layout scripts. Network names stay in the native tooltip, so a long SSID cannot stretch the row. The battery shows its percentage inside a graphical battery when one is present.
+
+Workspaces are numbered pills. The active one is white with dark text and only half again as long as the round inactive ones. Workspaces with windows use a lighter gray fill than empty ones.
 
 Click the time for the control center, or use each widget's native action for its own controls. Connection details are available in the network tooltip and Network tab. Floating panels open 6 px below the reserved bar strip. Panel slide-down, hover highlights and tooltips use Noctalia's native animation settings, including `[shell.animation] enabled = false` for reduced motion.
 
@@ -251,11 +253,17 @@ Still untested: MacBook client keyboard capture, measured blur/GPU performance, 
 
 The notch was tested in that running VM on November 6, 2026. Opus 5.5 at medium effort designed it and reviewed screenshots of the first implementation. That review rejected hover expansion because it moved the clock under the pointer. The final configuration follows the review's steady-row revision. Codex implemented the configuration, reviewed upstream layout and input handling, and tested the revision.
 
-- Clicking the time immediately or after a 500 ms hover opens the control center in both cases. Clicking an empty workspace dot after a 500 ms hover selects that workspace when a second workspace exists.
+- Clicking the time immediately or after a 500 ms hover opens the control center in both cases. Clicking an empty workspace pill after a 500 ms hover selects that workspace when a second workspace exists.
 - Control center, launcher, clipboard, session and wallpaper panels open below the notch. Screenshots at scales 1, 1.25 and 1.5 show the capsule and control center fitting on screen. The final layout also renders with native animations disabled, and the temporary override was removed afterward.
 - The rendered configuration passes `noctalia config validate` with zero warnings. The final full playbook rerun reports `ok=65 changed=0 failed=0`; system and user managers report no failed units.
 
 The VM has no battery, Wi-Fi adapter or Bluetooth device. Their appearance and tooltips still need a hardware check. Multi-monitor placement and the estimated fully populated laptop width have not been measured. The [notch review record](reviews/niri-notch.md) explains the design tradeoffs and resolved findings.
+
+### MacBook viewer and launcher follow-up
+
+The VM's test variables no longer pin `1920x1080`. Niri now uses the virtual display's preferred mode, which the MacBook's VNC viewer sets to its window size (1512×982 at scale 1 when checked), so the desktop fills the window instead of being scaled down into it. The production role is unchanged: `niri_outputs` is still empty by default.
+
+Screenshots from the VM show the numbered workspace pills in the notch, a launcher without the category row, and no result for "noct" after the Noctalia entry was hidden. `noctalia config validate` reports the configuration valid.
 
 ### Fedora fetch wallpaper verification
 

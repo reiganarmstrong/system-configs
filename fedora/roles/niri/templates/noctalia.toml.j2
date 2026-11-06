@@ -44,6 +44,8 @@ alpha = 0.6
 
 [shell.launcher]
 layout = "simple"
+# No category chip row above the results; search covers it.
+categories = false
 show_app_origin_indicator = false
 fetch_exchange_rates = false
 
@@ -167,13 +169,19 @@ font_weight = 600
 [widget.clock.actions]
 left = "panel-toggle control-center"
 
+# Numbered pills. The active one is white with dark text and only slightly
+# longer than the round inactive ones; occupied workspaces get a lighter gray
+# fill than empty ones. Fill colors use roles, so labels pick the matching
+# readable text color.
 [widget.workspaces]
-style = "focus_hint"
-show_labels = false
-show_icons = false
+style = "regular"
+show_labels = true
+label_source = "id"
+active_pill_size = 1.5
+inactive_pill_size = 1.0
 focused_color = "primary"
-occupied_color = "on_surface_variant"
-empty_color = "outline_variant"
+occupied_color = "outline_variant"
+empty_color = "hover"
 
 [widget.media]
 album_art_only = true

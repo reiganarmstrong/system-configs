@@ -68,6 +68,26 @@
     mode: '0644'
     validate: noctalia config validate %s
 
+# The packaged "Noctalia" entry only runs `noctalia --daemon`, which does
+# nothing while Niri's copy of the shell is running, so it looked broken in the
+# launcher. A same-named user entry with NoDisplay hides it from launchers
+# (Noctalia's own included) without editing the package's file. Settings stay
+# on Super+,.
+- name: Hide the Noctalia daemon entry from app search
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (fedora/roles/niri/tasks/session.yml).
+      # Hides /usr/share/applications/dev.noctalia.Noctalia.desktop from launchers.
+      [Desktop Entry]
+      Type=Application
+      Name=Noctalia
+      Exec=noctalia --daemon
+      NoDisplay=true
+    dest: "{{ desktop_home }}/.local/share/applications/dev.noctalia.Noctalia.desktop"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
 - name: Enable Bluetooth
   ansible.builtin.systemd_service:
     name: bluetooth

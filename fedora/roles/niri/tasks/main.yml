@@ -54,6 +54,7 @@
     - .config/VSCodium/User
     - .vscode-oss
     - .local/bin
+    - .local/share/applications
     - .local/share/backgrounds
     - Pictures/Screenshots
 
