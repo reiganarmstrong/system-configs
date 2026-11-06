@@ -74,7 +74,7 @@ Click the time in the top-center notch to open the control center. The launcher 
 
 ## Graphite
 
-The NixOS desktop uses a hand-built Quickshell bar. Graphite uses black, white and gray shell controls, with chrome as frosted glass over the wallpaper. The Spider-Verse-inspired wallpaper adds red accents at the user's request. Shell status colors still carry meaning: red for errors and urgent windows, amber for warnings, green for success in the terminal.
+The NixOS desktop uses a hand-built Quickshell bar. Graphite uses black, white and gray shell controls, with chrome as frosted glass over the wallpaper. The Fedora fetch wallpaper adds one blue palette swatch. Shell status colors still carry meaning: red for errors and urgent windows, amber for warnings, green for success in the terminal.
 
 The dock, notifications, OSD, panels and window switcher are translucent with real background blur. The notch is near-opaque instead, for the rendering reason below. App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
 
@@ -97,7 +97,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Geometry.** 12 px gaps and 14 px corners on windows, 18 px on the dock. The notch is a 28 px pill, centered 3 px below the top edge. A soft drop shadow and a hairline border mark the focused window. Niri's border does not draw behind Ghostty's translucent background.
 - **Blur.** Niri 26.04's `blur` block uses 3 passes, a small offset, a little noise against banding and 60% saturation, so colorful windows behind the glass don't tint it. Noctalia's layers and floating windows use non-xray blur, so they blur the windows that are really behind them. Niri marks non-xray blur experimental.
 - **Type.** Inter for the UI and JetBrains Mono for terminals and code, from Fedora's packages.
-- **Wallpaper.** `roles/niri/files/wallpaper-spiderverse.png` is a GPT-generated static image with a mostly black field, red and gray angular forms, sparse web lines and halftone texture. The upper center stays dark behind the notch. The bundled image is 1586×992, approximately 16:10; Noctalia scales and crops it to each output. Its installed filename includes its SHA-256 fingerprint so replacing the asset bypasses Noctalia's image cache. The image is copied before its config is published, and needs no rendering tool or generation service at install time. The former SVG-only `niri_wallpaper_size` variable is retired; Noctalia now handles output sizing directly. The [generation record](roles/niri/files/wallpaper-spiderverse.md) preserves the prompt. The previous graphite-fold SVG remains available as an alternate source; using it again requires restoring its render task and `librsvg2-tools` dependency.
+- **Wallpaper.** `roles/niri/files/wallpaper-fedora.png` is a Python-rendered Fedora ASCII logo and fetch-style specification panel on graphite, using real monospace glyphs. It lists the user's Framework 13 Pro, Intel Core i5, 32 GB RAM and 1 TB SSD, plus niri and Noctalia. The bundled image is native 2880×1920 for the target laptop; Noctalia scales and crops it for other outputs. Its installed filename includes its SHA-256 fingerprint so replacing the asset bypasses Noctalia's image cache. The image is copied before its config is published, with no rendering tool needed at install time. The [generation record](roles/niri/files/wallpaper-fedora.md) identifies the source project, exact commit, preset, reproduction command and logo license. The former SVG-only `niri_wallpaper_size` variable remains retired; Noctalia handles output sizing directly.
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
@@ -257,7 +257,13 @@ The notch was tested in that running VM on November 6, 2026. Opus 5.5 at medium 
 
 The VM has no battery, Wi-Fi adapter or Bluetooth device. Their appearance and tooltips still need a hardware check. Multi-monitor placement and the estimated fully populated laptop width have not been measured. The [notch review record](reviews/niri-notch.md) explains the design tradeoffs and resolved findings.
 
-### Spider-Verse wallpaper verification
+### Fedora fetch wallpaper verification
+
+After the user approved the Python-rendered preview, the exact 2880×1920 PNG was installed in the running VM and bundled in the role. Its installed SHA-256 matches the approved source, and an actual 1920×1080 desktop capture confirms the centered composition survives Noctalia's crop. The displayed specifications describe the user's target Framework laptop, not the VM's virtual hardware.
+
+The full playbook apply reports `ok=65 changed=2 failed=0`; the final rerun reports `ok=65 changed=0 failed=0`. Native Noctalia validation has zero warnings. The [generation record](roles/niri/files/wallpaper-fedora.md) documents how to reproduce or update the image from the Python project.
+
+### Previous Spider-Verse wallpaper verification
 
 GPT's built-in image generation tool produced the bundled raster. Claude Opus 5.5 at medium effort approved the asset and actual 1920×1080 VM captures of the desktop, control center and Ghostty. The red, black, gray and white composition leaves the notch area quiet and text readable. The minimal dark center makes the glass subtler than the previous graphite folds. The source is 1586×992, so fine halftone dots and web lines soften when enlarged; it is not native 4K art. A 3:2 crop was judged from composition geometry, without a physical hardware test.
 
