@@ -32,7 +32,7 @@ rm -r ~/.config/niri ~/.config/noctalia ~/.local/state/noctalia \
       ~/.config/xdg-desktop-portal/niri-portals.conf
 ```
 
-The playbook doesn't start a rehearsal VM. `vm.yml` forces automatic login, which this profile turns off, so run it against a Fedora VM with a password account, like the native-install test in `README.md`.
+`niri.yml` configures an existing Fedora machine. To create an independent test VM with the existing VM role, run `vm.yml --tags provision` with a separate `vm_name`, `vm_mac`, `vm_vnc_port` and `vm_local_directory`. That skips the GNOME configuration and its automatic-login policy. Set the guest account's password over its administration SSH connection, then run `niri.yml` against the generated inventory. See the live VM verification below.
 
 ## Shortcuts
 
@@ -98,7 +98,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Wallpaper.** `roles/niri/files/wallpaper.svg` is drawn for this profile: a near-black graphite gradient with two soft light falloffs, faint concentric arcs and film grain. Noctalia only loads raster images, so Ansible renders it to a 3840×2400 PNG with `rsvg-convert`. This is 16:10; Noctalia crops it for the Framework 13's 3:2 display. `niri_wallpaper_size` controls the render dimensions, which are included in the PNG filename so changing them produces a fresh render.
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
-- **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. New terminals greet with fastfetch, and nested shells don't.
+- **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
 - **Icons.** Papirus-Dark, whose flat icons sit better on gray glass than WhiteSur's glossy ones.
 
 ## Services
@@ -112,7 +112,7 @@ Noctalia is a full shell, so most session services come from it. Niri's weak dep
 | Lock screen | Noctalia, checked against the `login` PAM stack. It locks before suspend. |
 | Idle | Noctalia: lock at 5 min, displays off at 6 min, suspend at 15 min (`niri_idle_*_seconds`, 0 disables). Apps that inhibit idle, such as video players, are respected. |
 | Polkit prompts | Noctalia's built-in agent (`polkit_agent = true`). |
-| Keyring | Fedora 45's `oo7-daemon`. `pam_oo7` in GDM's PAM stack unlocks it with the login password. A user-level `niri-portals.conf` routes the Secret portal to `oo7-portal` in Niri sessions only. VSCodium is told to use libsecret, because Electron wouldn't guess it outside GNOME. |
+| Keyring | Fedora 45's `oo7-daemon`, started as a dependency of `niri.service` and stopped with the graphical session. GDM's vendor `pam_oo7` stack hands it the login password. Fedora ships the daemon disabled, so installing its package alone is insufficient. A user-level `niri-portals.conf` routes the Secret portal to `oo7-portal` in Niri sessions only. VSCodium uses libsecret. |
 | Portals | `xdg-desktop-portal-gnome` for screencasting and file choosers, `-gtk` for the rest (Niri's own `niri-portals.conf`). |
 | X11 apps | `xwayland-satellite`, started by Niri on demand. |
 | Audio, network, Bluetooth | PipeWire with WirePlumber, NetworkManager, BlueZ. Noctalia's control center fronts all three, so there's no separate applet. |
@@ -214,7 +214,22 @@ The subsequent code review found and fixed incomplete utility/VPN migration, los
 
 These checks verify provisioning and configuration, not running desktop services.
 
-Not tested, because none of it can run in a container: a real Niri session, rendering, blur and its GPU cost, Noctalia's panels and lock screen, idle and suspend, PAM unlock of oo7 at GDM, portals, screencasting, audio, Bluetooth and Wi-Fi, brightness keys, the window switcher's hold behaviour, and Framework hardware. Noctalia's panel ids (`launcher`, `control-center`, `clipboard`, `session`) come from its docs, because `--help` doesn't list them. Treat the first boot on real hardware or a password-login VM as the actual test.
+The container checks could not exercise a graphical session. The later VM checks below cover some of that gap. Noctalia's panel ids (`launcher`, `control-center`, `clipboard`, `session`) come from its docs, because `--help` doesn't list them.
+
+### Live VM verification
+
+On November 6, 2026, a separate `fedora-niri` KVM guest was provisioned on the Ubuntu host with four CPUs, 8 GiB RAM, a 60 GiB disk, VirtIO 3D and headless EGL. Its authenticated VNC console listens on `127.0.0.1:5903`; another QEMU guest already occupied port 5902 and was left running. Guest administration state and logs are in ignored `.local/niri-vm/`.
+
+The full native playbook completed successfully. A clean guest reboot followed by a password login at GDM started Niri 26.04, Noctalia 5.4.1 and the keyring at 1920×1080 with scale 1. The Login collection reported `Locked=false`, confirming the PAM password handoff worked. System and user managers reported no failed units.
+
+The real session exposed two additional setup issues, now fixed in the role:
+
+- Noctalia's first-run wizard appeared over the preconfigured desktop. The role now sets `shell.setup_wizard_enabled=false`, the upstream option for declarative deployments.
+- The installed oo7 daemon was disabled and had no D-Bus activation file. The role now attaches the vendor service to `niri.service`, orders it after the compositor, and stops it with the graphical session. This starts it before GDM's 120-second password handoff expires, without starting it for an SSH-only login or changing GNOME's startup policy.
+
+Verified over the actual VNC connection: password authentication, desktop rendering, Ghostty on Super+T, the Noctalia launcher on Super+Space, automatic idle lock/display-off, and manual Super+L followed by password unlock. A final playbook rerun reported `changed=0`. For the remote test VM only, automatic lock, display-off and suspend are now disabled through the `niri_idle_*_seconds` variables; manual locking still works. Guest Tailscale setup is skipped because the host provides the remote connection. Native laptop defaults are unchanged.
+
+Still untested: MacBook client keyboard capture, measured blur/GPU performance, suspend/resume, portal dialogs and screencasting, sound output, Wi-Fi, Bluetooth, brightness controls, the window switcher's hold behavior and physical Framework hardware. QEMU VNC has no configured audio forwarding or shared clipboard.
 
 ## Sources
 

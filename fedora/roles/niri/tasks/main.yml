@@ -45,6 +45,8 @@
     - .config/niri
     - .config/noctalia
     - .config/noctalia/palettes
+    - .config/systemd/user/niri.service.wants
+    - .config/systemd/user/oo7-daemon.service.d
     - .config/xdg-desktop-portal
     - .config/btop
     - .config/btop/themes
@@ -79,6 +81,9 @@
 
 - name: Configure Niri and Noctalia
   ansible.builtin.include_tasks: session.yml
+
+- name: Start the keyring with the Niri session
+  ansible.builtin.include_tasks: keyring.yml
 
 - name: Apply the Graphite look to GTK, Qt and terminal tools
   ansible.builtin.include_tasks: appearance.yml

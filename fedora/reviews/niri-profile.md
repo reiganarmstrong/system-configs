@@ -26,6 +26,8 @@ Ansible validates Niri templates in temporary files. Relative personal includes 
 
 Validation passed for all three playbooks' syntax, eight JSONC tests, Niri and Noctalia templates with defaults and overrides, and 93 shortcuts checked against Noctalia's CLI. Added packages install without a competing GNOME keyring daemon. Targeted production tasks passed in Fedora 45; wallpaper resizing and Tailscale operator updates worked, and their rerun and check-mode checks reported zero changes. Systemd calls were excluded from those targeted container runs. Initial implementation provisioning and configuration tests are recorded in [NIRI.md](../NIRI.md#testing).
 
-A real desktop session remains untested. Container results do not establish rendering quality, blur performance, lock/unlock, suspend, portals or hardware behavior.
+A subsequent live Fedora 45 VM check found that oo7 was installed but never started, so GDM's PAM password handoff expired. The role now starts the vendor service with Niri and stops it with the graphical session. A clean reboot and GDM login verified automatic keyring unlock. Noctalia's interactive first-run wizard is also disabled for this preconfigured profile.
+
+The VM verified desktop rendering, terminal and launcher shortcuts, and lock/unlock over VNC. A final native playbook rerun reported zero changes. MacBook keyboard capture, measured graphics performance, suspend, portals and laptop hardware remain untested. Details are in [the live VM verification](../NIRI.md#live-vm-verification).
 
 Standards: 0 violations or smell findings. Spec: 2 findings, both resolved; the largest was incomplete app migration. The auxiliary correctness findings are also resolved.
