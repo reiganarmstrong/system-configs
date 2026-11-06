@@ -28,7 +28,10 @@
     extraSetFlags = [ "--operator=${config.desktop.user}" ];
   };
 
-  time.timeZone = lib.mkDefault "America/New_York";
+  # timedated owns the mutable selection. Supply an initial zone only when
+  # none exists, so changes in Settings survive rebuilds and reboots.
+  time.timeZone = lib.mkDefault null;
+  systemd.tmpfiles.rules = [ "L /etc/localtime - - - - /etc/zoneinfo/America/New_York" ];
   i18n.defaultLocale = "en_US.UTF-8";
 
   security.sudo.wheelNeedsPassword = true;

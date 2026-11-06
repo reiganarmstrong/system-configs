@@ -21,12 +21,19 @@ SettingRow {
             onReleased: Brightness.flush()
         }
         Label {
-            width: 48
+            id: valueText
+            // Wide enough for the largest value at any text size, so the slider does not shift.
+            width: Math.max(48, Math.ceil(widest.advanceWidth))
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignRight
             text: (row.value * row.multiplier).toFixed(row.decimals) + row.suffix
             dim: true
             size: Theme.textSmall
+            TextMetrics {
+                id: widest
+                font: valueText.font
+                text: (Math.max(Math.abs(row.minimum), Math.abs(row.maximum)) * row.multiplier).toFixed(row.decimals) + row.suffix
+            }
         }
     }
 }

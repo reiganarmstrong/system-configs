@@ -12,6 +12,8 @@ Singleton {
     property var system: ({})
     property bool ready: false
     property string error: ""
+    // The action that produced `error`; a resync after a failed save must not clear it.
+    property string errorAction: ""
     property bool dirty: false
     property var queue: []
     property string action: ""
@@ -37,7 +39,6 @@ Singleton {
         pump();
     }
     function refresh() { enqueue(["get"]); }
-    function setBrowser(entry: string) { enqueue(["browser", entry]); }
     function reset() { enqueue(["reset"]); }
     function displayPreview(config: var) { enqueue(["display-preview", JSON.stringify(config)]); }
     function displayKeep() { enqueue(["display-keep", preview.token]); }
@@ -77,20 +78,20 @@ Singleton {
                 const result = JSON.parse(output);
                 if (code !== 0 || result.error) {
                     root.error = result.error || "Settings could not be applied.";
+                    root.errorAction = root.action;
                     if (root.action === "save" && root.revision === root.sentRevision)
                         root.queue = [...root.queue, ["get"]];
                 } else {
+                    if (root.action !== "get" || root.errorAction === "get")
+                        root.error = "";
                     if (root.action === "get") {
                         if (!root.dirty) root.values = result.preferences;
                         root.defaults = result.defaults;
                         root.monitors = result.monitors;
                         root.system = result.system;
                         root.ready = true;
-                    } else if (root.action === "browser") {
-                        root.queue = [...root.queue, ["get"]];
                     } else if (root.action === "reset") {
                         root.values = result.preferences;
-                        root.error = "";
                     } else if (root.action === "display-preview") {
                         root.preview = result;
                         root.previewSeconds = 15;
@@ -100,7 +101,10 @@ Singleton {
                         root.queue = [...root.queue, ["get"]];
                     }
                 }
-            } catch (e) { root.error = "Settings could not be read. " + e; }
+            } catch (e) {
+                root.error = "Settings could not be read. " + e;
+                root.errorAction = root.action;
+            }
             root.pump();
         }
     }

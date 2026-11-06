@@ -8,6 +8,9 @@ SettingRow {
     signal toggled(bool value)
     Controls.Switch {
         id: control
+        // Show only the owner's state. A checkable switch flips itself on
+        // click and stays flipped when a change fails or changes nothing.
+        checkable: false
         checked: row.checked
         implicitWidth: 42
         implicitHeight: 28
@@ -16,7 +19,7 @@ SettingRow {
         activeFocusOnTab: true
         Accessible.name: row.title
         Accessible.description: row.detail
-        onToggled: row.toggled(checked)
+        onClicked: row.toggled(!row.checked)
         indicator: Rectangle {
             x: 2
             y: 3

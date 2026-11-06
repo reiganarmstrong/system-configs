@@ -8,6 +8,7 @@ import argparse
 import datetime as dt
 import json
 import os
+from pathlib import Path
 import signal
 
 import gi
@@ -28,7 +29,12 @@ def day_bounds(day):
 def read_day(day):
     registry = EDataServer.SourceRegistry.new_sync(None)
     start, end = day_bounds(day)
-    zone_name = os.environ.get("TZ") or os.environ.get("DESKTOP_CALENDAR_TIME_ZONE", "UTC")
+    zone_name = os.environ.get("TZ") or os.environ.get("DESKTOP_CALENDAR_TIME_ZONE")
+    if not zone_name:
+        # timedated changes /etc/localtime; each helper invocation reads the
+        # current selection instead of baking a zone into the Nix package.
+        zone_path = str(Path("/etc/localtime").resolve())
+        zone_name = zone_path.split("/zoneinfo/", 1)[-1] if "/zoneinfo/" in zone_path else "UTC"
     local_zone = ICalGLib.Timezone.get_builtin_timezone(zone_name) or ICalGLib.Timezone.get_utc_timezone()
     events, unavailable = [], []
     sources = [

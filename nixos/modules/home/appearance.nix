@@ -89,7 +89,8 @@ in
       monospace-font-name = "${theme.fonts.mono} ${toString theme.fonts.size}";
     };
     # libadwaita apps (Files, Calendar) read their title-bar buttons from
-    # here through the settings portal; empty means no close button.
-    "org/gnome/desktop/wm/preferences".button-layout = "";
+    # here through the settings portal. Keep the separator with both sides
+    # empty: Disks 46 assumes it exists and crashes on an empty string.
+    "org/gnome/desktop/wm/preferences".button-layout = ":";
   };
 }

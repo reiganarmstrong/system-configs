@@ -119,6 +119,11 @@ in
       plugins = [ pkgs.evolution-ews ];
     };
     services.gnome.glib-networking.enable = true;
+    services.printing.enable = true;
+    services.avahi = {
+      enable = true;
+      nssmdns4 = true;
+    };
     security.pam.services.greetd.enableGnomeKeyring = true;
     # The Quickshell lock screen authenticates through this PAM service, which
     # also unlocks the login keyring that autologin leaves locked.

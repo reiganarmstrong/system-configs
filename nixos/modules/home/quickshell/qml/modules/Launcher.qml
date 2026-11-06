@@ -43,7 +43,7 @@ Popup {
         if (!app)
             return;
         ShellState.close();
-        app.execute();
+        AppLaunch.launch(app);
     }
 
     Glass {

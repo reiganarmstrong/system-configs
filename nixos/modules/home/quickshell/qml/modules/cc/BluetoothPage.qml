@@ -44,18 +44,8 @@ SubPanel {
         }
     }
 
-    function setDiscovery(on: bool) {
-        if (Bt.adapter)
-            Bt.adapter.discovering = on && Bt.enabled;
-    }
-    Component.onCompleted: setDiscovery(true)
-    Component.onDestruction: setDiscovery(false)
-    Connections {
-        target: Bt
-        function onEnabledChanged() {
-            page.setDiscovery(true);
-        }
-    }
+    Component.onCompleted: Bt.startDiscovery(page)
+    Component.onDestruction: Bt.stopDiscovery(page)
     Timer {
         id: clearFailures
         interval: 5000

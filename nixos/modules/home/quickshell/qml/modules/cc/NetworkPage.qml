@@ -10,6 +10,8 @@ import qs.services
 SubPanel {
     id: page
 
+    property var configureEnterprise: () => ShellState.openSettings("network")
+
     title: Net.wifi ? "Wi-Fi" : "Network"
     showSwitch: Net.wifi !== null
     checked: Net.wifiOn
@@ -76,7 +78,7 @@ SubPanel {
             closePassword();
             network.connect();
         } else if (kind === "enterprise") {
-            ShellState.openSettings("network");
+            configureEnterprise();
         } else if (passwordFor === network) {
             closePassword();
         } else {
@@ -86,13 +88,11 @@ SubPanel {
         }
     }
 
-    Component.onCompleted: if (Net.wifi && Net.wifiOn) Net.wifi.scannerEnabled = true
-    Component.onDestruction: if (Net.wifi) Net.wifi.scannerEnabled = false
+    Component.onCompleted: Net.startScan(page)
+    Component.onDestruction: Net.stopScan(page)
     Connections {
         target: Net
         function onWifiOnChanged() {
-            if (Net.wifi)
-                Net.wifi.scannerEnabled = Net.wifiOn;
             if (!Net.wifiOn)
                 page.closePassword();
         }

@@ -67,6 +67,12 @@ in
     exec = "gvim";
     noDisplay = true;
   };
+  # Keep the CLI editor installed without a redundant app-menu entry.
+  xdg.desktopEntries.vim = {
+    name = "Vim";
+    exec = "vim";
+    noDisplay = true;
+  };
 
   xdg.desktopEntries.t3code = {
     name = "T3 Code";

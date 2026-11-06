@@ -37,8 +37,22 @@
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
       checks.${system} = {
+        admin =
+          let
+            admin = nixpkgs.lib.findFirst (
+              package: nixpkgs.lib.getName package == "desktop-admin"
+            ) null (mkHost "vm").config.home-manager.users.reagan.home.packages;
+          in
+          admin.tests.admin;
+        clipboardSelection = import ./nixos/tests/clipboard-selection {
+          pkgs = nixpkgs.legacyPackages.${system};
+        };
         media = import ./nixos/tests/media { pkgs = nixpkgs.legacyPackages.${system}; };
         dropdowns = import ./nixos/tests/dropdowns { pkgs = nixpkgs.legacyPackages.${system}; };
+        settingsFailures = import ./nixos/tests/settings-failures {
+          pkgs = nixpkgs.legacyPackages.${system};
+          shellConfig = (mkHost "vm").config.home-manager.users.reagan.xdg.configFile."quickshell".source;
+        };
         clipboard =
           (mkHost "vm").config.home-manager.users.reagan.services.desktop-clipboard.package.tests.clipboard;
         settings =

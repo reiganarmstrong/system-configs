@@ -5,6 +5,19 @@ import Quickshell
 import Quickshell.Bluetooth
 
 Singleton {
+    id: root
+    property var discoveryOwners: []
+    function startDiscovery(owner: var): void {
+        if (!discoveryOwners.includes(owner)) discoveryOwners = [...discoveryOwners, owner];
+        updateDiscovery();
+    }
+    function stopDiscovery(owner: var): void {
+        discoveryOwners = discoveryOwners.filter(o => o !== owner);
+        updateDiscovery();
+    }
+    function updateDiscovery(): void { if (adapter) adapter.discovering = enabled && discoveryOwners.length > 0; }
+    onEnabledChanged: updateDiscovery()
+    onAdapterChanged: updateDiscovery()
     // The lowest-numbered controller, as BlueZ itself prefers; Quickshell's
     // default can be another one when there are several.
     readonly property var adapter: Bluetooth.adapters.values.slice().sort((a, b) => a.adapterId.localeCompare(b.adapterId))[0]

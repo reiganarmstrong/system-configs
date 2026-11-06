@@ -9,7 +9,7 @@ Rectangle {
     property string detail
     default property alias controls: slot.data
     width: parent.width
-    implicitHeight: Math.max(58, labels.implicitHeight + 24, slot.childrenRect.height + 20)
+    implicitHeight: Math.max(58, labels.implicitHeight + 28, slot.childrenRect.height + 28)
     height: implicitHeight
     radius: 10
     color: Theme.withAlpha("#ffffff", 0.04)
@@ -24,9 +24,10 @@ Rectangle {
             id: labels
             Layout.fillWidth: true
             spacing: 4
-            Label { text: row.title; Layout.fillWidth: true; weight: Font.DemiBold; wrapMode: Text.Wrap; elide: Text.ElideNone }
+            Label { text: row.title; textFormat: Text.PlainText; Layout.fillWidth: true; weight: Font.DemiBold; wrapMode: Text.Wrap; elide: Text.ElideNone }
             Label {
                 text: row.detail
+                textFormat: Text.PlainText
                 visible: text !== ""
                 dim: true
                 size: Theme.textSmall

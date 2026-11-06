@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""Fake desktop-admin with failing, rejected and slow (authentication-like) changes."""
+import json, os, sys, time
+action, data = sys.argv[1], json.loads(sys.stdin.read() or "{}")
+counter = os.path.join(os.environ["FAKE_STATE"], "snapshots")
+def reply(result, code=0):
+    print(json.dumps(result))
+    sys.exit(code)
+if action == "snapshot":
+    serial = int(open(counter).read()) + 1 if os.path.exists(counter) else 1
+    open(counter, "w").write(str(serial))
+    installed = [{"id": f"org.test.{name}", "name": name, "version": "1.0", "scope": "user"} for name in ("Fixture", "Other")]
+    sections = {"apps": {"installed": installed, "startup": [], "jobs": [], "serial": serial},
+                "time": {"timezone": "UTC", "zones": ["UTC", "Europe/London"], "serial": serial},
+                "storage": {"serial": serial}}
+    reply({"section": data["section"], "data": sections[data["section"]]})
+if action == "app-detail":
+    reply({"section": "appDetail", "data": {"id": data["id"], "scope": data["scope"], "network": True, "filesystems": ["xdg-download"], "devices": []}})
+if action == "startup":
+    reply({"error": "Simulated startup failure", "cancelled": False, "refresh": ["apps"]}, 1)
+if action == "timezone":
+    time.sleep(1.5)  # stands in for an open PolicyKit prompt
+    reply({"error": "Authentication was cancelled or not completed. Nothing was changed.", "cancelled": True, "refresh": ["time"]}, 1)
+reply({"error": "unexpected " + action}, 1)

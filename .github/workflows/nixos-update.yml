@@ -30,7 +30,7 @@ jobs:
           nix build --no-link .#nixosConfigurations.framework.config.system.build.toplevel
           nix build --no-link .#nixosConfigurations.vm.config.system.build.toplevel
       - name: Test desktop settings, media, dropdowns, clipboard and calendar synchronization
-        run: nix build --no-link .#checks.x86_64-linux.settings .#checks.x86_64-linux.media .#checks.x86_64-linux.dropdowns .#checks.x86_64-linux.clipboard .#checks.x86_64-linux.calendar
+        run: nix build --no-link .#checks.x86_64-linux.settings .#checks.x86_64-linux.admin .#checks.x86_64-linux.media .#checks.x86_64-linux.dropdowns .#checks.x86_64-linux.clipboard .#checks.x86_64-linux.clipboardSelection .#checks.x86_64-linux.settingsFailures .#checks.x86_64-linux.calendar
       - name: Commit the lock file
         run: |
           if git diff --quiet flake.lock; then

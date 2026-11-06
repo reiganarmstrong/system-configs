@@ -7,11 +7,18 @@
   ...
 }:
 let
+  python = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
+  code = pkgs.runCommand "desktop-settings-python" { } ''
+    mkdir -p $out
+    cp ${./settings.py} $out/settings.py
+    cp ${./admin.py} $out/admin.py
+  '';
   defaults = pkgs.writeText "desktop-settings-defaults.json" (
     builtins.toJSON {
       panelOpacity = osConfig.desktop.theme.opacity.panel;
       gaps = osConfig.desktop.theme.spacing.gapsIn;
       rounding = osConfig.desktop.theme.radius.window;
+      cursorSize = config.home.pointerCursor.size;
       suspendMinutes = if osConfig.desktop.autoSuspend then 15 else 0;
     }
   );
@@ -22,12 +29,13 @@ let
       pkgs.hyprland
       pkgs.hypridle
       pkgs.systemd
-      pkgs.xdg-utils
       pkgs.iproute2
+      pkgs.dconf
     ];
     text = ''
       export DESKTOP_SETTINGS_DEFAULTS=${defaults}
       export DESKTOP_SETTINGS_FIXED_MODE=${if osConfig.desktop.display.fixedMode then "1" else "0"}
+      export DESKTOP_CURSOR_NAME=${lib.escapeShellArg config.home.pointerCursor.name}
       exec python3 ${./settings.py} "$@"
     '';
     passthru.tests.settings =
@@ -39,6 +47,53 @@ let
           python3 ${../../../tests/settings.py} ${./settings.py}
           touch $out
         '';
+  };
+  admin = pkgs.writeShellApplication {
+    name = "desktop-admin";
+    runtimeInputs = [
+      python
+      pkgs.systemd
+      pkgs.glib
+      pkgs.dconf
+      pkgs.flatpak
+      pkgs.cups
+      pkgs.udisks2
+      pkgs.tailscale
+      pkgs.util-linux
+      pkgs.hyprland
+      pkgs.quickshell
+    ];
+    text = ''
+      export GI_TYPELIB_PATH=${pkgs.glib}/lib/girepository-1.0
+      export LD_LIBRARY_PATH=${lib.makeLibraryPath [ pkgs.glib ]}
+      export DESKTOP_SETTINGS_DEFAULTS=${defaults}
+      export DESKTOP_CURSOR_NAME=${lib.escapeShellArg config.home.pointerCursor.name}
+      export DESKTOP_ADMIN_CONFIG=${
+        lib.escapeShellArg (
+          builtins.toJSON {
+            updates = osConfig.desktop.updates.enable;
+            source = osConfig.desktop.updates.flake;
+          }
+        )
+      }
+      export DESKTOP_ADMIN_SYSTEMCTL=${pkgs.systemd}/bin/systemctl
+      export DESKTOP_ADMIN_LPADMIN=${pkgs.cups}/bin/lpadmin
+      exec python3 ${code}/admin.py "$@"
+    '';
+    passthru.tests.admin =
+      pkgs.runCommand "desktop-admin-tests" { nativeBuildInputs = [ pkgs.python3 ]; }
+        ''
+          python3 ${../../../tests/admin.py} ${code}/admin.py
+          touch $out
+        '';
+  };
+  installApp = pkgs.writeShellApplication {
+    name = "desktop-install-flatpak";
+    runtimeInputs = [ pkgs.flatpak ];
+    text = ''
+      flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      flatpak install --user --noninteractive flathub "$1"
+    '';
   };
 in
 {
@@ -59,13 +114,39 @@ in
   dconf.settings."org/blueman/general".plugin-list = [ "!ConnectionNotifier" ];
   home.packages = [
     helper
+    admin
     pkgs.pavucontrol
     pkgs.blueman
     pkgs.seahorse
     pkgs.gnome-disk-utility
     pkgs.wdisplays
     pkgs.nautilus
+    pkgs.system-config-printer
   ];
+  systemd.user.services."desktop-flatpak-install@".Service = {
+    Type = "oneshot";
+    ExecStart = "${installApp}/bin/desktop-install-flatpak %i";
+    TimeoutStartSec = "30min";
+  };
+  systemd.user.services."desktop-flatpak-remove@".Service = {
+    Type = "oneshot";
+    ExecStart = "${pkgs.flatpak}/bin/flatpak uninstall --user --noninteractive %i";
+    TimeoutStartSec = "10min";
+  };
+  systemd.user.services.desktop-flatpak-update.Service = {
+    Type = "oneshot";
+    ExecStart = "${pkgs.flatpak}/bin/flatpak update --user --noninteractive";
+    TimeoutStartSec = "30min";
+  };
+  home.activation.userFlatpakExports = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run mkdir -p ${config.xdg.dataHome}/flatpak/exports/share/applications
+  '';
+  home.activation.desktopAppearance = lib.hm.dag.entryAfter [ "dconfSettings" ] ''
+    if [ -S "/run/user/$(id -u)/bus" ]; then
+      export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+      run ${helper}/bin/desktop-settings gtk-apply
+    fi
+  '';
   systemd.user.services.hypridle.Service.ExecStart = lib.mkForce [
     "${helper}/bin/desktop-settings idle-run"
   ];

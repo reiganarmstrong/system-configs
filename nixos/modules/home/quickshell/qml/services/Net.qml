@@ -6,6 +6,18 @@ import Quickshell.Networking
 
 Singleton {
     id: root
+    property var scanOwners: []
+    function startScan(owner: var): void {
+        if (!scanOwners.includes(owner)) scanOwners = [...scanOwners, owner];
+        updateScan();
+    }
+    function stopScan(owner: var): void {
+        scanOwners = scanOwners.filter(o => o !== owner);
+        updateScan();
+    }
+    function updateScan(): void { if (wifi) wifi.scannerEnabled = wifiOn && scanOwners.length > 0; }
+    onWifiOnChanged: updateScan()
+    onWifiChanged: updateScan()
 
     readonly property var devices: Networking.devices.values
     readonly property var wifi: devices.find(d => d.type === DeviceType.Wifi) ?? null

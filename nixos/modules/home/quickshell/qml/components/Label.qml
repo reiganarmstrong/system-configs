@@ -11,6 +11,7 @@ Text {
     font.family: Theme.font
     font.pointSize: size
     font.weight: weight
+    textFormat: Text.PlainText
     elide: Text.ElideRight
     verticalAlignment: Text.AlignVCenter
 }

@@ -9,11 +9,11 @@ import qs.services
 Controls.ComboBox {
     id: control
     property var options: []
-    readonly property real optionHeight: 36
-    readonly property real naturalMenuWidth: options.reduce((width, option) => Math.max(width, metrics.advanceWidth(String(option)) + 70), 0)
+    readonly property real optionHeight: Math.max(36, metrics.height + 14)
+    readonly property real naturalMenuWidth: menuMeasure.implicitWidth + 70
 
     implicitWidth: 200
-    implicitHeight: 36
+    implicitHeight: optionHeight
     model: options
     font.family: Theme.font
     font.pointSize: Theme.textNormal
@@ -32,6 +32,8 @@ Controls.ComboBox {
     palette.highlightedText: Theme.colors.text
 
     FontMetrics { id: metrics; font: control.font }
+    // Text layout tracks font scaling as well as option changes.
+    Text { id: menuMeasure; visible: false; font: control.font; textFormat: Text.PlainText; text: control.options.map(o => String(o)).join("\n") }
     contentItem: Text {
         text: control.currentIndex >= 0 ? control.displayText : control.count ? "Choose…" : "Unavailable"
         textFormat: Text.PlainText

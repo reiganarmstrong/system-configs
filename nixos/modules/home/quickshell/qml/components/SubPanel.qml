@@ -7,6 +7,7 @@ Item {
     id: panel
 
     property string title
+    property bool showBack: true
     property bool showSwitch: false
     property alias checked: toggle.checked
     property alias switchEnabled: toggle.enabled
@@ -31,6 +32,7 @@ Item {
 
         IconButton {
             id: backButton
+            visible: panel.showBack
             anchors.verticalCenter: parent.verticalCenter
             icon: "chevron-left"
             iconSize: 15
@@ -38,7 +40,7 @@ Item {
         }
         Label {
             anchors.left: parent.left
-            anchors.leftMargin: 32
+            anchors.leftMargin: panel.showBack ? 32 : 0
             anchors.right: trailing.left
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter

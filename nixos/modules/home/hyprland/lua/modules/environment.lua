@@ -1,6 +1,7 @@
 -- Environment for applications started by Hyprland.
 local programs = require("nix").programs
 
+hl.env("TERMINAL", programs.terminal)
 hl.env("XCURSOR_THEME", programs.cursor)
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_THEME", programs.cursor)

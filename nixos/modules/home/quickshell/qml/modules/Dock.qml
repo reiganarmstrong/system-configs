@@ -124,7 +124,7 @@ Scope {
                             id: area
                             anchors.fill: parent
                             hoverEnabled: true
-                            onClicked: app.modelData.execute()
+                            onClicked: AppLaunch.launch(app.modelData)
                         }
                     }
                 }

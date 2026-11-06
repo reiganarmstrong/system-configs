@@ -20,15 +20,26 @@ ShellRoot {
         }
     }
 
-    Settings {}
+    Settings { id: settingsWindow }
     ControlCenter { id: controlCenter }
     Dash {}
     Launcher {}
-    ClipboardHistory {}
+    ClipboardHistory { id: clipboardHistory }
     NotificationPopups {}
     Osd { id: osd }
     Lock {}
 
+    property bool startupQueued: false
+    Timer {
+        interval: 500
+        repeat: true
+        running: !startupQueued
+        triggeredOnStart: true
+        onTriggered: if (DesktopEntries.applications.values.length > 0) {
+            startupQueued = true;
+            SettingsAdmin.request("startup-run", {});
+        }
+    }
     Component.onCompleted: {
         if (Theme.data.lockOnStart)
             Session.locked = true;
@@ -42,8 +53,16 @@ ShellRoot {
             if (ShellState.settingsOpen) ShellState.settingsOpen = false;
             else ShellState.openSettings("appearance");
         }
+        function operation(action: string, payload: string): void {
+            try { SettingsAdmin.request(action, JSON.parse(payload)); }
+            catch (_) { SettingsAdmin.error = "Invalid settings request."; }
+        }
         function status(): string {
             return JSON.stringify({open: ShellState.settingsOpen, page: ShellState.settingsPage,
+                pageReady: settingsWindow.pageReady, adminBusy: SettingsAdmin.busy, adminMutating: SettingsAdmin.mutating,
+                adminError: SettingsAdmin.error, adminNotice: SettingsAdmin.notice,
+                sections: Object.keys(SettingsAdmin.data), wifiScanning: Net.wifi?.scannerEnabled ?? false,
+                bluetoothDiscovery: Bt.adapter?.discovering ?? false,
                 ready: Prefs.ready, saving: Prefs.saving, error: Prefs.error, values: Prefs.values,
                 preview: Prefs.preview, brightnessAvailable: Brightness.available, brightness: Brightness.level});
         }
@@ -51,13 +70,15 @@ ShellRoot {
     IpcHandler {
         target: "launcher"
         function toggle(): void { ShellState.toggle("launcher"); }
+        function launch(id: string): void { AppLaunch.launch(DesktopEntries.byId(id)); }
     }
     IpcHandler {
         target: "clipboard"
         function toggle(): void { ShellState.toggle("clipboard"); }
         function status(): string {
             return JSON.stringify({open: ShellState.openPanel === "clipboard", ready: Clipboard.ready,
-                count: Clipboard.items.length, paused: Clipboard.paused, error: Clipboard.error});
+                count: Clipboard.items.length, selectedIndex: clipboardHistory.selectedIndex,
+                paused: Clipboard.paused, error: Clipboard.error});
         }
     }
     IpcHandler {

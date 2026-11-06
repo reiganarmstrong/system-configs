@@ -36,7 +36,7 @@ NixOS 26.05 with Hyprland and a hand-written [Quickshell](https://quickshell.org
 | Bar: workspace dots, clock, status | Always at the top. |
 | Control centre: session buttons, Wi-Fi, Bluetooth, Focus (Do Not Disturb), Airplane Mode, Caffeine, power profile, microphone, colour picker, brightness, volume and now playing, with detail pages for Wi-Fi, Bluetooth, Sound and Now Playing | Click the status pill, or `Super+S`. |
 | Notification centre: calendar, selected-day agenda and history | Click the clock. |
-| Settings: display, audio, appearance, input, power, notifications, accounts and system tools | `Super+,`, search for Settings, or the control center gear. |
+| Settings: 19 pages covering desktop preferences, devices, connections, applications and system administration | `Super+,`, search for Settings, or the control center gear. |
 | Launcher | `Super+Space`. |
 | Clipboard history | `Super+Shift+V`, or the separate clipboard button beside the status pill. |
 | Dock | Touch the bottom edge of the screen. |
@@ -51,33 +51,25 @@ Unlocking the lock screen also unlocks GNOME Keyring, which autologin can't do. 
 
 Open **Settings** with `Super+,`, the control center's gear, or the app launcher. Search filters sections by their settings, so typing "touchpad", "VPN" or "opacity" finds the relevant page. Volume and brightness have draggable handles, larger targets, keyboard arrows, Page Up/Down, Home/End and wheel input. Clicking the Display or Sound title in the control center opens the corresponding settings page.
 
-| Section | Controls |
-| --- | --- |
-| Appearance | Panel opacity, reduce motion, clock format/seconds, battery percentage, window spacing, corner radius and wallpaper chooser. |
-| Displays | Backlight brightness, per-monitor resolution/refresh, scale and rotation, plus a display arrangement tool on native hardware. |
-| Sound | Default output/input devices, speaker and microphone levels, mute, plus per-application volume, balance and device profiles in Volume Control. |
-| Keyboard & pointer | Keyboard layout, Caps Lock remapping, repeat rate/delay, pointer speed/acceleration, scrolling, touchpad taps, typing protection, focus behavior and a shortcut reference. |
-| Power & lock | Power profile, Caffeine, automatic lock, screen-off and suspend timing, plus session actions. |
-| Notifications | Persistent Do Not Disturb, banner duration, history and clearing notifications. |
-| Network / Bluetooth | Radio switches and native tools for connections, VPN, pairing and saved devices. |
-| Accounts & calendars | Online Accounts, Calendar, passwords and keyrings. |
-| Apps & system | System/storage details, default browser, files, disks and preference reset. |
+Settings has 19 pages. In addition to the original desktop preferences, it now includes accessibility and privacy, in-app Wi-Fi/Bluetooth and per-app audio, Flatpak application management, default apps, startup apps, volumes and Trash, IPP printers and print jobs, time zones and update status/actions. NetworkManager, BlueZ, PipeWire, CUPS, UDisks, GIO, Flatpak and systemd own their respective state. Advanced disk operations, connection-profile editing and account sign-in use maintained native tools.
 
-Display changes are previews. **Keep** saves the mode, scale and rotation for that output; **Revert** restores the previous configuration. An independent watchdog restores the previous configuration after 18 seconds if the dialog is ignored or the shell stops. The dialog counts down 15 seconds. Invalid or rejected changes are reverted. The VNC VM keeps its physical resolution fixed at 1440×960 because virgl rejects restoring the initial mode after a live resolution change. Its scale and rotation remain adjustable. The Framework profile enables resolution and refresh changes. Monitor arrangement through wdisplays lasts for the session; confirmed modes and scale in Settings survive login.
+See [Settings coverage and maintenance](SETTINGS.md) for the full control inventory, remaining gaps, state ownership and validation commands. The interface is shared by the VM and Framework; it does not require maintaining a fork of GNOME or KDE.
 
-Settings are stored per user under `$XDG_STATE_HOME/system-configs/`, normally `~/.local/state/system-configs/`. `preferences.json` contains explicit overrides to Nix defaults, `settings.lua` applies input/window/display overrides after the main Hyprland configuration, and `idle.conf` is generated for hypridle. `displays.json` contains confirmed per-output settings. The shell validates preferences, reports errors, writes files atomically and serializes changes. Reset restores desktop defaults while preserving confirmed displays and account data. Wallpaper images remain at the chosen path; copy the images as well if migrating these preferences to another machine.
+Preferences are stored privately under `~/.local/state/system-configs/`. `preferences.json` contains explicit desktop overrides, `settings.lua` and `idle.conf` are generated for Hyprland and hypridle, `displays.json` holds confirmed monitor choices, and `startup.json` holds desktop-entry IDs to launch at login. Changes are validated, written atomically and serialized. Reset preserves monitor choices, applications and accounts. Wallpaper images remain at the selected paths.
 
-The implementation is in `modules/home/settings/`, `modules/home/quickshell/qml/modules/Settings.qml` and `components/settings/`. Nix reproduces the interface, services, native tools and defaults on the Framework. User choices can be transferred with the state files; machine-specific monitor output names can differ. Credentials stay in the keyring. Changing the Nix defaults affects settings without an explicit user override.
+The implementation is in `modules/home/settings/`, `modules/home/quickshell/qml/modules/Settings.qml`, `modules/settings/` and `components/settings/`. Nix reproduces the interface, services, native tools and defaults on the Framework. User choices can be transferred with the state files; machine-specific monitor output names can differ. Credentials stay in the keyring. Changing the Nix defaults affects settings without an explicit user override.
 
 The test VM has silent audio devices and no physical backlight, touchpad, Wi-Fi or Bluetooth adapter. Unsupported hardware controls are disabled or labelled. VNC transports the display and input; adjusting the guest's audio volume does not add audio forwarding. Hardware behavior needs testing on the laptop. Authentication dialogs use the installed PolicyKit agent. The test VM's account password remains fixed in its Nix host profile.
 
-Run the settings boundary checks with `nix build --no-link .#checks.x86_64-linux.settings`. They cover invalid input, safe idle timing, failed live changes, persistence across changing defaults, corrupt state, expired previews and display rollback. Both host builds and calendar checks also run in the NixOS workflows.
+Run the settings boundary checks with `nix build --no-link .#checks.x86_64-linux.settings .#checks.x86_64-linux.admin`. They cover invalid input, safe idle timing, failed live changes, persistence across changing defaults, corrupt state, expired previews and display rollback. Both host builds and calendar checks also run in the NixOS workflows.
 
 Run `nix build --no-link .#checks.x86_64-linux.dropdowns` for the Qt Quick dropdown regression tests. They exercise the production control with real pointer and keyboard events, including repeated clicks held beyond the close animation, Reduce Motion, outside dismissal, switching dropdowns and selection. Theme tokens and the motion preference are isolated from the running desktop. The menu excludes its own field from outside-press dismissal so a close click cannot finish the fade before release and reopen it.
 
 ## Clipboard history
 
 Use `Super+Shift+V` or the top-bar clipboard button to open searchable history. Arrow keys select an item; Enter or a click copies it back, then use your application's normal Paste shortcut. `Ctrl+D` or the row's × removes one item. Clear asks once before deleting history. Pause stops new captures while saved items remain available; Resume starts capturing again. `Super+V` still toggles floating windows.
+
+Opening history selects the newest entry, including when an asynchronous refresh replaces cached results. Once you navigate with the arrow keys, refreshes preserve your chosen item. Reopening or changing the search resets to the newest matching entry. `nix build --no-link .#checks.x86_64-linux.clipboardSelection` checks delayed loading, navigation, reopening, searching and deletion without reading personal history.
 
 The pinned [cliphist backend](https://github.com/sentriz/cliphist/tree/v0.7.0) handles storage and deduplication. Separate systemd user services capture text and images independently of the desktop shell. The adapter preserves original bytes for recall, restores image MIME types and generates small thumbnails. It keeps up to 200 recent entries, skips selections over 5 MB, and respects application-marked sensitive selections. Data stays in `~/.local/state/system-configs/clipboard/`, with a private directory and database. The pause flag survives login. This is the Linux clipboard; Mac-to-VM clipboard synchronization requires a separate remote-access bridge.
 
@@ -163,6 +155,10 @@ The VM checks exercised Focus, Power profile switching, microphone mute, the sou
 - **T3 Code**: Nix places the pinned first-install AppImage in `~/Applications` once, and the app updates itself in place.
 - **zsh** with oh-my-zsh, autosuggestions, syntax highlighting, the Starship prompt and the aliases and functions from the Fedora setup. Put machine-only additions in `~/.zshrc.local`.
 - Node 24, pnpm, uv, git, vim and make.
+
+Vim and GVim are hidden from the app launcher; Vim remains available in the terminal. The launcher and dock open apps marked `Terminal=true`, such as btop, in Ghostty instead of starting them without a terminal.
+
+The NixOS Manual entry opens the official online manual, since forwarding only its local HTML file into the Flatpak browser loses its stylesheet. System GTK 3 tools use `adw-gtk3-dark`; GTK 4 and libadwaita tools retain their own dark styling. The title-bar layout is `:` with both sides empty, which hides buttons while avoiding a startup crash in Disks 46.
 
 `programs.nix-ld` and AppImage support let these prebuilt vendor binaries run on NixOS.
 

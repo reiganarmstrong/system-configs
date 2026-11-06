@@ -62,7 +62,9 @@ let
       text = ''
         export GI_TYPELIB_PATH="${typelibPath}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
         export LD_LIBRARY_PATH="${libraryPath}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        export DESKTOP_CALENDAR_TIME_ZONE=${lib.escapeShellArg osConfig.time.timeZone}
+        ${lib.optionalString (
+          osConfig.time.timeZone != null
+        ) "export DESKTOP_CALENDAR_TIME_ZONE=${lib.escapeShellArg osConfig.time.timeZone}"}
         exec python3 ${./events.py} "$@"
       '';
     }).overrideAttrs

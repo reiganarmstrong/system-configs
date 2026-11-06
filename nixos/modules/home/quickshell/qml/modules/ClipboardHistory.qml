@@ -10,16 +10,18 @@ Popup {
     name: "clipboard"
     placement: "top-right"
     keyboard: true
-    property string selectedId: ""
+    readonly property ClipboardSelection historySelection: ClipboardSelection {
+        id: selection
+        items: root.results
+        active: root.open
+    }
+    property alias selectedId: selection.selectedId
     property bool confirmClear: false
     readonly property var results: Clipboard.items.filter(item => item.preview.toLowerCase().includes(search.text.trim().toLowerCase()))
-    readonly property int selectedIndex: results.findIndex(item => item.id === selectedId)
+    readonly property int selectedIndex: selection.selectedIndex
 
-    function selectFirst() { selectedId = results[0]?.id ?? ""; }
-    function moveSelection(delta: int) {
-        const index = Math.max(0, Math.min(results.length - 1, selectedIndex + delta));
-        selectedId = results[index]?.id ?? "";
-    }
+    function selectFirst() { selection.reset(); }
+    function moveSelection(delta: int) { selection.move(delta); }
     function copySelected() { if (selectedId && !confirmClear) Clipboard.copy(selectedId); }
     onOpenChanged: if (open) {
         search.text = "";
@@ -28,7 +30,6 @@ Popup {
         Clipboard.refresh();
         search.forceActiveFocus();
     }
-    onResultsChanged: if (!results.some(item => item.id === selectedId)) selectFirst()
     Connections {
         target: Clipboard
         function onCopied() { if (root.open) ShellState.close(); }

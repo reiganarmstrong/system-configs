@@ -20,9 +20,9 @@ Singleton {
     readonly property var user: data.user
 
     // Point sizes, scaled from the theme's base size.
-    readonly property real textSmall: data.fonts.size * 0.85
-    readonly property real textNormal: data.fonts.size
-    readonly property real textLarge: data.fonts.size * 1.2
+    readonly property real textSmall: textNormal * 0.85
+    readonly property real textNormal: data.fonts.size * Prefs.get("textScale", 1)
+    readonly property real textLarge: textNormal * 1.2
 
     // Glass fills: the panel colour and white at the theme's opacities.
     readonly property color panelFill: withAlpha(colors.panel, Prefs.get("panelOpacity", opacity.panel))
