@@ -97,7 +97,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Geometry.** 12 px gaps and 14 px corners on windows, 18 px on the dock. The notch is a 28 px pill, centered 3 px below the top edge. A soft drop shadow and a hairline border mark the focused window. Niri's border does not draw behind Ghostty's translucent background.
 - **Blur.** Niri 26.04's `blur` block uses 3 passes, a small offset, a little noise against banding and 60% saturation, so colorful windows behind the glass don't tint it. Noctalia's layers and floating windows use non-xray blur, so they blur the windows that are really behind them. Niri marks non-xray blur experimental.
 - **Type.** Inter for the UI and JetBrains Mono for terminals and code, from Fedora's packages.
-- **Wallpaper.** `roles/niri/files/wallpaper.svg` is drawn for this profile: a near-black graphite gradient with two soft light falloffs, faint concentric arcs and film grain. Noctalia only loads raster images, so Ansible renders it to a 3840×2400 PNG with `rsvg-convert`. This is 16:10; Noctalia crops it for the Framework 13's 3:2 display. `niri_wallpaper_size` controls the render dimensions, which are included in the PNG filename so changing them produces a fresh render.
+- **Wallpaper.** `roles/niri/files/wallpaper.svg` draws two overlapping graphite folds with lit edges, soft cast shadows, faint pleats and fine grain. The brightest edges cross behind the centered panels, giving their blur a visible light-to-dark transition. The upper area stays quiet behind the notch. The SVG has no external assets or fonts. Noctalia only loads raster images, so Ansible renders it to a 3840×2400 PNG with `rsvg-convert`. This is 16:10; Noctalia crops it for the Framework 13's 3:2 display. `niri_wallpaper_size` controls the render dimensions. The PNG filename includes those dimensions and a source hash, so changing either generates a fresh render and invalidates Noctalia's image cache.
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
@@ -256,6 +256,12 @@ The notch was tested in that running VM on November 6, 2026. Opus 5.5 at medium 
 - The rendered configuration passes `noctalia config validate` with zero warnings. The final full playbook rerun reports `ok=65 changed=0 failed=0`; system and user managers report no failed units.
 
 The VM has no battery, Wi-Fi adapter or Bluetooth device. Their appearance and tooltips still need a hardware check. Multi-monitor placement and the estimated fully populated laptop width have not been measured. The [notch review record](reviews/niri-notch.md) explains the design tradeoffs and resolved findings.
+
+### Wallpaper verification
+
+The folded graphite wallpaper was designed and separately approved by Opus 5.5 at medium effort using actual VM screenshots. Ghostty shows the bright fold as a soft band through its glass. The control center's heavier tint keeps that effect subtler; its user card also draws a wallpaper-derived image of its own. Text remains readable. Rendered 16:10 and 3:2 crops preserve the composition, but physical display brightness, banding and Noctalia's actual 3:2 crop remain untested.
+
+Live testing also caught Noctalia retaining a replaced image in its path-based cache. Source-hashed render filenames and rendering before config publication now allow normal reloads to pick up new artwork. Resize and restore runs passed, followed by a full `changed=0` rerun and native validation with zero warnings. See the [wallpaper review record](reviews/niri-wallpaper.md) for details and limits.
 
 ## Sources
 

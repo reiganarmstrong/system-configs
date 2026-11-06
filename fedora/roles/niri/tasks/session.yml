@@ -5,9 +5,9 @@
 #   ~/.config/noctalia/<later name>.toml      (merged after 00-fedora-niri.toml)
 #   ~/.local/state/noctalia/settings.toml     (Noctalia's Settings window)
 
-- name: Select the wallpaper render for the requested size
+- name: Select the wallpaper render for the source and requested size
   ansible.builtin.set_fact:
-    niri_wallpaper_path: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite-{{ niri_wallpaper_size.width }}x{{ niri_wallpaper_size.height }}.png"
+    niri_wallpaper_path: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite-{{ niri_wallpaper_size.width }}x{{ niri_wallpaper_size.height }}-{{ (lookup('ansible.builtin.file', role_path ~ '/files/wallpaper.svg') | hash('sha256'))[:12] }}.png"
 
 # Niri live-reloads its config, so a running session picks up changes. The
 # validate step rejects a config this Niri version can't parse before it lands.
@@ -27,16 +27,6 @@
     owner: "{{ desktop_user }}"
     group: "{{ desktop_group }}"
     mode: '0644'
-
-# 00- sorts first, so any other *.toml the user adds in the folder overrides it.
-- name: Configure Noctalia
-  ansible.builtin.template:
-    src: noctalia.toml.j2
-    dest: "{{ desktop_home }}/.config/noctalia/00-fedora-niri.toml"
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_group }}"
-    mode: '0644'
-    validate: noctalia config validate %s
 
 # Read before /usr/share/xdg-desktop-portal/niri-portals.conf, and only in
 # sessions whose XDG_CURRENT_DESKTOP is niri, so GNOME keeps its own portals.
@@ -63,7 +53,8 @@
   register: niri_wallpaper_png
 
 # Noctalia's wallpaper loader lists raster formats only, so the SVG is rendered
-# once per requested size, and again whenever the source changes.
+# once per source and requested size. The source hash in its filename also
+# invalidates Noctalia's path-based image cache when the artwork changes.
 - name: Render the wallpaper for Noctalia
   become: true
   become_user: "{{ desktop_user }}"
@@ -76,6 +67,17 @@
       - "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.svg"
   when: niri_wallpaper_source.changed or not niri_wallpaper_png.stat.exists
   changed_when: true
+
+# Publish the config after its wallpaper exists so live reload can load it.
+# 00- sorts first, so any other *.toml the user adds in the folder overrides it.
+- name: Configure Noctalia
+  ansible.builtin.template:
+    src: noctalia.toml.j2
+    dest: "{{ desktop_home }}/.config/noctalia/00-fedora-niri.toml"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    validate: noctalia config validate %s
 
 - name: Enable Bluetooth
   ansible.builtin.systemd_service:
