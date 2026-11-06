@@ -24,6 +24,19 @@ borders = true
 border_color = "outline_variant"
 border_width = 1.0
 shadow = true
+# Floating panels retain their own glass instead of inheriting the invisible
+# bar's opacity. "auto" places keyboard-opened panels beneath the top bar.
+launcher_placement = "floating"
+launcher_position = "auto"
+clipboard_placement = "floating"
+clipboard_position = "auto"
+control_center_placement = "floating"
+control_center_position = "auto"
+wallpaper_placement = "floating"
+wallpaper_position = "auto"
+session_placement = "floating"
+session_position = "auto"
+floating_offset = 6
 
 [shell.shadow]
 direction = "down"
@@ -108,23 +121,89 @@ enabled = {{ (niri_idle_suspend_seconds | int > 0) | lower }}
 
 [bar.main]
 position = "top"
+layer = "top"
+reserve_space = true
 thickness = 34
-background_opacity = 0.62
-compositor_blur = true
-radius = 14
-margin_ends = 12
-margin_edge = 8
-padding = 12
-widget_spacing = 6
-shadow = true
+# Only the center capsule is visible. Blur and shadow here would still cover
+# the entire bar, including the transparent area outside the notch.
+background_opacity = 0.0
+compositor_blur = false
+shadow = false
+border_width = 0.0
+margin_edge = 0
+margin_ends = 0
+padding = 0
 capsule = false
-start = ["launcher", "workspaces", "media"]
-center = ["clock"]
-end = ["tray", "notifications", "network", "bluetooth", "volume", "brightness", "battery", "control-center", "session"]
+capsule_thickness = 0.82
+font_weight = 500
+hover_highlight = true
+show_tooltip = true
+start = []
+center = ["group:notch"]
+end = []
+
+[bar.main.dead_zone]
+click_through = true
+
+# Noctalia 5.4.1, 2026-11-06: this steady capsule group is the notch.
+# A center-lane accordion re-centers on hover and moves the clock away from
+# the pointer. Keep the row visible and let the native panels animate instead.
+[[bar.main.capsule_group]]
+id = "notch"
+members = ["workspaces", "media", "clock", "network", "volume", "bluetooth", "battery", "notifications", "tray"]
+fill = "surface"
+opacity = 0.92
+border = "outline_variant"
+border_width = 1.0
+foreground = "on_surface"
+padding = 10.0
+widget_spacing = 10
+
+[widget.clock]
+format = "{:%H:%M}"
+tooltip_format = "{:%A, %B %d}"
+font_weight = 600
+
+[widget.clock.actions]
+left = "panel-toggle control-center"
+
+[widget.workspaces]
+style = "focus_hint"
+show_labels = false
+show_icons = false
+focused_color = "primary"
+occupied_color = "on_surface_variant"
+empty_color = "outline_variant"
+
+[widget.media]
+album_art_only = true
+hide_when_no_media = true
+
+[widget.network]
+show_label = false
+
+[widget.volume]
+show_label = false
+
+[widget.bluetooth]
+show_label = false
+hide_when_no_connected_device = true
+
+[widget.battery]
+display_mode = "graphic"
+show_label = true
+
+[widget.notifications]
+hide_when_no_unread = true
+
+[widget.tray]
+drawer = true
+detached_panel = true
 
 [dock]
 enabled = true
 position = "bottom"
+launcher_position = "start"
 icon_size = 44
 background_opacity = 0.62
 compositor_blur = true

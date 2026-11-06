@@ -70,11 +70,13 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 
 Super+drag moves a window, and Super+right-drag resizes it (Niri defaults). Shell shortcuts go through `noctalia msg`, Noctalia's IPC. `tests/check_niri_keybinds.py` checks every one against the installed Noctalia (see [Testing](#testing)).
 
+Click the time in the top-center notch to open the control center. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the notch; the keyboard shortcuts above still work.
+
 ## Graphite
 
 The NixOS desktop uses a hand-built Quickshell bar. Graphite drops that look on purpose: no accent hue, no colored workspace pills. It's black, white and grays, with chrome as frosted glass over the wallpaper. Color appears only where it carries meaning: red for errors and urgent windows, amber for warnings, green for success in the terminal.
 
-Glass is for the chrome only. The bar, dock, notifications, OSD, panels and the window switcher are translucent with real background blur. App windows stay opaque, so text sits on a solid surface. The one exception is Ghostty, whose 84%-opaque background blurs the wallpaper behind it. That keeps the terminal readable and costs almost nothing, because Niri's default xray blur samples only the wallpaper.
+The dock, notifications, OSD, panels and window switcher are translucent with real background blur. The notch is near-opaque instead, for the rendering reason below. App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
 
 | Token | Value | Used for |
 | --- | --- | --- |
@@ -92,7 +94,7 @@ Glass is for the chrome only. The bar, dock, notifications, OSD, panels and the 
 
 These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, including the 16 terminal colors), `ghostty.config`, `starship.toml`, `btop-graphite.theme` and `templates/config.kdl.j2`.
 
-- **Geometry.** 12 px gaps and 14 px corners on windows and the bar, 18 px on the dock. A soft drop shadow does the work a focus ring would (the ring is off), and a single hairline border marks the focused window. Niri's border is told not to draw behind Ghostty's translucent background.
+- **Geometry.** 12 px gaps and 14 px corners on windows, 18 px on the dock. The notch is a 28 px pill, centered 3 px below the top edge. A soft drop shadow and a hairline border mark the focused window. Niri's border does not draw behind Ghostty's translucent background.
 - **Blur.** Niri 26.04's `blur` block uses 3 passes, a small offset, a little noise against banding and 60% saturation, so colorful windows behind the glass don't tint it. Noctalia's layers and floating windows use non-xray blur, so they blur the windows that are really behind them. Niri marks non-xray blur experimental.
 - **Type.** Inter for the UI and JetBrains Mono for terminals and code, from Fedora's packages.
 - **Wallpaper.** `roles/niri/files/wallpaper.svg` is drawn for this profile: a near-black graphite gradient with two soft light falloffs, faint concentric arcs and film grain. Noctalia only loads raster images, so Ansible renders it to a 3840×2400 PNG with `rsvg-convert`. This is 16:10; Noctalia crops it for the Framework 13's 3:2 display. `niri_wallpaper_size` controls the render dimensions, which are included in the PNG filename so changing them produces a fresh render.
@@ -100,6 +102,18 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
 - **Icons.** Papirus-Dark, whose flat icons sit better on gray glass than WhiteSur's glossy ones.
+
+### Notch
+
+One compact row shows workspaces, media, time, network, volume, Bluetooth, battery, notifications and the tray. Widgets with no device or content hide themselves. The VM usually shows just workspaces, time, wired network and volume, about 165 px wide. The row sizes to its content on every output, without connector-specific widths or layout scripts. Network names stay in the native tooltip, so a long SSID cannot stretch the row. The battery shows its percentage inside a graphical battery when one is present.
+
+Click the time for the control center, or use each widget's native action for its own controls. Connection details are available in the network tooltip and Network tab. Floating panels open 6 px below the reserved bar strip. Panel slide-down, hover highlights and tooltips use Noctalia's native animation settings, including `[shell.animation] enabled = false` for reduced motion.
+
+The [reference video's notch](https://www.youtube.com/watch?v=cLB2eaXrrk4) grows into a larger surface. This configuration keeps a steady row. A native center-lane accordion moved the clock out from under the pointer, so waiting before a click could select a workspace instead. Opus's design review rejected that interaction. Keeping the row visible also makes connection and battery status readable without a hover. Panels remain separate animated cards; there is no custom morphing surface.
+
+The implementation is one native `capsule_group` inside a transparent bar. The capsule uses Graphite's surface color at 92% opacity and a 1 px outline. Bar blur and shadow are off because they would cover the full bar area even where its background is transparent. The panels retain their own glass and blur. No plugin, shell fork, custom animation code or scripts tracking desktop state are installed.
+
+The transparent host bar reserves 34 logical pixels across the top, passes empty space through, and uses the `top` layer so fullscreen windows cover it. Its visible capsule is small, but the reserved strip is still full width. These are stock Noctalia 5.4.1 behaviors. On upgrades, run `noctalia config validate` and review any warnings, especially for `capsule_group`, widget options and floating panel placement. All of those settings remain in one template.
 
 ## Services
 
@@ -145,6 +159,8 @@ Ansible rewrites the files it owns on every run, so edits to them don't survive.
 | `~/.config/starship.toml`, btop's theme lines, fastfetch's config | No override; change them in the role |
 
 Niri and Noctalia reload their config while running, so a rerun takes effect without logging out. Both configs are checked before they're written (`niri validate`, `noctalia config validate`), so a bad template can't break a running session.
+
+Reordering bar widgets in Noctalia's Settings window saves lane and capsule-group overrides in `~/.local/state/noctalia/settings.toml`. Those override the role, and arrays replace rather than merge. If a later notch change does not appear, inspect the saved `[bar.main]` lanes and `capsule_group` entries, plus any widget overrides. Remove only the overrides you want the role to manage; other personal settings can stay.
 
 Variables in `roles/niri/defaults/main.yml`:
 
@@ -230,6 +246,16 @@ The real session exposed two additional setup issues, now fixed in the role:
 Verified over the actual VNC connection: password authentication, desktop rendering, Ghostty on Super+T, the Noctalia launcher on Super+Space, automatic idle lock/display-off, and manual Super+L followed by password unlock. A final playbook rerun reported `changed=0`. For the remote test VM only, automatic lock, display-off and suspend are now disabled through the `niri_idle_*_seconds` variables; manual locking still works. Guest Tailscale setup is skipped because the host provides the remote connection. Native laptop defaults are unchanged.
 
 Still untested: MacBook client keyboard capture, measured blur/GPU performance, suspend/resume, portal dialogs and screencasting, sound output, Wi-Fi, Bluetooth, brightness controls, the window switcher's hold behavior and physical Framework hardware. QEMU VNC has no configured audio forwarding or shared clipboard.
+
+### Notch verification
+
+The notch was tested in that running VM on November 6, 2026. Opus 5.5 at medium effort designed it and reviewed screenshots of the first implementation. That review rejected hover expansion because it moved the clock under the pointer. The final configuration follows the review's steady-row revision. Codex implemented the configuration, reviewed upstream layout and input handling, and tested the revision.
+
+- Clicking the time immediately or after a 500 ms hover opens the control center in both cases. Clicking an empty workspace dot after a 500 ms hover selects that workspace when a second workspace exists.
+- Control center, launcher, clipboard, session and wallpaper panels open below the notch. Screenshots at scales 1, 1.25 and 1.5 show the capsule and control center fitting on screen. The final layout also renders with native animations disabled, and the temporary override was removed afterward.
+- The rendered configuration passes `noctalia config validate` with zero warnings. The final full playbook rerun reports `ok=65 changed=0 failed=0`; system and user managers report no failed units.
+
+The VM has no battery, Wi-Fi adapter or Bluetooth device. Their appearance and tooltips still need a hardware check. Multi-monitor placement and the estimated fully populated laptop width have not been measured. The [notch review record](reviews/niri-notch.md) explains the design tradeoffs and resolved findings.
 
 ## Sources
 
