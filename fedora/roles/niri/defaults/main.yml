@@ -6,6 +6,10 @@ niri_user: "{{ lookup('env', 'USER') }}"
 # selectable from the gear menu on the login screen either way.
 niri_default_session: true
 
+# Install the same VPN as NixOS, without joining a tailnet automatically.
+niri_tailscale_enabled: true
+niri_tailscale_key_fingerprint: 2596A99EAAB33821893C0A79458CA832957F5868
+
 # Outputs. Empty lets Niri pick each display's mode and scale (it chooses a
 # fractional scale from the panel's DPI). To pin a display, list it by the
 # connector or make/model/serial that `niri msg outputs` prints, for example:
@@ -64,10 +68,16 @@ niri_packages:
   - ppd-service
   - gvfs
   - wl-clipboard
+  - cups
+  - avahi
   # Apps.
   - flatpak
   - nautilus
   - gnome-calendar
+  - gnome-disk-utility
+  - seahorse
+  - system-config-printer
+  - pavucontrol
   - gnome-online-accounts-gtk
   - evolution-ews-core
   - btop
@@ -103,5 +113,5 @@ niri_vscodium_key_url: https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/ra
 niri_vscodium_key_fingerprint: 1302DE60231889FE1EBACADC54678CF75A278D9C
 
 # Size of the PNG rendered from the repo's SVG wallpaper. 16:10 covers the
-# Framework 13 and 16 panels; Noctalia crops it to other aspect ratios.
+# Framework 16 panel; Noctalia crops it for the Framework 13's 3:2 panel.
 niri_wallpaper_size: { width: 3840, height: 2400 }

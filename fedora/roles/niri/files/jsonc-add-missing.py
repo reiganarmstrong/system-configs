@@ -19,8 +19,7 @@ import sys
 
 
 def strip_jsonc(text):
-    """Return text with comments blanked out (same length) and the index of the
-    first top-level '{', or raise ValueError."""
+    """Return text with comments blanked out at the same length, or raise ValueError."""
     out = []
     index = 0
     length = len(text)
@@ -111,15 +110,13 @@ def add_missing(path, wanted):
         if not missing:
             return []
         brace = stripped.index('{')
-        lines = ''.join(
-            '\n\t{}: {},'.format(json.dumps(key), json.dumps(value)) for key, value in missing.items()
+        members = ',\n'.join(
+            '\t{}: {}'.format(json.dumps(key), json.dumps(value)) for key, value in missing.items()
         )
-        # An object with no members would end up with a trailing comma, which
-        # JSONC readers accept but strict JSON does not; write it cleanly instead.
-        if not data:
-            new_text = text[:brace] + json.dumps(missing, indent=2) + text[stripped.index('}', brace) + 1:]
-        else:
-            new_text = text[:brace + 1] + lines + text[brace + 1:]
+        # Preserve the original interior even when it contains only comments.
+        # An empty object needs no separator after the inserted members.
+        lines = '\n' + members + (',' if data else '\n')
+        new_text = text[:brace + 1] + lines + text[brace + 1:]
         added = list(missing)
 
     temporary = path + '.ansible-tmp'

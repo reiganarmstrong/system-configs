@@ -5,6 +5,10 @@
 #   ~/.config/noctalia/<later name>.toml      (merged after 00-fedora-niri.toml)
 #   ~/.local/state/noctalia/settings.toml     (Noctalia's Settings window)
 
+- name: Select the wallpaper render for the requested size
+  ansible.builtin.set_fact:
+    niri_wallpaper_path: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite-{{ niri_wallpaper_size.width }}x{{ niri_wallpaper_size.height }}.png"
+
 # Niri live-reloads its config, so a running session picks up changes. The
 # validate step rejects a config this Niri version can't parse before it lands.
 - name: Configure Niri
@@ -55,11 +59,11 @@
 
 - name: Check for the rendered wallpaper
   ansible.builtin.stat:
-    path: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.png"
+    path: "{{ niri_wallpaper_path }}"
   register: niri_wallpaper_png
 
 # Noctalia's wallpaper loader lists raster formats only, so the SVG is rendered
-# once, and again whenever the source changes.
+# once per requested size, and again whenever the source changes.
 - name: Render the wallpaper for Noctalia
   become: true
   become_user: "{{ desktop_user }}"
@@ -68,7 +72,7 @@
       - rsvg-convert
       - --width={{ niri_wallpaper_size.width }}
       - --height={{ niri_wallpaper_size.height }}
-      - --output={{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.png
+      - --output={{ niri_wallpaper_path }}
       - "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.svg"
   when: niri_wallpaper_source.changed or not niri_wallpaper_png.stat.exists
   changed_when: true
@@ -77,3 +81,11 @@
   ansible.builtin.systemd_service:
     name: bluetooth
     enabled: true
+
+- name: Enable printing and local printer discovery
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+  loop:
+    - cups.socket
+    - avahi-daemon.service

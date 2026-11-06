@@ -73,6 +73,10 @@
 - name: Install VSCodium
   ansible.builtin.include_tasks: vscodium.yml
 
+- name: Install and configure Tailscale
+  ansible.builtin.include_tasks: tailscale.yml
+  when: niri_tailscale_enabled | bool
+
 - name: Configure Niri and Noctalia
   ansible.builtin.include_tasks: session.yml
 

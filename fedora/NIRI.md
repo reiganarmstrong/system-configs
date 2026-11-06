@@ -18,6 +18,8 @@ cd system-configs/fedora
 
 Reboot, enter your password at GDM, and you land in Niri. Use `-e niri_user=NAME` to configure another existing account. To preview changes on an already configured machine, add `--check --diff`.
 
+Tailscale is installed and started, with your account set as its operator, as on NixOS. Run `tailscale up` once after installation to sign this machine into your tailnet. Ansible never authenticates or resets an existing connection. Set `-e niri_tailscale_enabled=false` to skip its setup.
+
 ### Choosing and reverting the session
 
 GDM's gear menu (bottom right, after picking the user) lists **Niri** and **GNOME**. The playbook preselects Niri through AccountsService (`niri_default_session: true`) and resets it to Niri on every run. Set `-e niri_default_session=false` to keep whatever you last chose at GDM.
@@ -93,7 +95,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Geometry.** 12 px gaps and 14 px corners on windows and the bar, 18 px on the dock. A soft drop shadow does the work a focus ring would (the ring is off), and a single hairline border marks the focused window. Niri's border is told not to draw behind Ghostty's translucent background.
 - **Blur.** Niri 26.04's `blur` block uses 3 passes, a small offset, a little noise against banding and 60% saturation, so colorful windows behind the glass don't tint it. Noctalia's layers and floating windows use non-xray blur, so they blur the windows that are really behind them. Niri marks non-xray blur experimental.
 - **Type.** Inter for the UI and JetBrains Mono for terminals and code, from Fedora's packages.
-- **Wallpaper.** `roles/niri/files/wallpaper.svg` is drawn for this profile: a near-black graphite gradient with two soft light falloffs, faint concentric arcs and film grain. Noctalia only loads raster images, so Ansible renders it to a 3840×2400 PNG with `rsvg-convert`. That's the Framework 13's 16:10 ratio at 2×. Noctalia crops it for other ratios.
+- **Wallpaper.** `roles/niri/files/wallpaper.svg` is drawn for this profile: a near-black graphite gradient with two soft light falloffs, faint concentric arcs and film grain. Noctalia only loads raster images, so Ansible renders it to a 3840×2400 PNG with `rsvg-convert`. This is 16:10; Noctalia crops it for the Framework 13's 3:2 display. `niri_wallpaper_size` controls the render dimensions, which are included in the PNG filename so changing them produces a fresh render.
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. New terminals greet with fastfetch, and nested shells don't.
@@ -115,6 +117,8 @@ Noctalia is a full shell, so most session services come from it. Niri's weak dep
 | X11 apps | `xwayland-satellite`, started by Niri on demand. |
 | Audio, network, Bluetooth | PipeWire with WirePlumber, NetworkManager, BlueZ. Noctalia's control center fronts all three, so there's no separate applet. |
 | Brightness, battery, power profiles | Noctalia over logind, UPower and whichever of `tuned-ppd` (Workstation's default) or `power-profiles-daemon` is installed. The package list asks for the shared `ppd-service`, so the two never fight. |
+| Printing and printer discovery | CUPS with its socket enabled, Avahi, and `system-config-printer`. |
+| VPN | Tailscale's signed stable RPM, with `tailscaled` enabled and the desktop account set as operator. Enrollment is interactive. |
 | Lid and power button | systemd-logind defaults: suspend on lid close, and Noctalia locks first. |
 | Clipboard | Noctalia's history, over `wl-clipboard`. |
 | Screenshots | Niri's built-in tool, plus Noctalia's annotated region capture. Both save to `~/Pictures/Screenshots`. The keyring prompt, notifications and OSD are hidden from screencasts. |
@@ -126,6 +130,7 @@ The same set as the GNOME profile, from the same sources, via its `apps.yml` and
 - **VSCodium** from its upstream RPM repository. The signing key is imported only if its fingerprint is `1302 DE60 2318 89FE 1EBA CADC 5467 8CF7 5A27 8D9C`, and both packages and repository metadata are signature-checked (`gpgcheck`, `repo_gpgcheck`). Ansible adds two settings only when they're missing and never changes ones you set: `password-store` in `~/.vscode-oss/argv.json` and `window.controlsStyle` in `settings.json`.
 - **Nautilus** and **GNOME Calendar** with GNOME Online Accounts and `evolution-ews-core`, so Exchange/Microsoft 365 calendars work. Add accounts in the standalone Online Accounts app (`gnome-online-accounts-gtk`), which replaces the GNOME Settings panel outside GNOME.
 - **btop** and **fastfetch**.
+- **Disks**, **Passwords and Keys** (`seahorse`), **Print Settings** (`system-config-printer`) and **PulseAudio Volume Control** (`pavucontrol`) retain the NixOS management tools. Noctalia replaces Blueman's connection/pairing controls, so its competing applet is not installed. Niri output settings replace `wdisplays`, which uses a different compositor protocol. Changes to connected displays go in `niri_outputs` or `~/.config/niri/local.kdl`.
 
 ## Personalizing
 
@@ -148,6 +153,7 @@ Variables in `roles/niri/defaults/main.yml`:
 - `niri_idle_lock_seconds`, `niri_idle_screen_off_seconds` and `niri_idle_suspend_seconds`.
 - `niri_dock_pinned` lists the dock's apps by desktop entry id.
 - `niri_default_session` (see above).
+- `niri_tailscale_enabled` installs and starts Tailscale by default. Turning it off skips management; it does not uninstall or disconnect an existing installation.
 
 ## Shared state between profiles
 
@@ -168,12 +174,14 @@ Everything else is separate. Niri and Noctalia files are read only by Niri. The 
 | Quickshell lock + hypridle | Noctalia lock screen and idle (same 15-minute suspend) |
 | hyprpolkitagent | Noctalia's polkit agent |
 | blueman applet | Noctalia's Bluetooth panel |
+| Disks, Seahorse, printer settings, pavucontrol | Same applications, with CUPS and Avahi for printing |
+| wdisplays | Niri's output configuration and `niri msg outputs` |
 | cliphist | Noctalia clipboard history (Super+Shift+V, as before) |
 | playerctl media keys | `noctalia msg media` (MPRIS, same behaviour) |
 | Calendar widget backed by Evolution Data Server | GNOME Calendar reads your Online Accounts. Noctalia's own calendar connects to CalDAV, Google or ICS separately, set up in its Settings. It doesn't read GNOME Online Accounts. |
 | Catppuccin-derived colors | Graphite (above) |
 | Display option set to one output name | `niri_outputs`, empty by default |
-| Tailscale | Not installed by this profile. Install it with `dnf` if this laptop needs it. |
+| Tailscale | Installed from the vendor's signed stable repository, with the same desktop operator; run `tailscale up` to sign in once |
 | Nix-pinned packages, rollbacks | Fedora packages that move with `dnf upgrade`. No rollback beyond Btrfs snapshots, if you set them up. |
 
 Keys that moved: Super+Shift+E opens the session menu, and Alt+Tab is Noctalia's switcher. Super+Q, Super+F, Super+V, Super+L, Super+T, Super+1…0 and the hardware keys mean the same as on NixOS.
@@ -183,7 +191,7 @@ Keys that moved: Super+Shift+E opens the session menu, and Alt+Tab is Noctalia's
 Run on November 6, 2026:
 
 - **Ansible syntax check** of `niri.yml`, `desktop.yml` and `vm.yml`. All three pass.
-- **Full playbook runs** in a disposable Fedora 45 container (`fedora:45`, a `tester` account, a system D-Bus with `polkitd` and `accounts-daemon` started by hand, no systemd):
+- **Initial implementation provisioning runs** in a disposable Fedora 45 container (`fedora:45`, a `tester` account, a system D-Bus with `polkitd` and `accounts-daemon` started by hand, no booted systemd):
   - First run: changed=42, failed=0.
   - Second run: changed=0.
   - `--check --diff` on the configured container: changed=0, failed=0.
@@ -197,6 +205,15 @@ Run on November 6, 2026:
 - **`python3 -m unittest discover -s tests`** covers the JSONC settings merger: comments kept, user values never overwritten, file mode kept, broken files left alone.
 - The GNOME profile's rendered `~/.zshrc` is byte-for-byte unchanged by the shared-task edits.
 
+The subsequent code review found and fixed incomplete utility/VPN migration, loss of comments inside empty VSCodium settings objects, ignored wallpaper size changes, and personal Niri includes being missed during Ansible's temporary-file validation. The Niri profile's boolean switches also accept the documented `-e name=false` form. The follow-up checks used a new disposable Fedora 45 container:
+
+- All 8 JSONC tests pass, including preservation of comments in an otherwise empty object. All three playbook syntax checks pass with Ansible 2.22.
+- Both templates validate against Niri 26.04 and Noctalia 5.4.1 with defaults and output/keyboard/idle overrides. Validation rejects a broken personal include even when the main config is a temporary file. All 93 shortcuts still pass the IPC check.
+- The added utilities install from Fedora without installing `gnome-keyring`. The packaged CUPS socket and Avahi service are enabled.
+- Actual session-file and Tailscale provisioning tasks pass, with systemd tasks excluded because PID 1 is not systemd. A changed Tailscale operator is corrected; this was tested against a real, unauthenticated userspace `tailscaled`. Changing the wallpaper render to 1920×1200 generates a PNG with those dimensions and updates Noctalia's path. A second run and `--check --diff` both report zero changes.
+
+These checks verify provisioning and configuration, not running desktop services.
+
 Not tested, because none of it can run in a container: a real Niri session, rendering, blur and its GPU cost, Noctalia's panels and lock screen, idle and suspend, PAM unlock of oo7 at GDM, portals, screencasting, audio, Bluetooth and Wi-Fi, brightness keys, the window switcher's hold behaviour, and Framework hardware. Noctalia's panel ids (`launcher`, `control-center`, `clipboard`, `session`) come from its docs, because `--help` doesn't list them. Treat the first boot on real hardware or a password-login VM as the actual test.
 
 ## Sources
@@ -206,4 +223,5 @@ Not tested, because none of it can run in a container: a real Niri session, rend
 - [oo7](https://github.com/linux-credentials/oo7), Fedora 45's Secret Service and PAM module
 - [GDM session selection](https://gitlab.gnome.org/GNOME/gdm/-/blob/main/daemon/gdm-session-settings.c) via [AccountsService](https://gitlab.freedesktop.org/accountsservice/accountsservice)
 - [VSCodium RPM repository](https://github.com/VSCodium/vscodium#install) and its [signing key](https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo). The fingerprint was checked against a good signature on the repository's `repomd.xml.asc`.
+- [Tailscale's Fedora repository](https://pkgs.tailscale.com/stable/fedora/tailscale.repo) and [Linux setup](https://tailscale.com/docs/install/linux). The RPM key fingerprint is pinned in the role.
 - [adw-gtk3](https://github.com/lassekongo83/adw-gtk3), [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme)

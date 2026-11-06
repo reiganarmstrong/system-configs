@@ -40,7 +40,7 @@
   changed_when: false
   # Read-only, so --check can still compare against the saved session.
   check_mode: false
-  when: niri_default_session
+  when: niri_default_session | bool
 
 - name: Read the session GDM preselects
   ansible.builtin.command:
@@ -52,7 +52,7 @@
   changed_when: false
   # Read-only, so --check can still compare against the saved session.
   check_mode: false
-  when: niri_default_session
+  when: niri_default_session | bool
 
 - name: Preselect the Niri session at login
   ansible.builtin.command:
@@ -66,6 +66,6 @@
   loop_control:
     label: "{{ item.method }} {{ item.value }}"
   when:
-    - niri_default_session
+    - niri_default_session | bool
     - (niri_saved_session.stdout_lines[item.line] | from_json).data != item.value
   changed_when: true

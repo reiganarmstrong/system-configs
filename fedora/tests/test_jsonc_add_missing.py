@@ -97,6 +97,18 @@ class AddMissingTests(unittest.TestCase):
         self.assertEqual(strip_comments(self.path.read_text()), {'window.controlsStyle': 'hidden'})
         self.assertTrue(self.path.read_text().startswith('// note\n'))
 
+    def test_preserves_comments_inside_an_empty_object(self):
+        original = '// preferences\n{\n\t// "password-store": "basic",\n\t/* keep { this } */\n}\n'
+        self.path.write_text(original)
+        result = run(self.path, 'password-store="gnome-libsecret"', 'window.controlsStyle="hidden"')
+        text = self.path.read_text()
+        self.assertTrue(result['changed'])
+        self.assertIn(original.split('{', 1)[1], text)
+        self.assertEqual(strip_comments(text), {
+            'password-store': 'gnome-libsecret', 'window.controlsStyle': 'hidden',
+        })
+        self.assertFalse(run(self.path, 'password-store="gnome-libsecret"')['changed'])
+
     def test_unparseable_file_is_reported_and_left_alone(self):
         broken = '{ "a": 1 /* unterminated\n'
         self.path.write_text(broken)

@@ -327,4 +327,5 @@ binds {
 }
 
 // Personal overrides. Optional: niri logs a warning while it is missing.
-include optional=true "local.kdl"
+// Use an absolute path so Ansible's temporary validation file also checks it.
+include optional=true {{ (desktop_home ~ '/.config/niri/local.kdl') | to_json }}

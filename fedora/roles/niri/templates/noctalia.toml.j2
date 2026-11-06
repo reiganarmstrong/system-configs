@@ -55,7 +55,7 @@ transition = ["fade"]
 transition_duration = 600
 
 [wallpaper.default]
-path = "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.png"
+path = {{ niri_wallpaper_path | to_json }}
 
 # The wallpaper is placed on Niri's backdrop (see config.kdl), so Noctalia's
 # separate backdrop layer stays off.
