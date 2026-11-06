@@ -60,6 +60,14 @@ in
     fi
   '';
 
+  # Vim is terminal-only, but its package still ships a GVim launcher for a
+  # gvim binary it doesn't include. Hide it from the launcher.
+  xdg.desktopEntries.gvim = {
+    name = "GVim";
+    exec = "gvim";
+    noDisplay = true;
+  };
+
   xdg.desktopEntries.t3code = {
     name = "T3 Code";
     comment = "Desktop app for coding agents";
