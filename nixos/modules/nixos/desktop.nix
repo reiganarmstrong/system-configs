@@ -105,8 +105,9 @@ in
     };
     services.gnome.glib-networking.enable = true;
     security.pam.services.greetd.enableGnomeKeyring = true;
-    # The Quickshell lock screen authenticates through this PAM service.
-    security.pam.services.quickshell = { };
+    # The Quickshell lock screen authenticates through this PAM service, which
+    # also unlocks the login keyring that autologin leaves locked.
+    security.pam.services.quickshell.enableGnomeKeyring = true;
     programs.dconf.enable = true;
 
     fonts = {

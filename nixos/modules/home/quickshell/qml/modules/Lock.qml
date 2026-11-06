@@ -4,8 +4,8 @@
 import QtQuick
 import QtQuick.Effects
 import Quickshell
-import Quickshell.Wayland
 import Quickshell.Io
+import Quickshell.Wayland
 import Quickshell.Services.Pam
 import qs.components
 import qs.services
@@ -24,30 +24,28 @@ Scope {
             if (responseRequired)
                 respond(lock.password);
         }
+        // The PAM service also unlocks the login keyring with this password,
+        // which autologin can't do.
         onCompleted: result => {
             lock.checking = false;
+            lock.password = "";
             if (result === PamResult.Success) {
                 lock.message = "";
-                // Autologin can't unlock the login keyring; the password just
-                // typed here can.
-                keyring.running = true;
                 Session.locked = false;
             } else {
                 lock.message = "Wrong password";
-                lock.password = "";
             }
         }
     }
 
+    // The keyring daemon from login stays uninitialised until something asks
+    // for it, and PAM can't unlock it before then, so start it first. --start
+    // initialises the running daemon (or starts one) and exits. Checking the
+    // password waits for it to stop, whether it exited or failed to launch.
     Process {
-        id: keyring
-        command: ["gnome-keyring-daemon", "--unlock"]
-        stdinEnabled: true
-        onStarted: {
-            write(lock.password);
-            stdinEnabled = false;
-            lock.password = "";
-        }
+        id: keyringStart
+        command: ["gnome-keyring-daemon", "--start", "--components=secrets"]
+        onRunningChanged: if (!running && lock.checking) pam.start()
     }
 
     property string password: ""
@@ -58,7 +56,7 @@ Scope {
         password = text;
         checking = true;
         message = "";
-        pam.start();
+        keyringStart.running = true;
     }
 
     WlSessionLock {
