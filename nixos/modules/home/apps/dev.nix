@@ -24,6 +24,9 @@ let
 in
 {
   home.packages = [
+    # Electron doesn't recognise Hyprland as a desktop with a keyring, so name
+    # GNOME Keyring explicitly or VSCodium can't store secrets.
+    (pkgs.vscodium.override { commandLineArgs = "--password-store=gnome-libsecret"; })
     pkgs.git
     pkgs.vim
     pkgs.gnumake
