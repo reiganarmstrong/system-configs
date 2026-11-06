@@ -70,13 +70,13 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 
 Super+drag moves a window, and Super+right-drag resizes it (Niri defaults). Shell shortcuts go through `noctalia msg`, Noctalia's IPC. `tests/check_niri_keybinds.py` checks every one against the installed Noctalia (see [Testing](#testing)).
 
-Click the time in the top-center notch to open the control center. The launcher is a plain search list with no category chips. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the notch; the keyboard shortcuts above still work.
+Click the time in the center of the top bar to open the control center. The launcher is a plain search list with no category chips. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the bar; the keyboard shortcuts above still work.
 
 ## Graphite
 
 The NixOS desktop uses a hand-built Quickshell bar. Graphite uses black, white and gray shell controls, with chrome as frosted glass over the wallpaper. The Fedora fetch wallpaper adds one blue palette swatch. Shell status colors still carry meaning: red for errors and urgent windows, amber for warnings, green for success in the terminal.
 
-The dock, notifications, OSD, panels and window switcher are translucent with real background blur. The notch is near-opaque instead, for the rendering reason below. App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
+The dock, notifications, OSD, panels and window switcher are translucent with real background blur. The top bar is solid black instead (see [Top bar](#top-bar)). App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
 
 | Token | Value | Used for |
 | --- | --- | --- |
@@ -94,7 +94,7 @@ The dock, notifications, OSD, panels and window switcher are translucent with re
 
 These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, including the 16 terminal colors), `ghostty.config`, `starship.toml`, `btop-graphite.theme` and `templates/config.kdl.j2`.
 
-- **Geometry.** 12 px gaps and 14 px corners on windows, 18 px on the dock. The notch is a 28 px pill, centered 3 px below the top edge. A soft drop shadow and a hairline border mark the focused window. Niri's border does not draw behind Ghostty's translucent background.
+- **Geometry.** 12 px gaps and 14 px corners on windows, 18 px on the dock. The top bar is a flat 34 px strip. A soft drop shadow and a hairline border mark the focused window. Niri's border does not draw behind Ghostty's translucent background.
 - **Blur.** Niri 26.04's `blur` block uses 3 passes, a small offset, a little noise against banding and 60% saturation, so colorful windows behind the glass don't tint it. Noctalia's layers and floating windows use non-xray blur, so they blur the windows that are really behind them. Niri marks non-xray blur experimental.
 - **Type.** Inter for the UI and JetBrains Mono for terminals and code, from Fedora's packages.
 - **Wallpaper.** `roles/niri/files/wallpaper-fedora.png` is a Python-rendered Fedora ASCII logo and fetch-style specification panel on graphite, using real monospace glyphs. It lists the user's Framework 13 Pro, Intel Core i5, 32 GB RAM and 1 TB SSD, plus niri and Noctalia. The bundled image is native 2880×1920 for the target laptop; Noctalia scales and crops it for other outputs. Its installed filename includes its SHA-256 fingerprint so replacing the asset bypasses Noctalia's image cache. The image is copied before its config is published, with no rendering tool needed at install time. The [generation record](roles/niri/files/wallpaper-fedora.md) identifies the source project, exact commit, preset, reproduction command and logo license. The former SVG-only `niri_wallpaper_size` variable remains retired; Noctalia handles output sizing directly.
@@ -103,19 +103,19 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
 - **Icons.** Papirus-Dark, whose flat icons sit better on gray glass than WhiteSur's glossy ones.
 
-### Notch
+### Top bar
 
-One compact row shows workspaces, media, time, network, volume, Bluetooth, battery, notifications and the tray. Widgets with no device or content hide themselves. The VM usually shows just workspaces, time, wired network and volume, about 165 px wide. The row sizes to its content on every output, without connector-specific widths or layout scripts. Network names stay in the native tooltip, so a long SSID cannot stretch the row. The battery shows its percentage inside a graphical battery when one is present.
+A solid black strip, 34 px tall, runs across the top of every output. It has no transparency, blur, border, shadow or rounded corners; the glass is kept for the panels that open beneath it. Niri's 12 px gap separates it from windows, so a full-height window sits as far below the bar as above the bottom edge.
 
-Workspaces are numbered pills. The active one is white with dark text and only half again as long as the round inactive ones. Workspaces with windows use a lighter gray fill than empty ones.
+- **Left:** numbered workspace pills. The active one is white with dark text and only half again as long as the round inactive ones. Workspaces with windows use a lighter gray fill than empty ones.
+- **Center:** the time, alone in Noctalia's center lane, so it stays centered on the output whatever the side lanes hold. Clicking it opens the control center on Home, with its tab sidebar.
+- **Right:** media, tray, notifications, network, Bluetooth, volume, brightness, battery and the power button. Each opens its own panel beneath it instead of the full control center: network opens the Network tab, volume the Audio tab, Bluetooth its tab, brightness the Monitor tab, battery the Power tab and notifications the history. Opened this way, the control center shows that one tab with no sidebar (`[control_center] sidebar_section = "none"`). The power button opens the session menu. Right-click keeps Noctalia's shortcuts: network and Bluetooth toggle their radio, and notifications toggles Do Not Disturb.
 
-Click the time for the control center, or use each widget's native action for its own controls. Connection details are available in the network tooltip and Network tab. Floating panels open 6 px below the reserved bar strip. Panel slide-down, hover highlights and tooltips use Noctalia's native animation settings, including `[shell.animation] enabled = false` for reduced motion.
+Widgets with no device hide themselves: brightness without a backlight and battery without a battery. Bluetooth hides on machines without an adapter but otherwise stays visible, so pairing is one click away. Network names stay in the tooltip, so a long SSID can't stretch the bar.
 
-The [reference video's notch](https://www.youtube.com/watch?v=cLB2eaXrrk4) grows into a larger surface. This configuration keeps a steady row. A native center-lane accordion moved the clock out from under the pointer, so waiting before a click could select a workspace instead. Opus's design review rejected that interaction. Keeping the row visible also makes connection and battery status readable without a hover. Panels remain separate animated cards; there is no custom morphing surface.
+These single-tab cards are the control center's own tabs, not separate popovers. Noctalia 5.4.1 has no standalone network, audio or Bluetooth panels, and building them would mean a plugin that has to track Noctalia's internals on every upgrade. Its tab cards keep the control center's fixed height, so a short tab such as Network on a wired VM leaves empty space below its content.
 
-The implementation is one native `capsule_group` inside a transparent bar. The capsule uses Graphite's surface color at 92% opacity and a 1 px outline. Bar blur and shadow are off because they would cover the full bar area even where its background is transparent. The panels retain their own glass and blur. No plugin, shell fork, custom animation code or scripts tracking desktop state are installed.
-
-The transparent host bar reserves 34 logical pixels across the top, passes empty space through, and uses the `top` layer so fullscreen windows cover it. Its visible capsule is small, but the reserved strip is still full width. These are stock Noctalia 5.4.1 behaviors. On upgrades, run `noctalia config validate` and review any warnings, especially for `capsule_group`, widget options and floating panel placement. All of those settings remain in one template.
+This bar replaces the earlier floating notch (a capsule group inside a transparent bar), whose [review record](reviews/niri-notch.md) is kept for history.
 
 ## Services
 
@@ -162,7 +162,7 @@ Ansible rewrites the files it owns on every run, so edits to them don't survive.
 
 Niri and Noctalia reload their config while running, so a rerun takes effect without logging out. Both configs are checked before they're written (`niri validate`, `noctalia config validate`), so a bad template can't break a running session.
 
-Reordering bar widgets in Noctalia's Settings window saves lane and capsule-group overrides in `~/.local/state/noctalia/settings.toml`. Those override the role, and arrays replace rather than merge. If a later notch change does not appear, inspect the saved `[bar.main]` lanes and `capsule_group` entries, plus any widget overrides. Remove only the overrides you want the role to manage; other personal settings can stay.
+Reordering bar widgets in Noctalia's Settings window saves lane and capsule-group overrides in `~/.local/state/noctalia/settings.toml`. Those override the role, and arrays replace rather than merge. If a later bar change does not appear, inspect the saved `[bar.main]` lanes and `capsule_group` entries, plus any widget overrides. Remove only the overrides you want the role to manage; other personal settings can stay.
 
 Variables in `roles/niri/defaults/main.yml`:
 
@@ -263,7 +263,17 @@ The VM has no battery, Wi-Fi adapter or Bluetooth device. Their appearance and t
 
 The VM's test variables no longer pin `1920x1080`. Niri now uses the virtual display's preferred mode, which the MacBook's VNC viewer sets to its window size (1512×982 at scale 1 when checked), so the desktop fills the window instead of being scaled down into it. The production role is unchanged: `niri_outputs` is still empty by default.
 
-Screenshots from the VM show the numbered workspace pills in the notch, a launcher without the category row, and no result for "noct" after the Noctalia entry was hidden. `noctalia config validate` reports the configuration valid.
+Screenshots from the VM showed the numbered workspace pills in the then-current notch, a launcher without the category row, and no result for "noct" after the Noctalia entry was hidden. `noctalia config validate` reports the configuration valid.
+
+### Solid top bar verification
+
+Checked in the same VM at 1512×982 on November 6, 2026. `noctalia config validate` reports the configuration valid, and the playbook apply changed only Noctalia's config file.
+
+- The clock is drawn at x=756 on the 1512 px output, its exact center.
+- A full-height tile is 924 px: 982 − 34 (bar) − 924 = 24, so the gap is 12 px above and 12 px below.
+- Clicking the network and volume icons opens the Network and Audio tabs alone, beneath the icon. Clicking the time opens Home with the sidebar, and the power button opens the session menu beneath it.
+
+The VM has no Wi-Fi, Bluetooth adapter, battery or backlight, so those widgets and their cards still need a check on the laptop.
 
 ### Fedora fetch wallpaper verification
 

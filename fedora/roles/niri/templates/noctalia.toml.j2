@@ -24,8 +24,9 @@ borders = true
 border_color = "outline_variant"
 border_width = 1.0
 shadow = true
-# Floating panels retain their own glass instead of inheriting the invisible
-# bar's opacity. "auto" places keyboard-opened panels beneath the top bar.
+# Floating panels keep their own glass instead of taking on the solid bar's
+# fill. "auto" places keyboard-opened panels beneath the top bar; a click on a
+# bar widget opens the control center or session menu beneath that widget.
 launcher_placement = "floating"
 launcher_position = "auto"
 clipboard_placement = "floating"
@@ -37,6 +38,8 @@ wallpaper_position = "auto"
 session_placement = "floating"
 session_position = "auto"
 floating_offset = 6
+open_near_click_control_center = true
+open_near_click_session = true
 
 [shell.shadow]
 direction = "down"
@@ -53,6 +56,13 @@ fetch_exchange_rates = false
 directory = "{{ desktop_home }}/Pictures/Screenshots"
 copy_to_clipboard = true
 save_to_file = true
+
+# Home (from the clock) keeps the tab sidebar. Opened straight to one tab from
+# a status widget, the control center shows just that tab, without the
+# sidebar, as a narrower card of the same height.
+[control_center]
+sidebar = "compact"
+sidebar_section = "none"
 
 [theme]
 mode = "dark"
@@ -126,40 +136,28 @@ position = "top"
 layer = "top"
 reserve_space = true
 thickness = 34
-# Only the center capsule is visible. Blur and shadow here would still cover
-# the entire bar, including the transparent area outside the notch.
-background_opacity = 0.0
+# A plain, opaque black strip across the full width: no glass, blur, border,
+# shadow or rounded corners. Panels below it keep their glass.
+background_opacity = 1.0
 compositor_blur = false
 shadow = false
 border_width = 0.0
+radius = 0
+concave_edge_corners = false
 margin_edge = 0
 margin_ends = 0
-padding = 0
+padding = 12
+widget_spacing = 4
 capsule = false
-capsule_thickness = 0.82
 font_weight = 500
 hover_highlight = true
 show_tooltip = true
-start = []
-center = ["group:notch"]
-end = []
-
-[bar.main.dead_zone]
-click_through = true
-
-# Noctalia 5.4.1, 2026-11-06: this steady capsule group is the notch.
-# A center-lane accordion re-centers on hover and moves the clock away from
-# the pointer. Keep the row visible and let the native panels animate instead.
-[[bar.main.capsule_group]]
-id = "notch"
-members = ["workspaces", "media", "clock", "network", "volume", "bluetooth", "battery", "notifications", "tray"]
-fill = "surface"
-opacity = 0.92
-border = "outline_variant"
-border_width = 1.0
-foreground = "on_surface"
-padding = 10.0
-widget_spacing = 10
+# The clock is alone in the center lane, so it stays centered on the output
+# however wide the side lanes get. Status widgets each open their own
+# control-center tab (Network, Audio, Bluetooth, Power, ...) by default.
+start = ["workspaces"]
+center = ["clock"]
+end = ["media", "tray", "notifications", "network", "bluetooth", "volume", "brightness", "battery", "session"]
 
 [widget.clock]
 format = "{:%H:%M}"
@@ -167,7 +165,7 @@ tooltip_format = "{:%A, %B %d}"
 font_weight = 600
 
 [widget.clock.actions]
-left = "panel-toggle control-center"
+left = "panel-toggle control-center home"
 
 # Numbered pills. The active one is white with dark text and only slightly
 # longer than the round inactive ones; occupied workspaces get a lighter gray
@@ -195,7 +193,9 @@ show_label = false
 
 [widget.bluetooth]
 show_label = false
-hide_when_no_connected_device = true
+# Stays visible so its tab is one click away for pairing. It still hides on
+# machines without a Bluetooth adapter.
+hide_when_no_connected_device = false
 
 [widget.battery]
 display_mode = "graphic"
