@@ -1,0 +1,71 @@
+---
+# A password login at GDM is what unlocks the oo7 keyring (pam_oo7 in GDM's
+# PAM stack) and what Noctalia's lock screen checks against (the "login" PAM
+# service), so this profile never enables automatic login.
+- name: Turn off automatic login
+  community.general.ini_file:
+    path: /etc/gdm/custom.conf
+    section: daemon
+    option: AutomaticLoginEnable
+    value: 'False'
+    mode: '0644'
+    no_extra_spaces: true
+
+- name: Enable the graphical login service
+  ansible.builtin.systemd_service:
+    name: gdm
+    enabled: true
+
+- name: Inspect the default boot target
+  ansible.builtin.command: systemctl get-default
+  register: niri_boot_target
+  changed_when: false
+  check_mode: false
+
+- name: Boot into the graphical login screen
+  ansible.builtin.command: systemctl set-default graphical.target
+  when: niri_boot_target.stdout != 'graphical.target'
+  changed_when: true
+
+# GDM preselects the session saved in AccountsService's Session property
+# (it ignores the older XSession key). Going through accounts-daemon over
+# D-Bus, rather than editing /var/lib/AccountsService/users/, keeps the
+# daemon's in-memory copy and the file in step. "niri" is the session file
+# /usr/share/wayland-sessions/niri.desktop from the niri package.
+- name: Find the account in AccountsService
+  ansible.builtin.command:
+    argv: [busctl, --json=short, call, org.freedesktop.Accounts, /org/freedesktop/Accounts,
+           org.freedesktop.Accounts, FindUserByName, s, "{{ desktop_user }}"]
+  register: niri_account_object
+  changed_when: false
+  # Read-only, so --check can still compare against the saved session.
+  check_mode: false
+  when: niri_default_session
+
+- name: Read the session GDM preselects
+  ansible.builtin.command:
+    argv: [busctl, --json=short, get-property, org.freedesktop.Accounts, "{{ niri_account_path }}",
+           org.freedesktop.Accounts.User, Session, SessionType]
+  vars:
+    niri_account_path: "{{ (niri_account_object.stdout | from_json).data[0] }}"
+  register: niri_saved_session
+  changed_when: false
+  # Read-only, so --check can still compare against the saved session.
+  check_mode: false
+  when: niri_default_session
+
+- name: Preselect the Niri session at login
+  ansible.builtin.command:
+    argv: [busctl, call, org.freedesktop.Accounts, "{{ niri_account_path }}",
+           org.freedesktop.Accounts.User, "{{ item.method }}", s, "{{ item.value }}"]
+  vars:
+    niri_account_path: "{{ (niri_account_object.stdout | from_json).data[0] }}"
+  loop:
+    - { method: SetSession, value: niri, line: 0 }
+    - { method: SetSessionType, value: wayland, line: 1 }
+  loop_control:
+    label: "{{ item.method }} {{ item.value }}"
+  when:
+    - niri_default_session
+    - (niri_saved_session.stdout_lines[item.line] | from_json).data != item.value
+  changed_when: true

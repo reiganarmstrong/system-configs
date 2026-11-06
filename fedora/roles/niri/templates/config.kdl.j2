@@ -1,0 +1,330 @@
+// {{ ansible_managed }}
+// Source: fedora/roles/niri/templates/config.kdl.j2. Ansible rewrites this file
+// on every run. Put your own settings in ~/.config/niri/local.kdl, which is
+// included last and overrides anything here.
+// Reference: https://github.com/niri-wm/niri/wiki/Configuration:-Introduction
+
+input {
+    keyboard {
+        xkb {
+            layout "{{ niri_keyboard_layout }}"
+{% if niri_keyboard_options %}
+            options "{{ niri_keyboard_options }}"
+{% endif %}
+        }
+        numlock
+    }
+
+    touchpad {
+        tap
+        dwt
+        natural-scroll
+        accel-profile "adaptive"
+    }
+
+    mouse {
+        accel-profile "flat"
+    }
+}
+
+{% for output in niri_outputs %}
+output "{{ output.name }}" {
+{% if output.mode is defined %}
+    mode "{{ output.mode }}"
+{% endif %}
+{% if output.scale is defined %}
+    scale {{ output.scale }}
+{% endif %}
+{% if output.position is defined %}
+    position x={{ output.position.x }} y={{ output.position.y }}
+{% endif %}
+}
+
+{% endfor %}
+// ---------------------------------------------------------------------------
+// Monochrome glass. Windows are opaque except Ghostty; the bar, panels, dock,
+// notifications and OSD are translucent and blurred. Hairline white borders
+// at low alpha replace a colored focus ring, and red is kept for urgency.
+// ---------------------------------------------------------------------------
+layout {
+    gaps 12
+    center-focused-column "never"
+    always-center-single-column
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+    default-column-width { proportion 0.5; }
+
+    focus-ring {
+        off
+    }
+
+    border {
+        width 1
+        active-color "#ffffff5c"
+        inactive-color "#ffffff1a"
+        urgent-color "#ff5c5c"
+    }
+
+    shadow {
+        on
+        softness 36
+        spread 2
+        offset x=0 y=10
+        color "#000000a0"
+        inactive-color "#00000060"
+    }
+
+    tab-indicator {
+        width 3
+        gap 6
+        corner-radius 2
+        active-color "#ffffffcc"
+        inactive-color "#ffffff40"
+        urgent-color "#ff5c5c"
+    }
+
+    insert-hint {
+        color "#ffffff26"
+    }
+
+    // Noctalia's wallpaper sits on the backdrop (see the layer rule below),
+    // so workspaces stay transparent and the wallpaper does not scroll.
+    background-color "transparent"
+}
+
+overview {
+    backdrop-color "#060607"
+    workspace-shadow {
+        off
+    }
+}
+
+// Applies to every background blur, both requested by clients through
+// ext-background-effect and enabled by the rules below. Low saturation
+// keeps colorful content behind the glass from tinting it.
+blur {
+    passes 3
+    offset 3
+    noise 0.03
+    saturation 0.6
+}
+
+prefer-no-csd
+
+cursor {
+    xcursor-theme "Adwaita"
+    xcursor-size 24
+    hide-when-typing
+}
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+environment {
+    // Qt apps follow the GTK 3 theme (adw-gtk3-dark) through Qt's built-in
+    // gtk3 platform theme; no qt6ct configuration to maintain.
+    QT_QPA_PLATFORMTHEME "gtk3"
+}
+
+// Noctalia is the bar, launcher, notification daemon, polkit agent, OSD, idle
+// manager and lock screen. Niri starts it once per session.
+spawn-at-startup "noctalia"
+
+// ---------------------------------------------------------------------------
+// Window rules
+// ---------------------------------------------------------------------------
+window-rule {
+    geometry-corner-radius 14
+    clip-to-geometry true
+}
+
+// Ghostty is the one translucent app. Tiled windows never overlap, so the
+// cheap xray blur of the wallpaper is what would be behind it anyway.
+window-rule {
+    match app-id="^com\\.mitchellh\\.ghostty$"
+    draw-border-with-background false
+    background-effect {
+        blur true
+    }
+}
+
+// Floating windows can overlap others, so blur what is really behind them.
+window-rule {
+    match is-floating=true
+    background-effect {
+        xray false
+    }
+}
+
+window-rule {
+    match app-id="^dev\\.noctalia\\.Noctalia$"
+    open-floating true
+    default-column-width { fixed 1080; }
+    default-window-height { fixed 920; }
+}
+
+window-rule {
+    match app-id="^app\\.zen_browser\\.zen$" title="^Picture-in-Picture$"
+    open-floating true
+}
+
+window-rule {
+    match app-id="^org\\.gnome\\.Calendar$"
+    default-column-width { proportion 0.66667; }
+}
+
+// Keyring and polkit prompts stay out of screen recordings.
+window-rule {
+    match app-id="^oo7-"
+    match app-id="^org\\.gnome\\.keyring"
+    block-out-from "screencast"
+}
+
+// ---------------------------------------------------------------------------
+// Layer rules (https://docs.noctalia.dev/noctalia/compositor-settings/niri/)
+// ---------------------------------------------------------------------------
+// Stationary wallpaper: Noctalia's wallpaper surface lives on the backdrop.
+layer-rule {
+    match namespace="^noctalia-wallpaper"
+    place-within-backdrop true
+}
+
+// Noctalia requests blur for these surfaces itself. Turning xray off makes
+// them blur the windows behind them instead of only the wallpaper.
+layer-rule {
+    match namespace="^noctalia-(bar-[^\"]+|notification|dock|panel|attached-panel|osd)$"
+    background-effect {
+        xray false
+    }
+}
+
+layer-rule {
+    match namespace="^noctalia-window-switcher$"
+    background-effect {
+        blur true
+        xray false
+    }
+}
+
+// Notifications and the OSD stay out of screen recordings.
+layer-rule {
+    match namespace="^noctalia-(notification|osd)$"
+    block-out-from "screencast"
+}
+
+// Notification actions and window activation from Noctalia.
+debug {
+    honor-xdg-activation-with-invalid-serial
+}
+
+// ---------------------------------------------------------------------------
+// Key bindings. Mod is Super. Mod+Shift+/ shows them all.
+// ---------------------------------------------------------------------------
+binds {
+    Mod+Shift+Slash { show-hotkey-overlay; }
+
+    // Apps and shell.
+    Mod+T hotkey-overlay-title="Terminal (Ghostty)" { spawn "ghostty"; }
+    Mod+E hotkey-overlay-title="Files" { spawn "nautilus" "--new-window"; }
+    Mod+Space hotkey-overlay-title="App launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
+    Mod+Comma hotkey-overlay-title="Noctalia settings" { spawn "noctalia" "msg" "settings-toggle"; }
+    Mod+S hotkey-overlay-title="Control center" { spawn "noctalia" "msg" "panel-toggle" "control-center"; }
+    Mod+Shift+V hotkey-overlay-title="Clipboard history" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }
+    Mod+N hotkey-overlay-title="Toggle do not disturb" { spawn "noctalia" "msg" "notification-dnd-toggle"; }
+    Mod+L hotkey-overlay-title="Lock the screen" { spawn "noctalia" "msg" "session" "lock"; }
+    Mod+Shift+E hotkey-overlay-title="Session menu" { spawn "noctalia" "msg" "panel-toggle" "session"; }
+    Alt+Tab hotkey-overlay-title="Switch windows" { spawn "noctalia" "msg" "window-switcher" "hold"; }
+
+    // Windows.
+    Mod+Q repeat=false { close-window; }
+    Mod+F { fullscreen-window; }
+    Mod+Shift+F { maximize-column; }
+    Mod+Ctrl+F { expand-column-to-available-width; }
+    Mod+V { toggle-window-floating; }
+    Mod+Shift+Tab { switch-focus-between-floating-and-tiling; }
+    Mod+C { center-column; }
+    Mod+W { toggle-column-tabbed-display; }
+    Mod+R { switch-preset-column-width; }
+    Mod+Shift+R { reset-window-height; }
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
+    Mod+BracketLeft { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+    Mod+O repeat=false { toggle-overview; }
+
+    // Focus and move.
+    Mod+Left { focus-column-left; }
+    Mod+Right { focus-column-right; }
+    Mod+Up { focus-window-or-workspace-up; }
+    Mod+Down { focus-window-or-workspace-down; }
+    Mod+Shift+Left { move-column-left; }
+    Mod+Shift+Right { move-column-right; }
+    Mod+Shift+Up { move-window-up-or-to-workspace-up; }
+    Mod+Shift+Down { move-window-down-or-to-workspace-down; }
+    Mod+Home { focus-column-first; }
+    Mod+End { focus-column-last; }
+    Mod+Shift+Home { move-column-to-first; }
+    Mod+Shift+End { move-column-to-last; }
+
+    // Monitors.
+    Mod+Ctrl+Left { focus-monitor-left; }
+    Mod+Ctrl+Right { focus-monitor-right; }
+    Mod+Ctrl+Up { focus-monitor-up; }
+    Mod+Ctrl+Down { focus-monitor-down; }
+    Mod+Shift+Ctrl+Left { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+Right { move-column-to-monitor-right; }
+    Mod+Shift+Ctrl+Up { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+Down { move-column-to-monitor-down; }
+
+    // Workspaces.
+    Mod+Page_Up { focus-workspace-up; }
+    Mod+Page_Down { focus-workspace-down; }
+    Mod+Shift+Page_Up { move-column-to-workspace-up; }
+    Mod+Shift+Page_Down { move-column-to-workspace-down; }
+    Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp cooldown-ms=150 { focus-workspace-up; }
+    Mod+WheelScrollRight { focus-column-right; }
+    Mod+WheelScrollLeft { focus-column-left; }
+{% for index in range(1, 11) %}
+    Mod+{{ index % 10 }} { focus-workspace {{ index }}; }
+{% endfor %}
+{% for index in range(1, 11) %}
+    Mod+Shift+{{ index % 10 }} { move-column-to-workspace {{ index }}; }
+{% endfor %}
+
+    // Screenshots. Niri's own tools save to ~/Pictures/Screenshots and copy to
+    // the clipboard; Noctalia's region tool adds annotation.
+    Print { screenshot; }
+    Ctrl+Print { screenshot-screen; }
+    Alt+Print { screenshot-window; }
+    Mod+Shift+S hotkey-overlay-title="Annotated region screenshot" { spawn "noctalia" "msg" "screenshot-region" "--annotate"; }
+
+    // Hardware keys work on the lock screen too.
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-up"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-down"; }
+    XF86AudioMute allow-when-locked=true { spawn "noctalia" "msg" "volume-mute"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "noctalia" "msg" "mic-mute"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "noctalia" "msg" "brightness-up"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "noctalia" "msg" "brightness-down"; }
+    XF86AudioPlay allow-when-locked=true { spawn "noctalia" "msg" "media" "toggle"; }
+    XF86AudioPause allow-when-locked=true { spawn "noctalia" "msg" "media" "toggle"; }
+    XF86AudioNext allow-when-locked=true { spawn "noctalia" "msg" "media" "next"; }
+    XF86AudioPrev allow-when-locked=true { spawn "noctalia" "msg" "media" "previous"; }
+
+    // Escape hatches.
+    Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+    Mod+Shift+P { power-off-monitors; }
+    Ctrl+Alt+Delete { quit; }
+}
+
+// Personal overrides. Optional: niri logs a warning while it is missing.
+include optional=true "local.kdl"

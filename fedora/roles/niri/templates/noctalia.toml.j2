@@ -1,0 +1,137 @@
+# {{ ansible_managed }}
+# Source: fedora/roles/niri/templates/noctalia.toml.j2. Ansible rewrites this
+# file on every run. Noctalia merges every *.toml in this folder in
+# alphabetical order, so a file that sorts later (for example local.toml) can
+# override these values. Changes made in Noctalia's Settings window are saved
+# to ~/.local/state/noctalia/settings.toml, which wins over both and which
+# Ansible never touches.
+# Reference: https://docs.noctalia.dev/noctalia/configuration/
+
+[shell]
+font_family = "Inter"
+corner_radius_scale = 1.0
+telemetry_enabled = false
+# Noctalia is the session's polkit authentication agent; no other agent runs.
+polkit_agent = true
+niri_overview_close_on_launch_enabled = true
+
+[shell.panel]
+transparency_mode = "glass"
+borders = true
+border_color = "outline_variant"
+border_width = 1.0
+shadow = true
+
+[shell.shadow]
+direction = "down"
+alpha = 0.6
+
+[shell.launcher]
+layout = "simple"
+show_app_origin_indicator = false
+fetch_exchange_rates = false
+
+[shell.screenshot]
+directory = "{{ desktop_home }}/Pictures/Screenshots"
+copy_to_clipboard = true
+save_to_file = true
+
+[theme]
+mode = "dark"
+source = "custom"
+custom_palette = "Graphite"
+# Color templates for other apps stay off: GTK, Qt, Ghostty and Starship get
+# stable, hand-written configs from Ansible instead of generated CSS.
+[theme.templates]
+enable_builtin_templates = false
+enable_community_templates = false
+
+[wallpaper]
+enabled = true
+fill_mode = "crop"
+fill_color = "#0a0a0b"
+directory = "{{ desktop_home }}/.local/share/backgrounds"
+transition = ["fade"]
+transition_duration = 600
+
+[wallpaper.default]
+path = "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.png"
+
+# The wallpaper is placed on Niri's backdrop (see config.kdl), so Noctalia's
+# separate backdrop layer stays off.
+[backdrop]
+enabled = false
+
+[notification]
+background_opacity = 0.78
+border = true
+border_color = "outline_variant"
+offset_x = 16
+offset_y = 12
+
+[osd]
+position = "bottom_center"
+background_opacity = 0.78
+border = true
+border_color = "outline_variant"
+
+[lockscreen]
+enabled = true
+lock_before_suspend = true
+blurred_desktop = false
+transition = ["fade"]
+transition_duration = 500
+blur_intensity = 0.7
+tint_intensity = 0.45
+
+[idle]
+behavior_order = ["lock", "screen-off", "suspend"]
+pre_action_fade_seconds = 3.0
+
+[idle.behavior.lock]
+action = "lock"
+timeout = {{ niri_idle_lock_seconds }}
+enabled = {{ (niri_idle_lock_seconds | int > 0) | lower }}
+
+[idle.behavior.screen-off]
+action = "screen_off"
+timeout = {{ niri_idle_screen_off_seconds }}
+enabled = {{ (niri_idle_screen_off_seconds | int > 0) | lower }}
+
+[idle.behavior.suspend]
+action = "lock_and_suspend"
+timeout = {{ niri_idle_suspend_seconds }}
+enabled = {{ (niri_idle_suspend_seconds | int > 0) | lower }}
+
+[bar.main]
+position = "top"
+thickness = 34
+background_opacity = 0.62
+compositor_blur = true
+radius = 14
+margin_ends = 12
+margin_edge = 8
+padding = 12
+widget_spacing = 6
+shadow = true
+capsule = false
+start = ["launcher", "workspaces", "media"]
+center = ["clock"]
+end = ["tray", "notifications", "network", "bluetooth", "volume", "brightness", "battery", "control-center", "session"]
+
+[dock]
+enabled = true
+position = "bottom"
+icon_size = 44
+background_opacity = 0.62
+compositor_blur = true
+radius = 18
+margin_edge = 8
+shadow = true
+auto_hide = true
+reserve_space = false
+magnification = false
+show_dots = true
+show_instance_count = false
+inactive_opacity = 1.0
+pinned = {{ niri_dock_pinned | to_json }}

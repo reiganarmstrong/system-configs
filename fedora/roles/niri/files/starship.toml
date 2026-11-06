@@ -1,0 +1,75 @@
+# Managed by Ansible (fedora/roles/niri/files/starship.toml).
+# Graphite: a monochrome prompt. Color appears only for meaning: red for a
+# failed command, root or merge conflicts, yellow for uncommitted changes.
+# Plain ASCII, so it needs no Nerd Font.
+
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$nodejs\
+$python\
+$cmd_duration\
+$line_break\
+$character"""
+
+palette = "graphite"
+
+[palettes.graphite]
+text = "#ececee"
+subtext = "#a3a3a9"
+muted = "#6b6b72"
+warning = "#d4a95a"
+error = "#e5534b"
+
+[username]
+show_always = true
+style_user = "text bold"
+style_root = "error bold"
+format = "[$user]($style) "
+
+[hostname]
+ssh_only = false
+style = "subtext"
+format = "[@$hostname]($style) "
+
+[directory]
+style = "text bold"
+format = "[$path]($style)[$read_only]($read_only_style) "
+read_only = " ro"
+read_only_style = "warning"
+truncation_length = 3
+truncate_to_repo = false
+
+[git_branch]
+style = "subtext"
+format = "[git:$branch]($style) "
+
+[git_state]
+style = "error bold"
+format = "[$state( $progress_current/$progress_total)]($style) "
+
+[git_status]
+style = "warning"
+conflicted = "[=$count](error bold)"
+format = "([$all_status$ahead_behind]($style) )"
+
+[nodejs]
+style = "muted"
+format = "[node $version]($style) "
+
+[python]
+style = "muted"
+format = "[py $version( $virtualenv)]($style) "
+
+[cmd_duration]
+min_time = 1000
+style = "muted"
+format = "[took $duration]($style) "
+
+[character]
+success_symbol = "[>](text bold)"
+error_symbol = "[>](error bold)"

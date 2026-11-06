@@ -1,0 +1,83 @@
+---
+- name: Require Fedora 45 or newer and a regular account
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.distribution == 'Fedora'
+      - ansible_facts.distribution_major_version | int >= 45
+      - niri_user | length > 0
+      - niri_user != 'root'
+    fail_msg: The Niri profile needs Fedora 45 or newer (Niri 26.04 and Noctalia 5) and an existing regular account.
+
+- name: Find the desktop account
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ niri_user }}"
+
+# The desktop_* names are the ones the GNOME profile's shared app and shell
+# tasks read, which this role includes below.
+- name: Record the desktop account details
+  ansible.builtin.set_fact:
+    desktop_user: "{{ niri_user }}"
+    desktop_home: "{{ ansible_facts.getent_passwd[niri_user][4] }}"
+    desktop_group: "{{ ansible_facts.getent_passwd[niri_user][2] }}"
+    desktop_uid: "{{ ansible_facts.getent_passwd[niri_user][1] }}"
+    # Resolved now: inside the included desktop tasks, role_path is the desktop role.
+    niri_files_dir: "{{ role_path }}/files"
+
+# Niri's weak dependencies include gnome-keyring, waybar, fuzzel, swaylock and
+# alacritty. Noctalia and Fedora 45's oo7 keyring replace them, and
+# gnome-keyring would compete with oo7 for the Secret Service name.
+- name: Install Niri, Noctalia and the session services
+  ansible.builtin.dnf:
+    name: "{{ niri_packages }}"
+    state: present
+    install_weak_deps: false
+
+- name: Create the session configuration directories
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/{{ item }}"
+    state: directory
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+  loop:
+    - .config
+    - .config/niri
+    - .config/noctalia
+    - .config/noctalia/palettes
+    - .config/xdg-desktop-portal
+    - .config/btop
+    - .config/btop/themes
+    - .config/fastfetch
+    - .config/VSCodium/User
+    - .vscode-oss
+    - .local/bin
+    - .local/share/backgrounds
+    - Pictures/Screenshots
+
+- name: Install the shared apps with the Graphite terminal theme
+  ansible.builtin.include_role:
+    name: desktop
+    tasks_from: apps.yml
+  vars:
+    desktop_ghostty_config_src: "{{ niri_files_dir }}/ghostty.config"
+
+- name: Set up zsh, oh-my-zsh and the Graphite Starship prompt
+  ansible.builtin.include_role:
+    name: desktop
+    tasks_from: shell.yml
+  vars:
+    desktop_starship_config_src: "{{ niri_files_dir }}/starship.toml"
+    desktop_fastfetch_greeting: true
+
+- name: Install VSCodium
+  ansible.builtin.include_tasks: vscodium.yml
+
+- name: Configure Niri and Noctalia
+  ansible.builtin.include_tasks: session.yml
+
+- name: Apply the Graphite look to GTK, Qt and terminal tools
+  ansible.builtin.include_tasks: appearance.yml
+
+- name: Configure the login screen
+  ansible.builtin.include_tasks: login.yml

@@ -1,0 +1,69 @@
+---
+# GTK 4/libadwaita apps take dark mode and the accent from these keys, and
+# GTK 3 apps get adw-gtk3, a port of the libadwaita look. Slate is
+# libadwaita's gray accent, so focus rings and selections stay monochrome
+# without custom CSS that breaks between GNOME releases. Qt follows the GTK 3
+# theme through QT_QPA_PLATFORMTHEME=gtk3 in config.kdl.
+#
+# These keys live in the user's dconf database, which the GNOME session reads
+# too: whichever profile ran last decides them (see fedora/NIRI.md).
+- name: Apply the Graphite GTK settings
+  become: true
+  become_user: "{{ desktop_user }}"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    value: "{{ item.value | string }}"
+    state: present
+  loop:
+    - key: /org/gnome/desktop/interface/color-scheme
+      value: "'prefer-dark'"
+    - key: /org/gnome/desktop/interface/accent-color
+      value: "'slate'"
+    - key: /org/gnome/desktop/interface/gtk-theme
+      value: "'adw-gtk3-dark'"
+    - key: /org/gnome/desktop/interface/icon-theme
+      value: "'Papirus-Dark'"
+    - key: /org/gnome/desktop/interface/cursor-theme
+      value: "'Adwaita'"
+    - key: /org/gnome/desktop/interface/font-name
+      value: "'Inter 11'"
+    - key: /org/gnome/desktop/interface/document-font-name
+      value: "'Inter 11'"
+    - key: /org/gnome/desktop/interface/monospace-font-name
+      value: "'JetBrains Mono 11'"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Install the Graphite btop theme
+  ansible.builtin.copy:
+    src: btop-graphite.theme
+    dest: "{{ desktop_home }}/.config/btop/themes/graphite.theme"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+# btop rewrites btop.conf with every option when it exits, so Ansible owns
+# only these two lines and leaves the rest of the file to btop.
+- name: Select the btop theme
+  ansible.builtin.lineinfile:
+    path: "{{ desktop_home }}/.config/btop/btop.conf"
+    regexp: "^{{ item.key }} ="
+    line: "{{ item.key }} = {{ item.value }}"
+    create: true
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+  loop:
+    - { key: color_theme, value: '"graphite"' }
+    # Let Ghostty's translucent background show through.
+    - { key: theme_background, value: 'false' }
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Configure fastfetch
+  ansible.builtin.copy:
+    src: fastfetch.jsonc
+    dest: "{{ desktop_home }}/.config/fastfetch/config.jsonc"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'

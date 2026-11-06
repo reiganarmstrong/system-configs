@@ -1,0 +1,79 @@
+---
+# Files Ansible owns are rewritten on every run (see "Personalizing" in
+# fedora/NIRI.md). Each one has a personal override that Ansible never touches:
+#   ~/.config/niri/local.kdl                  (included last by config.kdl)
+#   ~/.config/noctalia/<later name>.toml      (merged after 00-fedora-niri.toml)
+#   ~/.local/state/noctalia/settings.toml     (Noctalia's Settings window)
+
+# Niri live-reloads its config, so a running session picks up changes. The
+# validate step rejects a config this Niri version can't parse before it lands.
+- name: Configure Niri
+  ansible.builtin.template:
+    src: config.kdl.j2
+    dest: "{{ desktop_home }}/.config/niri/config.kdl"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    validate: niri validate -c %s
+
+- name: Install the Graphite Noctalia palette
+  ansible.builtin.copy:
+    src: Graphite.json
+    dest: "{{ desktop_home }}/.config/noctalia/palettes/Graphite.json"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+# 00- sorts first, so any other *.toml the user adds in the folder overrides it.
+- name: Configure Noctalia
+  ansible.builtin.template:
+    src: noctalia.toml.j2
+    dest: "{{ desktop_home }}/.config/noctalia/00-fedora-niri.toml"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    validate: noctalia config validate %s
+
+# Read before /usr/share/xdg-desktop-portal/niri-portals.conf, and only in
+# sessions whose XDG_CURRENT_DESKTOP is niri, so GNOME keeps its own portals.
+- name: Use oo7 for the Secret portal in Niri sessions
+  ansible.builtin.copy:
+    src: niri-portals.conf
+    dest: "{{ desktop_home }}/.config/xdg-desktop-portal/niri-portals.conf"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+- name: Install the Graphite wallpaper source
+  ansible.builtin.copy:
+    src: wallpaper.svg
+    dest: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.svg"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+  register: niri_wallpaper_source
+
+- name: Check for the rendered wallpaper
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.png"
+  register: niri_wallpaper_png
+
+# Noctalia's wallpaper loader lists raster formats only, so the SVG is rendered
+# once, and again whenever the source changes.
+- name: Render the wallpaper for Noctalia
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command:
+    argv:
+      - rsvg-convert
+      - --width={{ niri_wallpaper_size.width }}
+      - --height={{ niri_wallpaper_size.height }}
+      - --output={{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.png
+      - "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.svg"
+  when: niri_wallpaper_source.changed or not niri_wallpaper_png.stat.exists
+  changed_when: true
+
+- name: Enable Bluetooth
+  ansible.builtin.systemd_service:
+    name: bluetooth
+    enabled: true

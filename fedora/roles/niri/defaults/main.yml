@@ -1,0 +1,107 @@
+---
+# Account that receives the Niri session. Defaults to the user running Ansible.
+niri_user: "{{ lookup('env', 'USER') }}"
+
+# Make Niri the session GDM preselects for niri_user. GNOME stays installed and
+# selectable from the gear menu on the login screen either way.
+niri_default_session: true
+
+# Outputs. Empty lets Niri pick each display's mode and scale (it chooses a
+# fractional scale from the panel's DPI). To pin a display, list it by the
+# connector or make/model/serial that `niri msg outputs` prints, for example:
+#   niri_outputs:
+#     - name: eDP-1
+#       scale: 1.5
+#     - name: "Dell Inc. DELL U2723QE ABC123"
+#       mode: "3840x2160@60.000"
+#       scale: 1.75
+#       position: { x: 0, y: -1440 }
+niri_outputs: []
+
+niri_keyboard_layout: us
+niri_keyboard_options: ""
+
+# Idle behaviour, in seconds. 0 disables a step.
+niri_idle_lock_seconds: 300
+niri_idle_screen_off_seconds: 360
+# Locks, then suspends. Leave at 0 on desktops that should never sleep.
+niri_idle_suspend_seconds: 900
+
+# Apps pinned to the Noctalia dock, by desktop entry id (file name without .desktop).
+niri_dock_pinned:
+  - com.mitchellh.ghostty
+  - app.zen_browser.zen
+  - t3code
+
+niri_packages:
+  # Compositor and shell. Niri's weak dependencies (gnome-keyring, waybar,
+  # fuzzel, swaylock, alacritty) are skipped: Noctalia and oo7 replace them.
+  - niri
+  - xwayland-satellite
+  - noctalia
+  # Session plumbing.
+  - gdm
+  - xdg-desktop-portal
+  - xdg-desktop-portal-gnome
+  - xdg-desktop-portal-gtk
+  - xdg-user-dirs
+  - xdg-utils
+  - xdg-terminal-exec
+  - oo7-daemon
+  - oo7-portal
+  - pam_oo7
+  - polkit
+  - pipewire
+  - pipewire-pulseaudio
+  - wireplumber
+  - sound-theme-freedesktop
+  - NetworkManager-wifi
+  - bluez
+  - upower
+  # Either tuned-ppd (Workstation's default) or power-profiles-daemon; both
+  # provide the profiles API Noctalia drives. Naming the capability keeps
+  # whichever one is already installed.
+  - ppd-service
+  - gvfs
+  - wl-clipboard
+  # Apps.
+  - flatpak
+  - nautilus
+  - gnome-calendar
+  - gnome-online-accounts-gtk
+  - evolution-ews-core
+  - btop
+  - fastfetch
+  # Developer tools, as in the GNOME profile. nodejs24-bin and nodejs24-npm-bin
+  # make Node 24 own node, npm and npx.
+  - git
+  - curl
+  - make
+  - zsh
+  - vim-enhanced
+  - nodejs24
+  - nodejs24-bin
+  - nodejs24-npm
+  - nodejs24-npm-bin
+  - pnpm
+  - uv
+  # Appearance.
+  - adw-gtk3-theme
+  - papirus-icon-theme
+  - rsms-inter-fonts
+  - jetbrains-mono-fonts-all
+  - google-noto-sans-fonts
+  - google-noto-emoji-color-fonts
+  - librsvg2-tools
+  # Ansible's dconf module.
+  - dconf
+  - python3-psutil
+
+# VSCodium's own signed repository (https://vscodium.com/#install-on-fedora-rhel-centos-rockylinux-opensuse-etc).
+# The key is imported only if it matches this fingerprint.
+niri_vscodium_key_url: https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/raw/master/pub.gpg
+niri_vscodium_key_fingerprint: 1302DE60231889FE1EBACADC54678CF75A278D9C
+
+# Size of the PNG rendered from the repo's SVG wallpaper. 16:10 covers the
+# Framework 13 and 16 panels; Noctalia crops it to other aspect ratios.
+niri_wallpaper_size: { width: 3840, height: 2400 }

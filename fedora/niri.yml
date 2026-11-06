@@ -1,0 +1,8 @@
+---
+# Fedora 45+ with Niri and the Noctalia shell. See NIRI.md.
+# GNOME stays installed and selectable at the login screen.
+- name: Configure the Niri desktop
+  hosts: desktops
+  become: true
+  roles:
+    - niri
