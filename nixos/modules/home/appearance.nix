@@ -34,6 +34,12 @@ let
     $sections
     EOF
   '';
+
+  accentCss = ''
+    @define-color accent_color ${theme.colors.highlight};
+    @define-color accent_bg_color ${theme.colors.highlight};
+    @define-color accent_fg_color #ffffff;
+  '';
 in
 {
   home.pointerCursor = {
@@ -56,10 +62,23 @@ in
       name = "Custom";
       package = customIcons;
     };
+    # Dark mode for every GTK app, including plain GTK 4 ones like the volume
+    # mixer, which otherwise default to light.
+    colorScheme = "dark";
+    # GTK 3 apps (Wi-Fi, Bluetooth, displays, passwords, disks) get the
+    # libadwaita look that Files and Calendar already have, instead of GTK 3's
+    # older built-in style. GTK 4 apps draw their own and stay unthemed.
+    theme = {
+      name = "adw-gtk3-dark";
+      package = pkgs.adw-gtk3;
+    };
+    gtk4.theme = null;
     # No window buttons in app title bars: windows close with Super+Q.
     gtk3.extraConfig.gtk-decoration-layout = ":";
     gtk4.extraConfig.gtk-decoration-layout = ":";
-    gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
+    # Selections and switches in the shell's blue rather than GNOME's.
+    gtk3.extraCss = accentCss;
+    gtk4.extraCss = accentCss;
   };
 
   dconf.settings = {
