@@ -79,8 +79,23 @@ in
 
     xdg.portal = {
       enable = true;
-      extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+      extraPortals = [
+        pkgs.xdg-desktop-portal-gtk
+        pkgs.xdg-desktop-portal-gnome
+      ];
+      # Open and save dialogs use GNOME's portal, which shows them in Files
+      # (Nautilus) rather than GTK's plainer chooser. Everything else keeps
+      # Hyprland's portal with GTK as the fallback.
+      config.hyprland = {
+        default = [
+          "hyprland"
+          "gtk"
+        ];
+        "org.freedesktop.impl.portal.FileChooser" = [ "gnome" ];
+      };
     };
+    # GNOME's portal starts Files over D-Bus to show those dialogs.
+    services.dbus.packages = [ pkgs.nautilus ];
 
     security.rtkit.enable = true;
     services.pipewire = {
