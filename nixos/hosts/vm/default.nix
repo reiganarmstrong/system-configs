@@ -2,15 +2,29 @@
 # the host GPU (virtio-gpu with virgl) and is viewed over VNC on 127.0.0.1:5902.
 # The VNC password is read from the file named by $VNC_PASSWORD_FILE when the
 # VM starts; classic VNC authentication uses its first eight characters.
-{ lib, ... }:
+{ lib, pkgs, ... }:
 {
+  imports = [ ./test-hardware.nix ];
+
   networking.hostName = "vm";
+
+  # The VNC pointer is an absolute device, which hits a Hyprland 0.55 bug that
+  # makes sliders jump on release instead of following a drag. The Framework's
+  # relative touchpad and mice don't, so only the VM carries the patch (and
+  # compiles Hyprland) until NixOS ships Hyprland 0.56 or newer.
+  programs.hyprland.package = pkgs.hyprland.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./hyprland-absolute-pointer-frame.patch ];
+  });
 
   # The Framework's layout (2880x1920 at 2x) at 1x, so VNC viewers that
   # aren't HiDPI-aware, like TigerVNC on a Mac, show it at a sensible size.
   desktop = {
     enable = true;
+    # A suspended QEMU guest cannot be woken reliably through its VNC keyboard.
+    autoSuspend = false;
     display.scale = 1;
+    # Virgl rejects restoring the initial mode after a live resolution change.
+    display.fixedMode = true;
   };
 
   # Throwaway test machine: a fixed password, so the lock screen can be tested.
@@ -43,7 +57,15 @@
       "-device virtio-vga-gl,xres=1440,yres=960"
       "-display egl-headless,rendernode=/dev/dri/renderD128"
       "-object secret,id=vncpass,file=$VNC_PASSWORD_FILE"
-      "-vnc 127.0.0.1:2,password-secret=vncpass"
+      # Every viewer is let in and none can kick the others off, so a test
+      # client can connect while you're viewing. (force-shared would instead
+      # refuse viewers that ask for exclusive access, like TigerVNC by default.)
+      "-vnc 127.0.0.1:2,password-secret=vncpass,share=ignore"
+      # A silent sound card with an output and an input, for testing volume
+      # and the microphone toggle.
+      "-audiodev none,id=snd0"
+      "-device intel-hda"
+      "-device hda-duplex,audiodev=snd0"
     ];
   };
 

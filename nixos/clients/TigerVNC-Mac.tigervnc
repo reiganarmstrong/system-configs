@@ -1,0 +1,8 @@
+TigerVNC Configuration file Version 1.0
+ServerName=127.0.0.1::5902
+FullScreen=1
+FullscreenSystemKeys=1
+RemoteResize=0
+Shared=1
+ViewOnly=0
+FullColor=1

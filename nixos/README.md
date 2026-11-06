@@ -128,6 +128,17 @@ nix shell .#nixosConfigurations.vm.pkgs.python3 -c python3 nixos/tests/control_c
 
 It checks that Wi-Fi, Bluetooth and Sound stay intact through closing frames, that hidden pages unload, and that reopening during a fade does not run stale cleanup. `qs ipc call control status` reports the popup and page state for inspection.
 
+### Test hardware in the VM
+
+`hosts/vm/test-hardware.nix` gives the test VM hardware it lacks, so these pages can be exercised; the Framework doesn't import it.
+
+- Two simulated Wi-Fi access points (`mac80211_hwsim` radios, hostapd and a DHCP server in their own network namespace): **Home Network**, WPA2 with the password `testpass123`, and **Cafe Guest**, open.
+- A second virtual Bluetooth controller (BlueZ's `btvirt`, built for the VM only), discoverable as **Test Headphones**. Both controllers share one BlueZ daemon, which confuses the pairing agent, so pairing from the page can't complete in the VM; pairing at the kernel level (`btmgmt --index 0 pair`) works, and the page then lists the device.
+- A second sound output, **USB Headphones**.
+- `play-test-track` starts mpv with MPRIS and a three-minute test tone, for the media player.
+
+The test VM has no panel backlight; brightness and physical radios still need testing on the Framework.
+
 `qs ipc call session status` reports the current panel, lock, Caffeine, Focus and calendar-selection state. `qs ipc call session caffeine true` enables Caffeine, and `false` disables it.
 
 Run the calendar regression check from the repository root:
@@ -166,7 +177,7 @@ The **NixOS check** workflow builds both hosts on every change under `nixos/` or
 
 `nixos-rebuild build-vm` builds a throwaway QEMU VM straight from the flake. The VM renders through the host GPU (virtio-gpu with virgl), which Hyprland needs, and is viewed over VNC on `127.0.0.1:5902`. The VNC password is read at start-up from the file `$VNC_PASSWORD_FILE` names; VNC uses its first eight characters.
 
-On a non-NixOS host, Nix's QEMU looks for GPU drivers in `/run/opengl-driver`, which only NixOS has, so point it at Nix's Mesa. The host user must be in the `kvm` and `render` groups.
+On a non-NixOS host, Nix's QEMU looks for GPU drivers in `/run/opengl-driver`, which only NixOS has, so point it at Nix's Mesa. The host user must be in the `kvm` and `render` groups. Log in again after adding group membership. A long-running user service may retain its old groups; launch through `sg kvm -c` in that case, or restart the user session. QEMU falls back to slow CPU emulation when it cannot open `/dev/kvm`.
 
 ```bash
 nix build .#nixosConfigurations.vm.config.system.build.vm
@@ -185,6 +196,21 @@ To view it from another machine on the tailnet, tunnel the port over SSH, then o
 ```bash
 ssh -N -L 5902:127.0.0.1:5902 reagan@pc.taila028da.ts.net
 ```
+
+### TigerVNC on macOS
+
+The test VM uses 1440×960 at 1× for TigerVNC. It does not automatically suspend; screen locking and display blanking still work. Turn on Caffeine in the control center to keep the desktop visible during a test session.
+
+1. With Tailscale running on the Mac, start the tunnel and leave the terminal open:
+
+   ```bash
+   ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 5902:127.0.0.1:5902 reagan@pc.taila028da.ts.net
+   ```
+
+2. Open [`clients/TigerVNC-Mac.tigervnc`](clients/TigerVNC-Mac.tigervnc) in TigerVNC Viewer, or enter `127.0.0.1::5902`. The double colon explicitly selects port 5902. The profile enables full screen and system-key capture and keeps the VM's fixed display size.
+3. Enter the existing VNC connection password. If the VM is locked, its separate login password is `nixos`.
+
+If macOS keeps the shortcuts, allow TigerVNC under **System Settings → Privacy & Security → Accessibility** and reconnect in full screen. Control+Option releases keyboard capture. [TigerVNC viewer options](https://tigervnc.org/doc/vncviewer.html).
 
 ## Installing on the Framework
 
