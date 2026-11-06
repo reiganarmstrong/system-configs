@@ -25,7 +25,7 @@ Singleton {
     readonly property real textLarge: data.fonts.size * 1.2
 
     // Glass fills: the panel colour and white at the theme's opacities.
-    readonly property color panelFill: withAlpha(colors.panel, opacity.panel)
+    readonly property color panelFill: withAlpha(colors.panel, Prefs.get("panelOpacity", opacity.panel))
     readonly property color tileFill: withAlpha(colors.tile, opacity.tile)
     readonly property color tileFillHover: withAlpha(colors.tile, opacity.tile * 1.8)
     readonly property color rim: withAlpha("#ffffff", opacity.border)

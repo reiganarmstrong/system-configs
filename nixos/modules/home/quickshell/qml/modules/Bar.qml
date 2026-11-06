@@ -1,5 +1,6 @@
 // The top bar: three floating pills for workspaces, the clock and status.
 import QtQuick
+import QtQuick.Controls.Basic as Controls
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -21,8 +22,10 @@ PanelWindow {
     readonly property var monitor: Hyprland.monitorFor(screen)
 
     // The control centre's Caffeine keeps the screen awake through this.
+    // It's attached to the bar only while Caffeine is on: an attached but
+    // disabled IdleInhibitor still blocks idle in Quickshell 0.3.0.
     IdleInhibitor {
-        window: bar
+        window: Session.caffeine ? bar : null
         enabled: Session.caffeine
     }
 
@@ -80,7 +83,7 @@ PanelWindow {
 
         SystemClock {
             id: clock
-            precision: SystemClock.Minutes
+            precision: Prefs.get("showSeconds", false) ? SystemClock.Seconds : SystemClock.Minutes
         }
 
         Label {
@@ -89,8 +92,28 @@ PanelWindow {
         }
         Label {
             weight: Font.Bold
-            text: Qt.formatTime(clock.date, "h:mm")
+            text: Qt.formatTime(clock.date,
+                (Prefs.get("clock24h", false) ? "HH:mm" : "h:mm")
+                + (Prefs.get("showSeconds", false) ? ":ss" : "")
+                + (Prefs.get("clock24h", false) ? "" : " AP"))
         }
+    }
+
+    // Clipboard history has its own bar button, separate from Control Center.
+    Pill {
+        anchors.right: status.left
+        anchors.rightMargin: 8
+        anchors.verticalCenter: parent.verticalCenter
+        clickable: true
+        onClicked: ShellState.toggle("clipboard")
+        Accessible.role: Accessible.Button
+        Accessible.name: "Clipboard history"
+        Accessible.onPressAction: ShellState.toggle("clipboard")
+        HoverHandler { id: clipboardHover }
+        Controls.ToolTip.visible: clipboardHover.hovered
+        Controls.ToolTip.delay: 600
+        Controls.ToolTip.text: "Clipboard history · Super+Shift+V"
+        Icon { name: "clipboard-list"; size: 15 }
     }
 
     // Status: network, volume and battery; opens the control centre.
@@ -111,6 +134,7 @@ PanelWindow {
             Label {
                 size: Theme.textSmall
                 text: Math.round(Battery.level * 100) + "%"
+                visible: Prefs.get("showBatteryPercent", true)
             }
         }
     }

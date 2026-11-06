@@ -4,6 +4,7 @@
 # icons.json (Lucide icon names to font codepoints) beside it.
 {
   osConfig,
+  config,
   lib,
   pkgs,
   ...
@@ -16,7 +17,7 @@ let
     hash = "sha256-pMCQj8aNGffODinmJdNFQ3x+4z7bcY1TpAq6uZuZUeY=";
   };
 
-  config =
+  shellConfig =
     pkgs.runCommand "quickshell-config"
       {
         nativeBuildInputs = [ pkgs.jq ];
@@ -29,7 +30,9 @@ let
               fullName = osConfig.desktop.fullName;
             };
             dock.pinned = osConfig.desktop.dock.pinned;
+            programs.clipboard = lib.getExe config.services.desktop-clipboard.package;
             lockOnStart = osConfig.desktop.autoLogin;
+            mutablePassword = osConfig.users.mutableUsers;
           }
         );
         passAsFile = [ "theme" ];
@@ -56,5 +59,5 @@ in
       run sh -c "printf login > '$keyrings/default'"
     fi
   '';
-  xdg.configFile."quickshell".source = config;
+  xdg.configFile."quickshell".source = shellConfig;
 }

@@ -27,6 +27,7 @@ in
       textDim = color "#b4b4bc" "Secondary text.";
       accent = color "#ffffff" "Active controls and the focused window border.";
       accentText = color "#111114" "Text and icons on the accent colour.";
+      highlight = color "#2f7cf6" "Selected controls in Settings and slider fill.";
       urgent = color "#ff6b6b" "Errors and critical notifications.";
     };
 

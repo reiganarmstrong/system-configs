@@ -14,6 +14,8 @@ PanelWindow {
     // Where the content sits: "top-right", "top" or "center".
     property string placement: "top-right"
     property bool keyboard: false
+    // Return true to consume Esc (e.g. to go back a page) instead of closing.
+    property var escapeHandler: null
     readonly property bool open: ShellState.openPanel === name
 
     screen: Quickshell.screens.find(s => Hyprland.monitorFor(s) === Hyprland.focusedMonitor) ?? null
@@ -45,14 +47,14 @@ PanelWindow {
         y: popup.placement === "center" ? parent.height * 0.22 : 44
 
         opacity: popup.open ? 1 : 0
-        scale: popup.open ? 1 : 0.96
+        scale: Prefs.get("reduceMotion", false) || popup.open ? 1 : 0.96
         transformOrigin: popup.placement === "top-right" ? Item.TopRight : Item.Top
 
         Behavior on opacity {
-            NumberAnimation { id: fade; duration: 160; easing.type: Easing.OutCubic }
+            NumberAnimation { id: fade; duration: Prefs.get("reduceMotion", false) ? 0 : 160; easing.type: Easing.OutCubic }
         }
         Behavior on scale {
-            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: Prefs.get("reduceMotion", false) ? 0 : 200; easing.type: Easing.OutCubic }
         }
 
         // Clicks inside the content must not reach the close area.
@@ -65,6 +67,9 @@ PanelWindow {
     Shortcut {
         sequence: "Escape"
         enabled: popup.open
-        onActivated: ShellState.close()
+        onActivated: {
+            if (!(popup.escapeHandler && popup.escapeHandler()))
+                ShellState.close();
+        }
     }
 }

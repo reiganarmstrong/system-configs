@@ -9,3 +9,5 @@ require("modules.input")
 require("modules.keybindings")
 require("modules.rules")
 require("modules.autostart")
+
+require("modules.overrides")

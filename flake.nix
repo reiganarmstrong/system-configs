@@ -36,5 +36,25 @@
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
+      checks.${system} = {
+        media = import ./nixos/tests/media { pkgs = nixpkgs.legacyPackages.${system}; };
+        dropdowns = import ./nixos/tests/dropdowns { pkgs = nixpkgs.legacyPackages.${system}; };
+        clipboard =
+          (mkHost "vm").config.home-manager.users.reagan.services.desktop-clipboard.package.tests.clipboard;
+        settings =
+          let
+            settings = nixpkgs.lib.findFirst (
+              package: nixpkgs.lib.getName package == "desktop-settings"
+            ) null (mkHost "vm").config.home-manager.users.reagan.home.packages;
+          in
+          settings.tests.settings;
+        calendar =
+          let
+            calendar = nixpkgs.lib.findFirst (
+              package: nixpkgs.lib.getName package == "desktop-calendar-events"
+            ) null (mkHost "vm").config.home-manager.users.reagan.home.packages;
+          in
+          calendar.tests.calendar;
+      };
     };
 }

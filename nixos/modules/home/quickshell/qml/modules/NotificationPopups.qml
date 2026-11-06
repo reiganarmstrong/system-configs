@@ -9,7 +9,9 @@ import qs.services
 
 PanelWindow {
     screen: Quickshell.screens.find(s => Hyprland.monitorFor(s) === Hyprland.focusedMonitor) ?? null
-    visible: Notifs.popups.length > 0 && !Session.locked
+    // Held while the control centre or clipboard is open; they
+    // still reach the notification centre.
+    visible: Notifs.popups.length > 0 && !Session.locked && !["control", "clipboard"].includes(ShellState.openPanel)
     color: "transparent"
     WlrLayershell.namespace: "shell-notifications"
     WlrLayershell.layer: WlrLayer.Overlay
@@ -40,8 +42,8 @@ PanelWindow {
                 onDismissed: Notifs.dismissPopup(modelData)
 
                 Timer {
-                    running: true
-                    interval: modelData.expireTimeout > 0 ? modelData.expireTimeout * 1000 : 6000
+                    running: Prefs.get("bannerSeconds", 6) > 0
+                    interval: Math.max(1, Prefs.get("bannerSeconds", 6)) * 1000
                     onTriggered: Notifs.dismissPopup(parent.modelData)
                 }
             }

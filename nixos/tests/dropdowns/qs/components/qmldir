@@ -1,0 +1,3 @@
+module qs.components
+Icon 1.0 Icon.qml
+singleton Motion 1.0 Motion.qml

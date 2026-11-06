@@ -6,6 +6,10 @@
     ./hyprland
     ./quickshell
     ./appearance.nix
+    ./idle.nix
+    ./settings
+    ./clipboard
+    ./calendar
     ./apps
   ];
 

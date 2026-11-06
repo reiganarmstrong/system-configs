@@ -8,10 +8,12 @@ end
 
 hl.bind(super .. " + T", hl.dsp.exec_cmd(programs.terminal))
 hl.bind(super .. " + Space", shell("launcher", "toggle"))
+hl.bind(super .. " + comma", shell("settings", "toggle"))
 hl.bind(super .. " + S", shell("control", "toggle"))
 hl.bind(super .. " + L", shell("lock", "lock"))
 hl.bind(super .. " + Q", hl.dsp.window.close())
 hl.bind(super .. " + F", hl.dsp.window.fullscreen())
+hl.bind(super .. " + SHIFT + V", shell("clipboard", "toggle"))
 hl.bind(super .. " + V", hl.dsp.window.float({ action = "toggle" }))
 
 for _, dir in ipairs({ "left", "right", "up", "down" }) do

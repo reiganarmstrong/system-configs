@@ -22,6 +22,16 @@ let
   };
 in
 {
+  # Hyprland is started directly, so nothing marks the graphical session as
+  # running. This target does, and autostart.lua starts it; user services
+  # tied to the session (hypridle) start with it.
+  systemd.user.targets.hyprland-session.Unit = {
+    Description = "Hyprland session";
+    BindsTo = [ "graphical-session.target" ];
+    Wants = [ "graphical-session-pre.target" ];
+    After = [ "graphical-session-pre.target" ];
+  };
+
   xdg.configFile = {
     "hypr/nix.lua".text = "return " + lib.generators.toLua { } (generated // {
       theme = builtins.removeAttrs theme [ "wallpaper" ];

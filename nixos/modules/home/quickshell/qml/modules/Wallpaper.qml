@@ -18,7 +18,7 @@ PanelWindow {
 
     Image {
         anchors.fill: parent
-        source: "file://" + Theme.wallpaper
+        source: "file://" + (Prefs.get("wallpaper", "") || Theme.wallpaper)
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         sourceSize: Qt.size(width, height)

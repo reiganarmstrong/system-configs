@@ -20,9 +20,11 @@ ShellRoot {
         }
     }
 
-    ControlCenter {}
+    Settings {}
+    ControlCenter { id: controlCenter }
     Dash {}
     Launcher {}
+    ClipboardHistory {}
     NotificationPopups {}
     Osd { id: osd }
     Lock {}
@@ -34,12 +36,41 @@ ShellRoot {
 
     // `qs ipc call <target> <function> [args]`, used by Hyprland key bindings.
     IpcHandler {
+        target: "settings"
+        function open(page: string): void { ShellState.openSettings(page); }
+        function toggle(): void {
+            if (ShellState.settingsOpen) ShellState.settingsOpen = false;
+            else ShellState.openSettings("appearance");
+        }
+        function status(): string {
+            return JSON.stringify({open: ShellState.settingsOpen, page: ShellState.settingsPage,
+                ready: Prefs.ready, saving: Prefs.saving, error: Prefs.error, values: Prefs.values,
+                preview: Prefs.preview, brightnessAvailable: Brightness.available, brightness: Brightness.level});
+        }
+    }
+    IpcHandler {
         target: "launcher"
         function toggle(): void { ShellState.toggle("launcher"); }
     }
     IpcHandler {
+        target: "clipboard"
+        function toggle(): void { ShellState.toggle("clipboard"); }
+        function status(): string {
+            return JSON.stringify({open: ShellState.openPanel === "clipboard", ready: Clipboard.ready,
+                count: Clipboard.items.length, paused: Clipboard.paused, error: Clipboard.error});
+        }
+    }
+    IpcHandler {
         target: "control"
         function toggle(): void { ShellState.toggle("control"); }
+        function openPage(page: string): void {
+            ShellState.openPanel = "control";
+            controlCenter.openPage(page);
+        }
+        function status(): string {
+            return JSON.stringify({open: controlCenter.open, visible: controlCenter.visible,
+                page: controlCenter.page, shownPage: controlCenter.shownPage, width: controlCenter.full + 28});
+        }
     }
     IpcHandler {
         target: "dash"
@@ -48,6 +79,20 @@ ShellRoot {
     IpcHandler {
         target: "lock"
         function lock(): void { Session.lock(); }
+    }
+    IpcHandler {
+        target: "session"
+        function status(): string {
+            return JSON.stringify({
+                locked: Session.locked,
+                caffeine: Session.caffeine,
+                doNotDisturb: Notifs.doNotDisturb,
+                openPanel: ShellState.openPanel,
+                calendarDate: CalendarData.dayKey,
+                calendarEvents: CalendarData.events.length,
+            });
+        }
+        function caffeine(enabled: bool): void { Session.caffeine = enabled; }
     }
     IpcHandler {
         target: "osd"

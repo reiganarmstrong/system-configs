@@ -27,7 +27,7 @@ hl.layer_rule({
 })
 hl.layer_rule({
     name = "shell-blur",
-    match = { namespace = "^shell-(bar|dock|control|dash|launcher|notifications|osd)$" },
+    match = { namespace = "^shell-(bar|dock|control|dash|launcher|clipboard|notifications|osd)$" },
     blur = true,
     ignore_alpha = 0.3,
 })
@@ -36,4 +36,13 @@ hl.layer_rule({
     match = { namespace = "^shell-lock$" },
     blur = true,
     ignore_alpha = 0.05,
+})
+
+-- Settings is a normal movable window, with no full-screen popup surface.
+hl.window_rule({
+    name = "desktop-settings",
+    match = { title = "^Settings$", class = "^org.quickshell$" },
+    float = true,
+    center = true,
+    size = "960 680",
 })

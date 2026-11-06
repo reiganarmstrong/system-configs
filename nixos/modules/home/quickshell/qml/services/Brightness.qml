@@ -9,11 +9,27 @@ Singleton {
 
     property bool available: false
     property real level: 1
+    property real pending: -1
+
+    function flush() {
+        if (pending < 0 || writer.running) return;
+        writer.command = ["brightnessctl", "--class=backlight", "--quiet", "set", Math.round(pending * 100) + "%"];
+        pending = -1;
+        writer.running = true;
+    }
+    Timer { id: throttle; interval: 40; onTriggered: root.flush() }
+    Process {
+        id: writer
+        onExited: (code, status) => { if (root.pending >= 0) throttle.restart(); }
+    }
+
 
     function set(value: real) {
+        if (!available) return;
         const v = Math.max(0.01, Math.min(1, value));
         level = v;
-        Quickshell.execDetached(["brightnessctl", "--quiet", "set", Math.round(v * 100) + "%"]);
+        pending = v;
+        if (!throttle.running) throttle.start();
     }
     function step(delta: real) {
         set(level + delta);

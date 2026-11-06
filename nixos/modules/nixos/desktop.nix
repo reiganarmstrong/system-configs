@@ -13,7 +13,17 @@ in
 {
   options.desktop = {
     enable = lib.mkEnableOption "the Hyprland desktop";
+    autoSuspend = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Suspend after fifteen minutes idle; disabled for the VNC test VM.";
+    };
     display = {
+      fixedMode = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Keep the physical output mode fixed when the virtual GPU cannot restore it reliably.";
+      };
       output = lib.mkOption {
         type = lib.types.str;
         default = "";
@@ -81,9 +91,19 @@ in
     };
 
     hardware.bluetooth.enable = true;
+    services.blueman.enable = true;
     services.power-profiles-daemon.enable = true;
     services.upower.enable = true;
+    # Trash, drives and network locations in Files.
+    services.gvfs.enable = true;
     services.gnome.gnome-keyring.enable = true;
+    services.gnome.gnome-online-accounts.enable = true;
+    services.gnome.evolution-data-server = {
+      enable = true;
+      # Microsoft 365 / Outlook calendars use the Graph backend in this plugin.
+      plugins = [ pkgs.evolution-ews ];
+    };
+    services.gnome.glib-networking.enable = true;
     security.pam.services.greetd.enableGnomeKeyring = true;
     # The Quickshell lock screen authenticates through this PAM service.
     security.pam.services.quickshell = { };
@@ -111,9 +131,9 @@ in
       pkgs.grim
       pkgs.slurp
       pkgs.hyprpicker
-      pkgs.hyprsunset
       pkgs.libnotify
       pkgs.gnome-keyring
+      pkgs.networkmanagerapplet
     ];
 
     desktop.theme.wallpaper = lib.mkDefault (

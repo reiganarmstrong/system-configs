@@ -22,6 +22,7 @@ NixOS 26.05 with Hyprland and a hand-written [Quickshell](https://quickshell.org
 | --- | --- | --- |
 | `desktop.enable` | `false` | The Hyprland desktop. |
 | `desktop.display.{output,mode,scale}` | any, `preferred`, `1` | The built-in display. |
+| `desktop.autoSuspend` | `true` | Suspend after fifteen minutes idle; false in the VNC VM. |
 | `desktop.autoLogin` | `true` | Start Hyprland at boot and lock it immediately; the lock screen is the login screen. |
 | `desktop.updates.enable` | `false` | Daily automatic upgrades from GitHub. |
 | `desktop.dock.pinned` | Ghostty, Zen, T3 Code | Desktop entry IDs always in the dock. |
@@ -33,9 +34,11 @@ NixOS 26.05 with Hyprland and a hand-written [Quickshell](https://quickshell.org
 | Part | How to open it |
 | --- | --- |
 | Bar: workspace dots, clock, status | Always at the top. |
-| Control centre: session buttons, Wi-Fi, Bluetooth, Airplane Mode, Do Not Disturb, Night Light, Caffeine, brightness, volume, now playing, power profile, microphone, screenshot, colour picker | Click the status pill, or `Super+S`. |
-| Notification centre: calendar and history | Click the clock. |
+| Control centre: session buttons, Wi-Fi, Bluetooth, Focus (Do Not Disturb), Airplane Mode, Caffeine, power profile, microphone, colour picker, brightness, volume and now playing, with detail pages for Wi-Fi, Bluetooth, Sound and Now Playing | Click the status pill, or `Super+S`. |
+| Notification centre: calendar, selected-day agenda and history | Click the clock. |
+| Settings: display, audio, appearance, input, power, notifications, accounts and system tools | `Super+,`, search for Settings, or the control center gear. |
 | Launcher | `Super+Space`. |
+| Clipboard history | `Super+Shift+V`, or the separate clipboard button beside the status pill. |
 | Dock | Touch the bottom edge of the screen. |
 | Lock screen | At boot, `Super+L`, or the lock button. |
 | Volume and brightness pop-ups | The hardware keys. |
@@ -44,8 +47,103 @@ Other bindings: `Super+T` terminal, `Super+Q` close, `Super+F` fullscreen, `Supe
 
 Unlocking the lock screen also unlocks GNOME Keyring, which autologin can't do. Without it, apps that store secrets ask for the keyring password.
 
+## Settings
+
+Open **Settings** with `Super+,`, the control center's gear, or the app launcher. Search filters sections by their settings, so typing "touchpad", "VPN" or "opacity" finds the relevant page. Volume and brightness have draggable handles, larger targets, keyboard arrows, Page Up/Down, Home/End and wheel input. Clicking the Display or Sound title in the control center opens the corresponding settings page.
+
+| Section | Controls |
+| --- | --- |
+| Appearance | Panel opacity, reduce motion, clock format/seconds, battery percentage, window spacing, corner radius and wallpaper chooser. |
+| Displays | Backlight brightness, per-monitor resolution/refresh, scale and rotation, plus a display arrangement tool on native hardware. |
+| Sound | Default output/input devices, speaker and microphone levels, mute, plus per-application volume, balance and device profiles in Volume Control. |
+| Keyboard & pointer | Keyboard layout, Caps Lock remapping, repeat rate/delay, pointer speed/acceleration, scrolling, touchpad taps, typing protection, focus behavior and a shortcut reference. |
+| Power & lock | Power profile, Caffeine, automatic lock, screen-off and suspend timing, plus session actions. |
+| Notifications | Persistent Do Not Disturb, banner duration, history and clearing notifications. |
+| Network / Bluetooth | Radio switches and native tools for connections, VPN, pairing and saved devices. |
+| Accounts & calendars | Online Accounts, Calendar, passwords and keyrings. |
+| Apps & system | System/storage details, default browser, files, disks and preference reset. |
+
+Display changes are previews. **Keep** saves the mode, scale and rotation for that output; **Revert** restores the previous configuration. An independent watchdog restores the previous configuration after 18 seconds if the dialog is ignored or the shell stops. The dialog counts down 15 seconds. Invalid or rejected changes are reverted. The VNC VM keeps its physical resolution fixed at 1440×960 because virgl rejects restoring the initial mode after a live resolution change. Its scale and rotation remain adjustable. The Framework profile enables resolution and refresh changes. Monitor arrangement through wdisplays lasts for the session; confirmed modes and scale in Settings survive login.
+
+Settings are stored per user under `$XDG_STATE_HOME/system-configs/`, normally `~/.local/state/system-configs/`. `preferences.json` contains explicit overrides to Nix defaults, `settings.lua` applies input/window/display overrides after the main Hyprland configuration, and `idle.conf` is generated for hypridle. `displays.json` contains confirmed per-output settings. The shell validates preferences, reports errors, writes files atomically and serializes changes. Reset restores desktop defaults while preserving confirmed displays and account data. Wallpaper images remain at the chosen path; copy the images as well if migrating these preferences to another machine.
+
+The implementation is in `modules/home/settings/`, `modules/home/quickshell/qml/modules/Settings.qml` and `components/settings/`. Nix reproduces the interface, services, native tools and defaults on the Framework. User choices can be transferred with the state files; machine-specific monitor output names can differ. Credentials stay in the keyring. Changing the Nix defaults affects settings without an explicit user override.
+
+The test VM has silent audio devices and no physical backlight, touchpad, Wi-Fi or Bluetooth adapter. Unsupported hardware controls are disabled or labelled. VNC transports the display and input; adjusting the guest's audio volume does not add audio forwarding. Hardware behavior needs testing on the laptop. Authentication dialogs use the installed PolicyKit agent. The test VM's account password remains fixed in its Nix host profile.
+
+Run the settings boundary checks with `nix build --no-link .#checks.x86_64-linux.settings`. They cover invalid input, safe idle timing, failed live changes, persistence across changing defaults, corrupt state, expired previews and display rollback. Both host builds and calendar checks also run in the NixOS workflows.
+
+Run `nix build --no-link .#checks.x86_64-linux.dropdowns` for the Qt Quick dropdown regression tests. They exercise the production control with real pointer and keyboard events, including repeated clicks held beyond the close animation, Reduce Motion, outside dismissal, switching dropdowns and selection. Theme tokens and the motion preference are isolated from the running desktop. The menu excludes its own field from outside-press dismissal so a close click cannot finish the fade before release and reopen it.
+
+## Clipboard history
+
+Use `Super+Shift+V` or the top-bar clipboard button to open searchable history. Arrow keys select an item; Enter or a click copies it back, then use your application's normal Paste shortcut. `Ctrl+D` or the row's × removes one item. Clear asks once before deleting history. Pause stops new captures while saved items remain available; Resume starts capturing again. `Super+V` still toggles floating windows.
+
+The pinned [cliphist backend](https://github.com/sentriz/cliphist/tree/v0.7.0) handles storage and deduplication. Separate systemd user services capture text and images independently of the desktop shell. The adapter preserves original bytes for recall, restores image MIME types and generates small thumbnails. It keeps up to 200 recent entries, skips selections over 5 MB, and respects application-marked sensitive selections. Data stays in `~/.local/state/system-configs/clipboard/`, with a private directory and database. The pause flag survives login. This is the Linux clipboard; Mac-to-VM clipboard synchronization requires a separate remote-access bridge.
+
+The setup is shared by the VM and Framework in `modules/home/clipboard/`. The popup is `modules/home/quickshell/qml/modules/ClipboardHistory.qml`. Run `nix build --no-link .#checks.x86_64-linux.clipboard` for isolated tests of real cliphist storage, exact text/image recall, deduplication, deletion, pause, sensitive hints and file permissions. These tests never read your personal history.
+
+## Calendars and online accounts
+
+Click the clock to open the calendar. The arrows change the month, clicking a date selects it and loads that day's events, and **Today** returns to the current day. Up to four events appear below the month grid. **Open Calendar** opens the selected date in GNOME Calendar, where you can view the full agenda and create or edit events.
+
+Use **Connect calendars…** to open Online Accounts. Add each account once on each machine, then enable its Calendar service:
+
+| Calendar | Provider to choose | Sign-in |
+| --- | --- | --- |
+| Google / Google Workspace | Google | Browser sign-in and consent. |
+| Outlook / Microsoft 365 | Microsoft 365 | Microsoft browser sign-in. The Exchange/Graph calendar backend is included. |
+| Apple iCloud | WebDAV | CalDAV server `https://caldav.icloud.com/`, your Apple Account email, and an app-specific password. |
+
+For iCloud, generate an app-specific password under **Sign-In and Security → App-Specific Passwords** at [account.apple.com](https://account.apple.com/). Apple requires two-factor authentication for these passwords. [Apple's instructions](https://support.apple.com/en-us/102654). The calendar must be stored in iCloud; Mac-only calendars do not synchronize. If WebDAV discovery does not accept the account, Evolution is also installed: use **File → New → Calendar → CalDAV**, enter the same server and app-specific password, and use **Find Calendars**. Calendars added there use the same EDS backend and appear in the widget.
+
+The account window can also be launched with `gnome-online-accounts-gtk`. GNOME Online Accounts and Evolution Data Server synchronize calendars and keep credentials in the login keyring. The widget reads the same selected calendars as GNOME Calendar. Account identities and credentials are configured interactively and are not part of this repository. The reproducible system setup installs the apps, services, provider backends and widget integration. [Supported GNOME account services](https://gnome.pages.gitlab.gnome.org/gnome-online-accounts/services.html).
+
+The GNOME Calendar launcher uses locale-formatted dates and a wrapper pointing at the complete time-zone database. The widget reads EDS's local cache immediately while provider synchronization continues. It refreshes while open, displays errors when a calendar cannot be read, and supports recurring events, all-day events and local time zones. The provider sign-ins and live cloud synchronization require testing with your accounts; no personal accounts are preconfigured in the VM.
+
+## Control center behavior
+
+Power sits directly below Focus. Focus toggles Do Not Disturb. Caffeine attaches a Wayland idle inhibitor only while enabled. The normal idle policy locks after five minutes, turns the display off after six minutes and suspends after fifteen minutes on the laptop. Automatic suspend is disabled in the VNC VM so it stays reachable. Caffeine pauses that policy.
+
+The microphone and volume controls act on the default PipeWire devices. Bluetooth and Airplane are disabled when there are no corresponding radios. Display brightness is marked **Not adjustable** on machines without a backlight.
+
+### Detail pages
+
+As on macOS, the round icon on the Wi-Fi and Bluetooth pills toggles the radio, and the rest of the pill opens its page. The Sound tile's title and the Now Playing card open theirs. The compact media card centers its artwork or placeholder, title, artist and transport controls, with padding around the whole content group. A page replaces the grid inside the same panel. The back chevron, Esc or the mouse's back button returns to the grid, and Esc again closes the control centre. Notification pop-ups wait while the control centre is open.
+
+- **Wi-Fi:** an on/off switch; Ethernet status; known networks, then others found by a scan that runs only while the page is open, each with signal strength and a lock if secured. Open and known networks join with a click. Others ask for their password inline, and a wrong password shows "Incorrect password" without being saved. Right-click a known network to forget it. Enterprise networks go to Settings.
+- **Bluetooth:** an on/off switch; paired devices, which connect or disconnect with a click and show battery levels; nearby devices, found while the page is open, which pair with a click. Right-click a paired device to forget it.
+- **Sound:** output and input levels (click the icon to mute), every output and input device to choose from, and a volume for each app that's playing.
+- **Now Playing:** large artwork, track details, a scrubber that seeks on release, elapsed and remaining time, shuffle, previous, play/pause, next and repeat, and a picker when several players are open.
+
+The expanded player pads its content by 18 pixels and uses solid black play/pause glyphs on white. It keeps a known duration through incomplete updates for the same track, then resets it when the track or player changes. Playing seeks in Firefox and Zen wait for a brief pause before setting the position and resuming, to avoid [Mozilla's MPRIS timing bug](https://bugzilla.mozilla.org/show_bug.cgi?id=2065930). Paused seeks stay paused; local players seek directly. `nix build --no-link .#checks.x86_64-linux.media` checks the duration-loss replay, consecutive seeks, playback-state preservation, track changes and timeout recovery.
+
+The panel is 381 logical pixels wide, with wider pills and controls and reserved space between each label and its chevron. Hovering an opening pill reveals its chevron without adding an outline or background. Clicking outside or pressing `Super+S` fades the current page out in place; the page unloads only after the panel is hidden, which also stops scanning. Opening the panel again starts at the home grid.
+
+The popup lifecycle regression test runs against the real shell. From a terminal in the desktop session, with Reduce Motion off:
+
+```bash
+nix shell .#nixosConfigurations.vm.pkgs.python3 -c python3 nixos/tests/control_center.py
+```
+
+It checks that Wi-Fi, Bluetooth and Sound stay intact through closing frames, that hidden pages unload, and that reopening during a fade does not run stale cleanup. `qs ipc call control status` reports the popup and page state for inspection.
+
+`qs ipc call session status` reports the current panel, lock, Caffeine, Focus and calendar-selection state. `qs ipc call session caffeine true` enables Caffeine, and `false` disables it.
+
+Run the calendar regression check from the repository root:
+
+```bash
+nix build --no-link .#checks.x86_64-linux.calendar
+```
+
+It uses a private D-Bus session and temporary calendar data, including recurring, floating-time, explicit-zone and all-day fixtures and daylight-saving boundaries. It never reads personal accounts. Both the check workflow and automatic package-update workflow run it.
+
+The VM checks exercised Focus, Power profile switching, microphone mute, the sound slider, lock/unlock, Caffeine off/on/off against a real idle timeout, color-picker launch/cancel and wired network settings. A temporary MPRIS player verified previous/next/play/pause. Calendar checks verified date selection, Today, a real local event appearing in the widget and full calendar, and the account setup window. The graphical session reported permission to suspend, reboot and power off; those three disruptive actions were not executed. Test calendars and the temporary player were removed.
+
 ## Apps
 
+- **Files**: GVfs provides Trash, mounted drives and network locations. Deleted local files can be restored from Trash.
+- **GNOME Calendar and Online Accounts** for Google, Microsoft 365 and CalDAV calendars.
 - **Ghostty** from nixpkgs, translucent so Hyprland blurs behind it.
 - **Zen** from Flathub, as on Fedora. Flatpak updates it daily.
 - **Claude Code** through Anthropic's native installer (the latest channel, as on Fedora). A user service installs it once into `~/.local/bin`, and it updates itself from then on. Stable nixpkgs lags it by months.

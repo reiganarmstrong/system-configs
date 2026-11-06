@@ -9,7 +9,7 @@ import Quickshell.Services.Notifications
 Singleton {
     id: root
 
-    property bool doNotDisturb: false
+    readonly property bool doNotDisturb: Prefs.get("doNotDisturb", false)
     // Notifications currently shown as popups.
     property list<QtObject> popups: []
     readonly property var history: server.trackedNotifications.values

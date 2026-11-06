@@ -53,7 +53,8 @@ Popup {
 
             Flickable {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(contentHeight, 420)
+                // Leave room for the selected day's agenda on the laptop display.
+                Layout.preferredHeight: Math.min(contentHeight, 220)
                 contentHeight: list.implicitHeight
                 clip: true
                 visible: Notifs.history.length > 0

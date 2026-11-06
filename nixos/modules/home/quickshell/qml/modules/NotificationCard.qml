@@ -15,7 +15,7 @@ Glass {
 
     implicitHeight: layout.implicitHeight + 24
     radius: Theme.radius.tile + 2
-    fillOpacity: nested ? 0 : Theme.opacity.panel
+    fillOpacity: nested ? 0 : Prefs.get("panelOpacity", Theme.opacity.panel)
     color: nested ? Theme.tileFill : Theme.panelFill
     border.width: nested ? 0 : 1
 

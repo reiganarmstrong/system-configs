@@ -85,7 +85,7 @@ Scope {
             radius: 20
 
             Behavior on y {
-                NumberAnimation { id: slide; duration: 220; easing.type: Easing.OutCubic }
+                NumberAnimation { id: slide; duration: Prefs.get("reduceMotion", false) ? 0 : 220; easing.type: Easing.OutCubic }
             }
 
             Row {

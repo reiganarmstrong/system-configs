@@ -4,7 +4,7 @@ import QtQuick
 import qs.services
 
 Rectangle {
-    property real fillOpacity: Theme.opacity.panel
+    property real fillOpacity: Prefs.get("panelOpacity", Theme.opacity.panel)
 
     color: Theme.withAlpha(Theme.colors.panel, fillOpacity)
     radius: Theme.radius.panel

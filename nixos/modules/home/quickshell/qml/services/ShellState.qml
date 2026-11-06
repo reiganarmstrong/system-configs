@@ -4,8 +4,17 @@ import QtQuick
 import Quickshell
 
 Singleton {
-    // "", "control", "launcher" or "dash".
+    // "", "control", "launcher", "clipboard" or "dash".
     property string openPanel: ""
+
+    property bool settingsOpen: false
+    property string settingsPage: "appearance"
+    function openSettings(page: string) {
+        close();
+        settingsPage = page || "appearance";
+        settingsOpen = true;
+        Prefs.refresh();
+    }
 
     function toggle(name: string) {
         openPanel = openPanel === name ? "" : name;
