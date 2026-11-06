@@ -1,5 +1,6 @@
 # Settings changes are user state. Nix still supplies defaults and every tool.
 {
+  config,
   osConfig,
   lib,
   pkgs,
@@ -68,6 +69,10 @@ in
   systemd.user.services.hypridle.Service.ExecStart = lib.mkForce [
     "${helper}/bin/desktop-settings idle-run"
   ];
+  # hypridle 0.1.7 looks up its default config path even when given -c, and
+  # aborts if nothing is there, so point that path at the generated file.
+  xdg.configFile."hypr/hypridle.conf".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.xdg.stateHome}/system-configs/idle.conf";
   xdg.desktopEntries.desktop-settings = {
     name = "Settings";
     comment = "Display, sound, appearance, keyboard, accounts and system preferences";
