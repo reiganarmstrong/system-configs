@@ -1,4 +1,5 @@
--- Window styling: squircle corners, a faint white rim, deep soft shadows and
+-- Window styling: squircle corners, a clear white rim on the focused window
+-- (a faint one elsewhere), deep soft shadows and
 -- heavy blur behind translucent surfaces.
 local theme = require("nix").theme
 local rgba = require("modules.util").rgba
@@ -7,9 +8,9 @@ hl.config({
     general = {
         gaps_in = theme.spacing.gapsIn,
         gaps_out = theme.spacing.gapsOut,
-        border_size = 1,
+        border_size = 2,
         col = {
-            active_border = rgba(theme.colors.accent, theme.opacity.border * 2.4),
+            active_border = rgba(theme.colors.accent, theme.opacity.activeBorder),
             inactive_border = rgba(theme.colors.accent, theme.opacity.inactiveBorder),
         },
         resize_on_border = true,

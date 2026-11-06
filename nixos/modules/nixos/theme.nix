@@ -35,6 +35,7 @@ in
       panel = number 0.55 "Opacity of panel fills over the blurred background.";
       tile = number 0.1 "Opacity of control fills inside panels.";
       border = number 0.14 "Opacity of the white rim around panels and windows.";
+      activeBorder = number 0.75 "Opacity of the rim around the focused window.";
       inactiveBorder = number 0.06 "Opacity of the rim around unfocused windows.";
     };
 
