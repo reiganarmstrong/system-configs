@@ -5,9 +5,18 @@
 #   ~/.config/noctalia/<later name>.toml      (merged after 00-fedora-niri.toml)
 #   ~/.local/state/noctalia/settings.toml     (Noctalia's Settings window)
 
-- name: Select the wallpaper render for the source and requested size
+- name: Fingerprint the bundled wallpaper
+  ansible.builtin.stat:
+    path: "{{ role_path }}/files/wallpaper-spiderverse.png"
+    checksum_algorithm: sha256
+    get_mime: false
+  delegate_to: localhost
+  become: false
+  register: niri_wallpaper_asset
+
+- name: Select the wallpaper path for the bundled image
   ansible.builtin.set_fact:
-    niri_wallpaper_path: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite-{{ niri_wallpaper_size.width }}x{{ niri_wallpaper_size.height }}-{{ (lookup('ansible.builtin.file', role_path ~ '/files/wallpaper.svg') | hash('sha256'))[:12] }}.png"
+    niri_wallpaper_path: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-spiderverse-{{ niri_wallpaper_asset.stat.checksum[:12] }}.png"
 
 # Niri live-reloads its config, so a running session picks up changes. The
 # validate step rejects a config this Niri version can't parse before it lands.
@@ -38,35 +47,15 @@
     group: "{{ desktop_group }}"
     mode: '0644'
 
-- name: Install the Graphite wallpaper source
+# Noctalia scales and crops this static raster itself. Include its content hash
+# in the installed filename so updated artwork bypasses its image cache.
+- name: Install the Spider-Verse wallpaper
   ansible.builtin.copy:
-    src: wallpaper.svg
-    dest: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.svg"
+    src: wallpaper-spiderverse.png
+    dest: "{{ niri_wallpaper_path }}"
     owner: "{{ desktop_user }}"
     group: "{{ desktop_group }}"
     mode: '0644'
-  register: niri_wallpaper_source
-
-- name: Check for the rendered wallpaper
-  ansible.builtin.stat:
-    path: "{{ niri_wallpaper_path }}"
-  register: niri_wallpaper_png
-
-# Noctalia's wallpaper loader lists raster formats only, so the SVG is rendered
-# once per source and requested size. The source hash in its filename also
-# invalidates Noctalia's path-based image cache when the artwork changes.
-- name: Render the wallpaper for Noctalia
-  become: true
-  become_user: "{{ desktop_user }}"
-  ansible.builtin.command:
-    argv:
-      - rsvg-convert
-      - --width={{ niri_wallpaper_size.width }}
-      - --height={{ niri_wallpaper_size.height }}
-      - --output={{ niri_wallpaper_path }}
-      - "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-graphite.svg"
-  when: niri_wallpaper_source.changed or not niri_wallpaper_png.stat.exists
-  changed_when: true
 
 # Publish the config after its wallpaper exists so live reload can load it.
 # 00- sorts first, so any other *.toml the user adds in the folder overrides it.

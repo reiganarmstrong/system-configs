@@ -74,7 +74,7 @@ Click the time in the top-center notch to open the control center. The launcher 
 
 ## Graphite
 
-The NixOS desktop uses a hand-built Quickshell bar. Graphite drops that look on purpose: no accent hue, no colored workspace pills. It's black, white and grays, with chrome as frosted glass over the wallpaper. Color appears only where it carries meaning: red for errors and urgent windows, amber for warnings, green for success in the terminal.
+The NixOS desktop uses a hand-built Quickshell bar. Graphite uses black, white and gray shell controls, with chrome as frosted glass over the wallpaper. The Spider-Verse-inspired wallpaper adds red accents at the user's request. Shell status colors still carry meaning: red for errors and urgent windows, amber for warnings, green for success in the terminal.
 
 The dock, notifications, OSD, panels and window switcher are translucent with real background blur. The notch is near-opaque instead, for the rendering reason below. App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
 
@@ -97,7 +97,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Geometry.** 12 px gaps and 14 px corners on windows, 18 px on the dock. The notch is a 28 px pill, centered 3 px below the top edge. A soft drop shadow and a hairline border mark the focused window. Niri's border does not draw behind Ghostty's translucent background.
 - **Blur.** Niri 26.04's `blur` block uses 3 passes, a small offset, a little noise against banding and 60% saturation, so colorful windows behind the glass don't tint it. Noctalia's layers and floating windows use non-xray blur, so they blur the windows that are really behind them. Niri marks non-xray blur experimental.
 - **Type.** Inter for the UI and JetBrains Mono for terminals and code, from Fedora's packages.
-- **Wallpaper.** `roles/niri/files/wallpaper.svg` draws two overlapping graphite folds with lit edges, soft cast shadows, faint pleats and fine grain. The brightest edges cross behind the centered panels, giving their blur a visible light-to-dark transition. The upper area stays quiet behind the notch. The SVG has no external assets or fonts. Noctalia only loads raster images, so Ansible renders it to a 3840×2400 PNG with `rsvg-convert`. This is 16:10; Noctalia crops it for the Framework 13's 3:2 display. `niri_wallpaper_size` controls the render dimensions. The PNG filename includes those dimensions and a source hash, so changing either generates a fresh render and invalidates Noctalia's image cache.
+- **Wallpaper.** `roles/niri/files/wallpaper-spiderverse.png` is a GPT-generated static image with a mostly black field, red and gray angular forms, sparse web lines and halftone texture. The upper center stays dark behind the notch. The bundled image is 1586×992, approximately 16:10; Noctalia scales and crops it to each output. Its installed filename includes its SHA-256 fingerprint so replacing the asset bypasses Noctalia's image cache. The image is copied before its config is published, and needs no rendering tool or generation service at install time. The former SVG-only `niri_wallpaper_size` variable is retired; Noctalia now handles output sizing directly. The [generation record](roles/niri/files/wallpaper-spiderverse.md) preserves the prompt. The previous graphite-fold SVG remains available as an alternate source; using it again requires restoring its render task and `librsvg2-tools` dependency.
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
@@ -257,11 +257,17 @@ The notch was tested in that running VM on November 6, 2026. Opus 5.5 at medium 
 
 The VM has no battery, Wi-Fi adapter or Bluetooth device. Their appearance and tooltips still need a hardware check. Multi-monitor placement and the estimated fully populated laptop width have not been measured. The [notch review record](reviews/niri-notch.md) explains the design tradeoffs and resolved findings.
 
-### Wallpaper verification
+### Spider-Verse wallpaper verification
+
+GPT's built-in image generation tool produced the bundled raster. Claude Opus 5.5 at medium effort approved the asset and actual 1920×1080 VM captures of the desktop, control center and Ghostty. The red, black, gray and white composition leaves the notch area quiet and text readable. The minimal dark center makes the glass subtler than the previous graphite folds. The source is 1586×992, so fine halftone dots and web lines soften when enlarged; it is not native 4K art. A 3:2 crop was judged from composition geometry, without a physical hardware test.
+
+The full playbook apply reports `ok=65 changed=2 failed=0`. Its rerun reports `ok=65 changed=0 failed=0`, and `--check --diff` reports `ok=64 changed=0 failed=0`. The installed PNG's SHA-256 matches the bundled asset, native configuration validation has zero warnings, and both systemd managers report no failed units. See the [review record](reviews/niri-spiderverse.md).
+
+### Previous graphite wallpaper verification
 
 The folded graphite wallpaper was designed and separately approved by Opus 5.5 at medium effort using actual VM screenshots. Ghostty shows the bright fold as a soft band through its glass. The control center's heavier tint keeps that effect subtler; its user card also draws a wallpaper-derived image of its own. Text remains readable. Rendered 16:10 and 3:2 crops preserve the composition, but physical display brightness, banding and Noctalia's actual 3:2 crop remain untested.
 
-Live testing also caught Noctalia retaining a replaced image in its path-based cache. Source-hashed render filenames and rendering before config publication now allow normal reloads to pick up new artwork. Resize and restore runs passed, followed by a full `changed=0` rerun and native validation with zero warnings. See the [wallpaper review record](reviews/niri-wallpaper.md) for details and limits.
+Live testing also caught Noctalia retaining a replaced image in its path-based cache. Source-hashed render filenames and rendering before config publication allowed normal reloads to pick up new artwork. Resize and restore runs passed, followed by a full `changed=0` rerun and native validation with zero warnings. See the [wallpaper review record](reviews/niri-wallpaper.md) for details and limits. Those render-size checks apply to the previous SVG wallpaper; the current raster is installed directly.
 
 ## Sources
 

@@ -102,7 +102,6 @@ niri_packages:
   - jetbrains-mono-fonts-all
   - google-noto-sans-fonts
   - google-noto-emoji-color-fonts
-  - librsvg2-tools
   # Ansible's dconf module.
   - dconf
   - python3-psutil
@@ -111,7 +110,3 @@ niri_packages:
 # The key is imported only if it matches this fingerprint.
 niri_vscodium_key_url: https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/raw/master/pub.gpg
 niri_vscodium_key_fingerprint: 1302DE60231889FE1EBACADC54678CF75A278D9C
-
-# Size of the PNG rendered from the repo's SVG wallpaper. 16:10 covers the
-# Framework 16 panel; Noctalia crops it for the Framework 13's 3:2 panel.
-niri_wallpaper_size: { width: 3840, height: 2400 }
