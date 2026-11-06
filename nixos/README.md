@@ -156,6 +156,7 @@ The VM checks exercised Focus, Power profile switching, microphone mute, the sou
 - **Files**: GVfs provides Trash, mounted drives and network locations. Deleted local files can be restored from Trash.
 - **GNOME Calendar and Online Accounts** for Google, Microsoft 365 and CalDAV calendars.
 - **Ghostty** from nixpkgs, translucent so Hyprland blurs behind it.
+- **Tailscale** starts its daemon at boot on both hosts. Run `tailscale up` once on each machine to sign in. The desktop user can manage the connection without sudo; credentials stay in Tailscale's local state, outside the repository.
 - **Zen** from Flathub, as on Fedora. Flatpak updates it daily.
 - **Claude Code** through Anthropic's native installer (the latest channel, as on Fedora). A user service installs it once into `~/.local/bin`, and it updates itself from then on. Stable nixpkgs lags it by months.
 - **T3 Code**: Nix places the pinned first-install AppImage in `~/Applications` once, and the app updates itself in place.

@@ -1,5 +1,5 @@
 # System basics shared by every host: Nix itself, boot, locale and networking.
-{ lib, ... }:
+{ config, lib, ... }:
 {
   nix.settings = {
     experimental-features = [
@@ -21,6 +21,12 @@
   boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
 
   networking.networkmanager.enable = true;
+  services.tailscale = {
+    enable = true;
+    openFirewall = true;
+    # Each machine signs in once; the desktop user can manage its connection.
+    extraSetFlags = [ "--operator=${config.desktop.user}" ];
+  };
 
   time.timeZone = lib.mkDefault "America/New_York";
   i18n.defaultLocale = "en_US.UTF-8";
