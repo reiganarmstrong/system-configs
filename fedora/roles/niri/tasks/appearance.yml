@@ -7,6 +7,18 @@
 #
 # These keys live in the user's dconf database, which the GNOME session reads
 # too: whichever profile ran last decides them (see fedora/NIRI.md).
+# A missing theme fails silently: apps fall back to their own mixed icons.
+- name: Check that the Papirus-Dark icon theme is installed
+  ansible.builtin.stat:
+    path: /usr/share/icons/Papirus-Dark/index.theme
+  register: niri_icon_theme
+
+- name: Require the selected icon theme
+  ansible.builtin.assert:
+    that: niri_icon_theme.stat.exists
+    fail_msg: Papirus-Dark is selected but /usr/share/icons/Papirus-Dark is missing; install papirus-icon-theme-dark.
+    quiet: true
+
 - name: Apply the Graphite GTK settings
   become: true
   become_user: "{{ desktop_user }}"

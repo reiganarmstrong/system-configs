@@ -70,7 +70,7 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 
 Super+drag moves a window, and Super+right-drag resizes it (Niri defaults). Shell shortcuts go through `noctalia msg`, Noctalia's IPC. `tests/check_niri_keybinds.py` checks every one against the installed Noctalia (see [Testing](#testing)).
 
-Click the time in the center of the top bar to open the control center. The launcher is a plain search list with no category chips. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the bar; the keyboard shortcuts above still work.
+Click the time in the center of the top bar to open the control center. The launcher is a plain search list with no category chips, centered on the screen. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the bar; the keyboard shortcuts above still work.
 
 ## Graphite
 
@@ -101,7 +101,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
-- **Icons.** Papirus-Dark, whose flat icons sit better on gray glass than WhiteSur's glossy ones.
+- **Icons.** Papirus-Dark, whose flat icons sit better on gray glass than WhiteSur's glossy ones. Fedora ships this variant in its own package, `papirus-icon-theme-dark`; without it the theme name points at nothing and apps fall back to their own mixed-style icons. The role installs it and fails if the theme is missing.
 
 ### Top bar
 

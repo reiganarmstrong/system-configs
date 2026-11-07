@@ -98,6 +98,8 @@ niri_packages:
   # Appearance.
   - adw-gtk3-theme
   - papirus-icon-theme
+  # Fedora packages Papirus-Dark, the variant dconf selects, separately.
+  - papirus-icon-theme-dark
   - rsms-inter-fonts
   - jetbrains-mono-fonts-all
   - google-noto-sans-fonts
