@@ -8,7 +8,7 @@ The [site terms](https://macosicons.com/terms) allow personal customization. Ico
 
 ## Coverage
 
-The live launcher inventory includes Ghostty, Zen, VSCodium, btop, Files, Calendar, Disks, Passwords and Keys, Volume Control, Print Settings, Online Accounts and T3 Code. Each has a selected light icon. Both Volume Control icon names are covered, as are the Settings and Noctalia aliases for settings entries that may be available in other sessions.
+The live launcher inventory includes Ghostty, Zen, Zed, Bitwarden, btop, Files, Calendar, Disks, Passwords and Keys, Volume Control, Print Settings, Online Accounts and T3 Code. Each has a selected light icon. Both Volume Control icon names are covered, as are the Settings and Noctalia aliases for settings entries that may be available in other sessions.
 
 The selection includes these substitutes and official sources:
 
@@ -24,6 +24,8 @@ The selection includes these substitutes and official sources:
 | T3 Code | Official T3 Code Nightly macOS artwork, used directly rather than a substitute |
 
 Zen uses the exact user-selected [Zen iOS Default Light icon by inkyyuki](https://macosicons.com/?icon=0AeL19Hq0J), object `0AeL19Hq0J`. The official T3 Nightly icon is pinned to upstream commit `83a3674ffd84ffb33de768210c806cb1ac53fd80`; its PNG is downloaded unchanged and its MIT notice is installed as `t3code-LICENSE.txt`. This selects the requested artwork independently of the installed application's release channel.
+
+Zed uses the exact [light glass icon by eldershi](https://macosicons.com/?icon=wgafyS8Bfo), object `wgafyS8Bfo`. Bitwarden uses the exact [Bitwarden Inc artwork](https://macosicons.com/?icon=mY3jnG41sr), object `mY3jnG41sr`. Both desktop-entry and upstream icon-name aliases are provided. These replace the previous VSCodium selection.
 
 The app labels, launch commands and file/URI associations do not change. T3 Code uses its selected PNG through an optional icon override in the shared app task; the GNOME profile's default desktop entry remains identical.
 
@@ -41,4 +43,6 @@ The earlier experimental `Graphite-macOS` dark theme may remain on a machine tha
 
 ## Verification
 
-Opus 5.5 medium approved the light set in actual launcher and dock captures. A live audit resolves all 12 visible launcher apps to their selected theme files and verifies native 1024×1024 dimensions and PNG checksums. All community and official aliases resolve, and folders retain their Papirus-Dark fallback. The extraction and existing Fedora unit tests all pass, and the shared GNOME desktop entry remains unchanged when no T3 icon override is supplied. The full provisioning rerun and `--check --diff` both report zero changes. See the [review record](reviews/niri-macos-icons.md).
+Opus 5.5 medium also approved the exact Zed and Bitwarden icons in live Fuzzel captures. Both apps launch, their desktop entries resolve to the selected theme files, and all four icon aliases match their original PNG checksums. See the [app migration record](reviews/niri-zed-bitwarden.md).
+
+Opus 5.5 medium approved the light set in actual launcher and dock captures. A live audit resolves all 12 then-visible launcher apps to their selected theme files and verifies native 1024×1024 dimensions and PNG checksums. All community and official aliases resolve, and folders retain their Papirus-Dark fallback. The extraction and existing Fedora unit tests all pass, and the shared GNOME desktop entry remains unchanged when no T3 icon override is supplied. The full provisioning rerun and `--check --diff` both report zero changes. See the [review record](reviews/niri-macos-icons.md).

@@ -59,6 +59,15 @@ niri_dock_pinned:
   - app.zen_browser.zen
   - t3code
 
+niri_flatpaks:
+  - app.zen_browser.zen
+  - com.bitwarden.desktop
+
+# Official stable Zed bundle for the first install. Its native updater manages
+# later versions in the user's writable app directory, like T3 Code.
+niri_zed_version: 1.27.0
+niri_zed_sha256: 719f6bf649ea8d87961adbf728e178561bac3f598d72d7949558d1150cfc43dd
+
 niri_packages:
   # Compositor and shell. Niri's weak dependencies (gnome-keyring, waybar,
   # swaylock, alacritty) are skipped: Noctalia and oo7 replace them.
@@ -107,6 +116,10 @@ niri_packages:
   - evolution-ews-core
   - btop
   - fastfetch
+  # Include Zed's Mesa Vulkan driver explicitly with weak deps disabled.
+  - mesa-vulkan-drivers
+  - libsecret
+  - rsync
   # Developer tools, as in the GNOME profile. nodejs24-bin and nodejs24-npm-bin
   # make Node 24 own node, npm and npx.
   - git
@@ -132,8 +145,3 @@ niri_packages:
   # Ansible's dconf module.
   - dconf
   - python3-psutil
-
-# VSCodium's own signed repository (https://vscodium.com/#install-on-fedora-rhel-centos-rockylinux-opensuse-etc).
-# The key is imported only if it matches this fingerprint.
-niri_vscodium_key_url: https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/-/raw/master/pub.gpg
-niri_vscodium_key_fingerprint: 1302DE60231889FE1EBACADC54678CF75A278D9C

@@ -20,15 +20,45 @@ niri_macos_icons:
   sha256: 2282b23fadfb2dde74b0dbe09c61ad36d54c7b367961a01a6ede4b16231ee79c
   png_sha256: 43d3097fc9fa27e665aa9e6da502dd80932ecae04331a2c9dcc5b7fb4d4fa813
   size: 1024
-- name: vscodium
-  object_id: tGFXNlf1Pq
-  title: VSCodium
-  creator: tn80g3+son7u1yaa98k
-  creator_url: https://macosicons.com/#/u/tn80g3+son7u1yaa98k
-  page: https://macosicons.com/icon/vscodium-tGFXNlf1Pq
-  url: https://s3-new.macosicons.com/macosicons/parse/VSCodium_tGFXNlf1Pq_icns-4d2abe06c5.icns
-  sha256: 68e28273dbf38878e6781939eedcfb8d9f89f6ba4cd14bc3885f0d4e49012897
-  png_sha256: 3b2dd9c353e53a5c7f8d80a22b90418f7edcea875eef39f18afde4c4d4c2eaef
+- name: dev.zed.Zed
+  object_id: wgafyS8Bfo
+  title: Zed
+  creator: eldershi
+  creator_url: https://macosicons.com/#/u/eldershi
+  page: https://macosicons.com/?icon=wgafyS8Bfo
+  url: https://s3-new.macosicons.com/macosicons/parse/Zed-862c31119e.icns
+  sha256: 417d5164af8412b687ae90e58810dcf876d8f3e4739f60d06556fc423fa9d4a9
+  png_sha256: 6f022e0a3e5730230300c02123fdcc7c5f224dfaf92929430d2f65594bbab5c1
+  size: 1024
+- name: zed
+  object_id: wgafyS8Bfo
+  title: Zed
+  creator: eldershi
+  creator_url: https://macosicons.com/#/u/eldershi
+  page: https://macosicons.com/?icon=wgafyS8Bfo
+  url: https://s3-new.macosicons.com/macosicons/parse/Zed-862c31119e.icns
+  sha256: 417d5164af8412b687ae90e58810dcf876d8f3e4739f60d06556fc423fa9d4a9
+  png_sha256: 6f022e0a3e5730230300c02123fdcc7c5f224dfaf92929430d2f65594bbab5c1
+  size: 1024
+- name: com.bitwarden.desktop
+  object_id: mY3jnG41sr
+  title: Bitwarden
+  creator: Bitwarden Inc
+  creator_url: https://apps.apple.com/us/developer/bitwarden-inc/id1137397743?mt=12
+  page: https://macosicons.com/?icon=mY3jnG41sr
+  url: https://s3-new.macosicons.com/macosicons/parse/Bitwarden_mY3jnG41sr-d4d26f8621.icns
+  sha256: dba0ccd68c44bd9ceef68b881a080fcb780871f0169d72d5ff85e1e8009fec30
+  png_sha256: 0f7464cd65a12c42fef1cee43d498a330dbdce437bbd941891cd891c5adee91d
+  size: 1024
+- name: bitwarden
+  object_id: mY3jnG41sr
+  title: Bitwarden
+  creator: Bitwarden Inc
+  creator_url: https://apps.apple.com/us/developer/bitwarden-inc/id1137397743?mt=12
+  page: https://macosicons.com/?icon=mY3jnG41sr
+  url: https://s3-new.macosicons.com/macosicons/parse/Bitwarden_mY3jnG41sr-d4d26f8621.icns
+  sha256: dba0ccd68c44bd9ceef68b881a080fcb780871f0169d72d5ff85e1e8009fec30
+  png_sha256: 0f7464cd65a12c42fef1cee43d498a330dbdce437bbd941891cd891c5adee91d
   size: 1024
 - name: btop
   object_id: EcbFO3bsrj

@@ -55,8 +55,6 @@
     - .config/btop
     - .config/btop/themes
     - .config/fastfetch
-    - .config/VSCodium/User
-    - .vscode-oss
     - .local/bin
     - .local/share/applications
     - .local/share/backgrounds
@@ -72,6 +70,7 @@
   vars:
     desktop_ghostty_config_src: "{{ niri_files_dir }}/ghostty.config"
     desktop_t3code_icon: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/1024x1024/apps/t3code.png"
+    desktop_flatpaks: "{{ niri_flatpaks }}"
 
 - name: Set up zsh, oh-my-zsh and the Graphite Starship prompt
   ansible.builtin.include_role:
@@ -81,8 +80,8 @@
     desktop_starship_config_src: "{{ niri_files_dir }}/starship.toml"
     desktop_fastfetch_greeting: true
 
-- name: Install VSCodium
-  ansible.builtin.include_tasks: vscodium.yml
+- name: Replace VSCodium with Zed and configure Bitwarden integration
+  ansible.builtin.include_tasks: editor-and-passwords.yml
 
 - name: Install and configure Tailscale
   ansible.builtin.include_tasks: tailscale.yml
