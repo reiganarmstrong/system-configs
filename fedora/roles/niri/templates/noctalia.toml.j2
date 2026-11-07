@@ -24,9 +24,10 @@ borders = true
 border_color = "outline_variant"
 border_width = 1.0
 shadow = true
-# Floating panels keep their own glass instead of taking on the solid bar's
-# fill. "auto" places keyboard-opened panels beneath the top bar; a click on a
-# bar widget opens the control center or session menu beneath that widget.
+# Floating glass menus touch the bar with no gap. Native attached placement
+# inherits the bar's top layer and hides menus behind fullscreen windows, so
+# retain floating placement on the overlay layer. "auto" follows the bar;
+# clicks anchor control center and session menus beneath their widgets.
 launcher_placement = "floating"
 # App search opens in the middle of the screen, not under the bar.
 launcher_position = "center"
@@ -38,7 +39,7 @@ wallpaper_placement = "floating"
 wallpaper_position = "auto"
 session_placement = "floating"
 session_position = "auto"
-floating_offset = 6
+floating_offset = 0
 open_near_click_control_center = true
 open_near_click_session = true
 
@@ -170,15 +171,16 @@ left = "panel-toggle control-center home"
 
 # Numbered pills. The active one is white with dark text and only slightly
 # longer than the round inactive ones; occupied workspaces get a lighter gray
-# fill than empty ones. Fill colors use roles, so labels pick the matching
-# readable text color.
+# fill than empty ones. A fixed white active fill keeps this pill independent
+# of the softer launcher selection; Noctalia derives dark label text from it.
+# The other fills use palette roles with their matching text colors.
 [widget.workspaces]
 style = "regular"
 show_labels = true
 label_source = "id"
 active_pill_size = 1.5
 inactive_pill_size = 1.0
-focused_color = "primary"
+focused_color = "#f2f2f3"
 occupied_color = "outline_variant"
 empty_color = "hover"
 

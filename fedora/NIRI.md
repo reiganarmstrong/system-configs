@@ -20,6 +20,45 @@ Reboot, enter your password at GDM, and you land in Niri. Use `-e niri_user=NAME
 
 Tailscale is installed and started, with your account set as its operator, as on NixOS. Run `tailscale up` once after installation to sign this machine into your tailnet. Ansible never authenticates or resets an existing connection. Set `-e niri_tailscale_enabled=false` to skip its setup.
 
+### Reproducing this profile on the Framework 13 Pro
+
+Use the checkout containing this profile. The current development branch is `t3/fedora-niri-noctalia-profile`; a clone of the default branch only includes it after those commits have been published there. Nothing in the VM's ignored `.local/niri-vm/` directory is needed to configure the laptop.
+
+If transferring an unpublished branch, create a Git bundle from this checkout:
+
+```bash
+git bundle create /tmp/fedora-niri-profile.bundle t3/fedora-niri-noctalia-profile
+```
+
+Copy the bundle to the laptop, then use it instead of the GitHub clone in the install instructions:
+
+```bash
+git clone --branch t3/fedora-niri-noctalia-profile /path/to/fedora-niri-profile.bundle system-configs
+cd system-configs/fedora
+./bootstrap.sh
+.local/ansible/bin/ansible-playbook niri.yml --ask-become-pass
+```
+
+The playbook needs internet access for Fedora packages, Flatpak apps, developer tools and checksum-pinned icon downloads. It reproduces the configuration and app selection; Fedora and Flatpak package versions can advance with their repositories.
+
+| Part of the desktop | Tracked source |
+| --- | --- |
+| Niri layout, widths, shortcuts and blur | `roles/niri/templates/config.kdl.j2` |
+| Top bar, menus, centered launcher, dock and idle behavior | `roles/niri/templates/noctalia.toml.j2` |
+| Shell colors and terminal appearance | `roles/niri/files/Graphite.json`, `ghostty.config`, `starship.toml` |
+| Approved Fedora/specification wallpaper | `roles/niri/files/wallpaper-fedora.png` and its generation record |
+| Light app icons and fallback theme | `roles/niri/tasks/icons.yml`, `roles/niri/vars/macos-icons.yml` |
+| Apps, login, keyring, services and GTK/Qt settings | `roles/niri/tasks/` and the shared `roles/desktop/` app/shell tasks |
+
+Keep the laptop defaults for the first run: `niri_outputs: []` lets Niri choose the built-in panel's preferred mode and scale, GDM requires a password, and idle locking and suspend are enabled. The VM's MacBook-sized output, disabled idle actions and skipped Tailscale are test overrides, not laptop defaults. The wallpaper's CPU, memory and disk lines describe the supplied laptop specification, not values discovered from the guest.
+
+After rebooting and logging in with your password:
+
+- Check `niri validate` and `noctalia config validate`, then rerun the playbook with `--check --diff` to look for drift.
+- Test Wi-Fi, Bluetooth, battery and brightness on the real devices, plus lid suspend and resume. The VM cannot verify these.
+- Test audio, screen sharing and external monitors. Enroll Tailscale with `tailscale up` and add online accounts as needed.
+- If personal settings hide a managed change, inspect Noctalia's overrides described in [Personalizing](#personalizing), rather than deleting the entire settings file.
+
 ### Choosing and reverting the session
 
 GDM's gear menu (bottom right, after picking the user) lists **Niri** and **GNOME**. The playbook preselects Niri through AccountsService (`niri_default_session: true`) and resets it to Niri on every run. Set `-e niri_default_session=false` to keep whatever you last chose at GDM.
@@ -72,7 +111,7 @@ Super+drag moves a window, and Super+right-drag resizes it (Niri defaults). Shel
 
 The layout's initial column width is `proportion 0.9`. Super+R cycles `0.5`, `0.66667` and `0.9`, in that order. These settings control initial sizing and manual cycling; opening another app does not resize existing columns. Existing window-specific rules still take precedence, including Calendar's two-thirds initial width and the floating Noctalia settings window's fixed size.
 
-Click the time in the center of the top bar to open the control center. The launcher is a plain search list with no category chips, centered on the screen. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the bar; the keyboard shortcuts above still work.
+Click the time in the center of the top bar to open the control center. The launcher is a plain search list with no category chips, centered on the screen. Its selected row uses medium gray with dark text so the light app icons stand out. Search keeps automatic keyboard focus with a quieter gray outline; Noctalia 5.4.1 cannot remove the focused ring through configuration. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Clipboard, control center, wallpaper and session panels touch the lower edge of the bar; app search stays centered. The keyboard shortcuts above still work, including over fullscreen apps.
 
 ## Graphite
 
@@ -88,11 +127,14 @@ The dock, notifications, OSD, panels and window switcher are translucent with re
 | Outline | `#3a3a3f` | Separators, selections |
 | Text | `#ececee` | Primary text |
 | Muted text | `#a3a3a9` | Secondary labels |
-| Primary | `#f2f2f3` | Focus, active items (white on black instead of an accent color) |
+| Primary | `#a3a3a9` | Selected rows and active controls, with dark text |
+| Secondary | `#7c7c83` | Focus rings and secondary labels |
 | Error | `#ff5c5c` | Errors, urgent window border |
 | Warning | `#d4a95a` | Warnings (terminal yellow, Starship's warning style) |
 | Active border | `#ffffff5c` | 1 px focused-window hairline |
 | Inactive border | `#ffffff1a` | 1 px hairline on other windows |
+
+Primary and Secondary are shared shell roles, so the softer grays also apply to Settings selections, control-center active tiles, clipboard selections, slider fills and input focus rings. They are not launcher-only overrides. The active workspace pill uses a fixed `#f2f2f3` fill with calculated dark text, keeping it distinct from these selections. Terminal colors and the light palette are unchanged.
 
 These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, including the 16 terminal colors), `ghostty.config`, `starship.toml`, `btop-graphite.theme` and `templates/config.kdl.j2`.
 
@@ -107,7 +149,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 
 ### Top bar
 
-A solid black strip, 34 px tall, runs across the top of every output. It has no transparency, blur, border, shadow or rounded corners; the glass is kept for the panels that open beneath it. Niri's 12 px gap separates it from windows, so a full-height window sits as far below the bar as above the bottom edge.
+A solid black strip, 34 px tall, runs across the top of every output. It has no transparency, blur, border, shadow or rounded corners. Glass menus touch its lower edge with `shell.panel.floating_offset = 0`, so there is no strip of wallpaper between the bar and the menu. Their upper corners stay rounded and a faint border marks the join; this is a flush card, rather than a merged shape. Niri's 12 px gap separates it from windows, so a full-height window sits as far below the bar as above the bottom edge.
 
 - **Left:** numbered workspace pills. The active one is white with dark text and only half again as long as the round inactive ones. Workspaces with windows use a lighter gray fill than empty ones.
 - **Center:** the time, alone in Noctalia's center lane, so it stays centered on the output whatever the side lanes hold. Clicking it opens the control center on Home, with its tab sidebar.
@@ -116,6 +158,8 @@ A solid black strip, 34 px tall, runs across the top of every output. It has no 
 Widgets with no device hide themselves: brightness without a backlight and battery without a battery. Bluetooth hides on machines without an adapter but otherwise stays visible, so pairing is one click away. Network names stay in the tooltip, so a long SSID can't stretch the bar.
 
 These single-tab cards are the control center's own tabs, not separate popovers. Noctalia 5.4.1 has no standalone network, audio or Bluetooth panels, and building them would mean a plugin that has to track Noctalia's internals on every upgrade. Its tab cards keep the control center's fixed height, so a short tab such as Network on a wired VM leaves empty space below its content.
+
+The menus keep native floating placement on the Overlay layer. Noctalia 5.4.1's attached placement inherits the bar's Top layer, which Niri draws beneath fullscreen apps: live testing opened invisible menus that Escape did not close. Keeping floating placement preserves fullscreen access while the bar itself stays hidden behind fullscreen content. The centered launcher and polkit prompt do not use `floating_offset` and keep their positions. No fork, plugin or state-tracking script is involved.
 
 This bar replaces the earlier floating notch (a capsule group inside a transparent bar), whose [review record](reviews/niri-notch.md) is kept for history.
 
@@ -277,6 +321,12 @@ Checked in the same VM at 1512×982 on November 6, 2026. `noctalia config valida
 - Clicking the network and volume icons opens the Network and Audio tabs alone, beneath the icon. Clicking the time opens Home with the sidebar, and the power button opens the session menu beneath it.
 
 The VM has no Wi-Fi, Bluetooth adapter, battery or backlight, so those widgets and their cards still need a check on the laptop.
+
+### Launcher grays and flush menus verification
+
+On November 7, 2026, Opus 5.5 at medium effort approved actual VM captures of the softer launcher selection, quieter search ring and gapless glass menus. Codex verified keyboard search and app launching, bar clicks, menu placement at scales 1, 1.25 and 1.5, reduced motion and fullscreen access. Both native config validators pass. The final unchanged Ansible rerun reports `ok=78 changed=0 failed=0`.
+
+The [review record](reviews/niri-launcher-and-menus.md) documents the shared palette effects and why native attached placement was rejected after it opened invisible menus beneath fullscreen windows. The final implementation uses only palette values and supported settings in the role.
 
 ### Fedora fetch wallpaper verification
 
