@@ -150,7 +150,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Wallpaper.** `roles/niri/files/wallpaper-fedora.png` is a Python-rendered Fedora ASCII logo and fetch-style specification panel on graphite, using real monospace glyphs. It lists the user's Framework 13 Pro, Intel Core i5, 32 GB RAM and 1 TB SSD, plus niri and Noctalia. The bundled image is native 2880×1920 for the target laptop; Noctalia scales and crops it for other outputs. Its installed filename includes its SHA-256 fingerprint so replacing the asset bypasses Noctalia's image cache. The image is copied before its config is published, with no rendering tool needed at install time. The [generation record](roles/niri/files/wallpaper-fedora.md) identifies the source project, exact commit, preset, reproduction command and logo license. The former SVG-only `niri_wallpaper_size` variable remains retired; Noctalia handles output sizing directly.
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
-- **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
+- **Terminal.** Ghostty and Starship use brighter functional colors within the dark glass terminal: green for valid commands and user/host, blue for directories, magenta for git branches, cyan for runtimes, yellow for strings and dirty trees, and red for errors. ANSI 8 is a readable gray for the autosuggestion plugin's default `fg=8`. The 16 Ghostty slots match `Graphite.json`'s dark terminal palette; Noctalia's UI roles and the light palette remain separate. Starship keeps its layout and ASCII-only symbols. btop gets a matching transparent theme, and fastfetch is an optional first-level greeting. Reload Ghostty with Ctrl+Shift+, to refresh existing terminals; new prompts pick up Starship's colors naturally.
 - **Icons.** `Graphite-macOS-Light` uses light-mode app icons selected from [macOSicons.com](https://macosicons.com/). Every currently installed launcher app has a mapping, with suitable stand-ins for apps missing from the site. Zen uses the exact requested `0AeL19Hq0J` icon, and T3 Code uses the official Nightly macOS PNG from a pinned upstream commit. Selecting its artwork does not change the app's release channel. The original 1024 px PNGs are extracted unchanged from checksum-pinned Mac icon files. The user theme inherits Papirus-Dark for folders, status symbols and future unmapped apps. Fedora's separate `papirus-icon-theme-dark` package remains installed, and normal provisioning fails if either required theme is missing. The shell and GTK theme stay dark. See [MACOS-ICONS.md](MACOS-ICONS.md) for sources, substitutes and maintenance.
 
 ### Top bar
@@ -225,7 +225,7 @@ Reordering bar widgets in Noctalia's Settings window saves lane and capsule-grou
 
 Variables in `roles/niri/defaults/main.yml`:
 
-- `niri_outputs` pins a display's mode, scale and position. By default nothing is pinned, and Niri picks each display's preferred mode and a fractional scale from its DPI. That gives the Framework 13's 2880×1920 panel a sensible scale with no host-specific connector name in the repo. To pin it, run `niri msg outputs` in the session and copy the name, then set for example `niri_outputs: [{name: eDP-1, scale: 1.75}]`. A monitor can be named by make, model and serial so it follows the cable.
+- `niri_outputs` pins a display's mode, scale and position. By default nothing is pinned, and Niri picks each display's preferred mode and a fractional scale from its DPI. That gives the Framework 13's 2880×1920 panel a sensible scale with no host-specific connector name in the repo. To pin it, run `niri msg outputs` in the session and copy the name, then set for example `niri_outputs: [{name: eDP-1, scale: 1.75}]`. A monitor can be named by make, model and serial so it follows the cable. For a virtual output that needs a non-advertised size, `mode_custom: true` emits Niri's native custom-mode syntax; supply a refresh rate as in the VM-only profile below.
 - `niri_keyboard_layout` and `niri_keyboard_options` set the XKB layout, such as `us` with `ctrl:nocaps`.
 - `niri_idle_lock_seconds`, `niri_idle_screen_off_seconds` and `niri_idle_suspend_seconds`.
 - `niri_dock_pinned` lists the dock's apps by desktop entry id.
@@ -320,7 +320,31 @@ The notch was tested in that running VM on November 6, 2026. Opus 5.5 at medium 
 
 The VM has no battery, Wi-Fi adapter or Bluetooth device. Their appearance and tooltips still need a hardware check. Multi-monitor placement and the estimated fully populated laptop width have not been measured. The [notch review record](reviews/niri-notch.md) explains the design tradeoffs and resolved findings.
 
-### MacBook viewer and launcher follow-up
+### Current MacBook TigerVNC display
+
+The test VM is pinned to 1512×982 at 60 Hz and scale 1 using [profiles/niri-vnc-macbook.yml](profiles/niri-vnc-macbook.yml). Its previous unpinned preferred mode had become 1920×1080, larger than the earlier MacBook viewport. This profile selects an explicit native custom mode for `Virtual-1`, independent of later client resize requests. The normal Framework defaults stay automatic.
+
+Apply the VM-only display profile after your inventory and other test variables:
+
+```bash
+.local/ansible/bin/ansible-playbook -i .local/niri-vm/vm.yml niri.yml \
+  -e @.local/niri-vm/desktop-vars.yml -e @profiles/niri-vnc-macbook.yml
+```
+
+On the Mac, keep the existing SSH tunnel open:
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:5903:127.0.0.1:5903 reagan@pc.taila028da.ts.net
+```
+
+Then run [viewers/macbook-tigervnc.command](viewers/macbook-tigervnc.command) on the Mac, or double-click it from a cloned checkout. It starts a fresh TigerVNC instance in fullscreen, disables RemoteResize and automatic encoding/color selection, requests the matching desktop size and uses full-color lossless Tight encoding. No password is stored in the helper. It needs the installed TigerVNC app and the existing tunnel; it does not create either one.
+
+The [TigerVNC viewer options](https://tigervnc.org/doc/vncviewer.html) explain the resize, color and JPEG settings. `RemoteResize` and `DesktopSize` are passed as CLI flags because the stable saved-profile reader does not accept those fields. A smaller viewer window can still need panning. Matching the Mac's logical desktop avoids fractional shrinking; it does not change the official Mac app's Retina rendering capability. The helper was syntax-checked and its flags checked against upstream; the Mac client itself was not operated remotely.
+
+### Earlier MacBook viewer and launcher follow-up
+
+This earlier automatic-size approach is superseded by the pinned profile above.
 
 The VM's test variables no longer pin `1920x1080`. Niri now uses the virtual display's preferred mode, which the MacBook's VNC viewer sets to its window size (1512×982 at scale 1 when checked), so the desktop fills the window instead of being scaled down into it. The production role is unchanged: `niri_outputs` is still empty by default.
 

@@ -30,7 +30,7 @@ input {
 {% for output in niri_outputs %}
 output "{{ output.name }}" {
 {% if output.mode is defined %}
-    mode "{{ output.mode }}"
+    mode{% if output.mode_custom | default(false) | bool %} custom=true{% endif %} "{{ output.mode }}"
 {% endif %}
 {% if output.scale is defined %}
     scale {{ output.scale }}
