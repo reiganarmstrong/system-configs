@@ -10,6 +10,28 @@ niri_default_session: true
 niri_tailscale_enabled: true
 niri_tailscale_key_fingerprint: 2596A99EAAB33821893C0A79458CA832957F5868
 
+# Add fingerprint authentication to the current authselect profile, retaining
+# its existing features and password fallback. False leaves PAM policy alone.
+niri_fingerprint_pam_enabled: true
+
+# Stock Fedora drivers and firmware for the Intel Framework 13 Pro. Weak
+# dependencies are disabled, so list the Intel firmware subpackages explicitly.
+niri_hardware_packages:
+  - kernel
+  - linux-firmware
+  - fwupd
+  - authselect
+  - fprintd
+  - fprintd-pam
+  - iwlwifi-mvm-firmware
+  - iwlbluetooth-firmware
+  - intel-gpu-firmware
+  - intel-audio-firmware
+  - alsa-sof-firmware
+  - alsa-ucm
+  - microcode_ctl
+  - pipewire-plugin-libcamera
+
 # Outputs. Empty lets Niri pick each display's mode and scale (it chooses a
 # fractional scale from the panel's DPI). To pin a display, list it by the
 # connector or make/model/serial that `niri msg outputs` prints, for example:
@@ -39,10 +61,13 @@ niri_dock_pinned:
 
 niri_packages:
   # Compositor and shell. Niri's weak dependencies (gnome-keyring, waybar,
-  # fuzzel, swaylock, alacritty) are skipped: Noctalia and oo7 replace them.
+  # swaylock, alacritty) are skipped: Noctalia and oo7 replace them.
   - niri
   - xwayland-satellite
   - noctalia
+  # App-only search has independent flat styling; Noctalia supplies the shell.
+  - fuzzel
+  - procps-ng
   # Session plumbing.
   - gdm
   - xdg-desktop-portal

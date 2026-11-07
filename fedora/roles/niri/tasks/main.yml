@@ -24,7 +24,7 @@
     # Resolved now: inside the included desktop tasks, role_path is the desktop role.
     niri_files_dir: "{{ role_path }}/files"
 
-# Niri's weak dependencies include gnome-keyring, waybar, fuzzel, swaylock and
+# Niri's weak dependencies include gnome-keyring, waybar, swaylock and
 # alacritty. Noctalia and Fedora 45's oo7 keyring replace them, and
 # gnome-keyring would compete with oo7 for the Secret Service name.
 - name: Install Niri, Noctalia and the session services
@@ -32,6 +32,9 @@
     name: "{{ niri_packages }}"
     state: present
     install_weak_deps: false
+
+- name: Configure native laptop hardware and fingerprint authentication
+  ansible.builtin.include_tasks: hardware.yml
 
 - name: Create the session configuration directories
   ansible.builtin.file:
@@ -43,6 +46,7 @@
   loop:
     - .config
     - .config/niri
+    - .config/fuzzel
     - .config/noctalia
     - .config/noctalia/palettes
     - .config/systemd/user/niri.service.wants

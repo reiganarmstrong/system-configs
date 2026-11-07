@@ -1,6 +1,8 @@
 ---
 # The official repository checks both metadata and RPM signatures. Signing in
 # is a separate, interactive step; Ansible never enrolls a machine in a tailnet.
+# New machines sign in with `sudo tailscale up`, then set their operator on
+# the saved login profile; pre-login operator preferences can be temporary.
 - name: Trust the Tailscale repository signing key
   ansible.builtin.rpm_key:
     key: https://pkgs.tailscale.com/stable/fedora/repo.gpg
@@ -22,11 +24,26 @@
     name: tailscale
     state: present
 
+- name: Check whether Tailscale is installed
+  ansible.builtin.stat:
+    path: /usr/bin/tailscale
+  register: niri_tailscale_binary
+
+- name: Require Tailscale after a normal install
+  ansible.builtin.assert:
+    that: niri_tailscale_binary.stat.exists
+    fail_msg: Tailscale is missing after its package installation.
+    quiet: true
+  when: not ansible_check_mode
+
 - name: Enable and start Tailscale
   ansible.builtin.systemd_service:
     name: tailscaled
     enabled: true
     state: started
+  register: niri_tailscale_service
+  # A fresh dry run has not created the package's unit file yet.
+  when: niri_tailscale_binary.stat.exists
 
 - name: Read the Tailscale operator setting
   ansible.builtin.command:
@@ -36,9 +53,25 @@
   check_mode: false
   # Preferences can contain account details on an already enrolled machine.
   no_log: true
+  when:
+    - niri_tailscale_binary.stat.exists
+    # A dry run may only predict starting a currently stopped daemon.
+    - not ansible_check_mode or not niri_tailscale_service.changed
+
+- name: Preview the Tailscale operator change
+  ansible.builtin.debug:
+    msg: "Would let {{ desktop_user }} manage Tailscale without resetting enrollment."
+  changed_when: true
+  when:
+    - ansible_check_mode
+    - niri_tailscale_preferences is not skipped
+    - (niri_tailscale_preferences.stdout | from_json).OperatorUser | default('') != desktop_user
 
 - name: Let the desktop account manage Tailscale
   ansible.builtin.command:
     argv: [tailscale, set, "--operator={{ desktop_user }}"]
-  when: (niri_tailscale_preferences.stdout | from_json).OperatorUser | default('') != desktop_user
+  when:
+    - not ansible_check_mode
+    - niri_tailscale_preferences is not skipped
+    - (niri_tailscale_preferences.stdout | from_json).OperatorUser | default('') != desktop_user
   changed_when: true

@@ -2,6 +2,9 @@
 - name: Load the selected macOSicons assets and creator credits
   ansible.builtin.include_vars: macos-icons.yml
 
+- name: Load the official app icon sources
+  ansible.builtin.include_vars: official-icons.yml
+
 - name: Create the Graphite macOS Light app icon theme
   ansible.builtin.file:
     path: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/{{ item }}"
@@ -50,7 +53,33 @@
   loop_control:
     label: "{{ item.name }}"
 
-# Publish the theme only after every icon has downloaded successfully.
+- name: Download the official app icons without image conversion
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/1024x1024/apps/{{ item.name }}.png"
+    checksum: "sha256:{{ item.sha256 }}"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    timeout: 30
+  loop: "{{ niri_official_icons }}"
+  loop_control:
+    label: "{{ item.title }}"
+
+- name: Preserve the official icon license notices
+  ansible.builtin.get_url:
+    url: "{{ item.license_url }}"
+    dest: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/{{ item.name }}-LICENSE.txt"
+    checksum: "sha256:{{ item.license_sha256 }}"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    timeout: 30
+  loop: "{{ niri_official_icons }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.license }})"
+
+# Publish the theme only after every icon and its notices are ready.
 - name: Install the Graphite macOS theme index
   ansible.builtin.copy:
     src: macos-icons.index.theme

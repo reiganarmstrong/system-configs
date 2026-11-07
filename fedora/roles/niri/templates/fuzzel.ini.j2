@@ -1,0 +1,42 @@
+# {{ ansible_managed }}
+# App search (Mod+Space). Independent dark glass styling keeps Noctalia's
+# shell colors intact. Niri supplies rounded blur. Colors are RRGGBBAA.
+[main]
+font=Inter:size=12
+prompt=""
+placeholder=Search apps
+icon-theme=Graphite-macOS-Light
+icons-enabled=yes
+image-size-ratio=0
+layer=overlay
+anchor=center
+width=40
+lines=9
+horizontal-pad=20
+vertical-pad=16
+inner-pad=10
+line-height=34
+show-actions=no
+# Respect OnlyShowIn/NotShowIn so GNOME-only entries stay out of Niri search.
+filter-desktop=yes
+# Keep Terminal=true apps (such as btop) on the configured Ghostty terminal.
+terminal=xdg-terminal-exec
+exit-on-keyboard-focus-loss=yes
+
+[colors]
+background=18181ad6
+text=e4e4e6ff
+prompt=a3a3a9ff
+placeholder=a3a3a9ff
+input=ffffffff
+match=ffffffff
+selection=2e2e31e6
+selection-text=ffffffff
+selection-match=ffffffff
+counter=a3a3a9ff
+border=ffffff1f
+
+[border]
+width=1
+radius=16
+selection-radius=10

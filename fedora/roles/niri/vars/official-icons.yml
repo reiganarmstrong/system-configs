@@ -1,0 +1,14 @@
+# Official native macOS artwork, pinned independently of the installed app channel.
+niri_official_icons:
+- name: t3code
+  title: T3 Code Nightly official macOS icon
+  creator: T3 Tools Inc.
+  page: https://github.com/pingdotgg/t3code/blob/83a3674ffd84ffb33de768210c806cb1ac53fd80/assets/nightly/nightly-macos-1024.png
+  url: https://raw.githubusercontent.com/pingdotgg/t3code/83a3674ffd84ffb33de768210c806cb1ac53fd80/assets/nightly/nightly-macos-1024.png
+  sha256: f6039d9905a16ab1ac0c473b9abd1e3b778f139c783de3acbfb655632a75833c
+  size: 1024
+  license: MIT
+  license_url: https://raw.githubusercontent.com/pingdotgg/t3code/83a3674ffd84ffb33de768210c806cb1ac53fd80/LICENSE
+  license_sha256: 935d8f2af0c703f9c39517ee57cc4930b19d02d533be930b63f0e82f93614b43
+  commit: 83a3674ffd84ffb33de768210c806cb1ac53fd80
+  release: v0.1.8-nightly.20261107.4314

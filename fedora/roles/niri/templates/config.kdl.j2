@@ -54,9 +54,9 @@ layout {
     preset-column-widths {
         proportion 0.5
         proportion 0.66667
-        proportion 0.9
+        proportion 1.0
     }
-    default-column-width { proportion 0.9; }
+    default-column-width { proportion 1.0; }
 
     focus-ring {
         off
@@ -213,6 +213,17 @@ layer-rule {
     }
 }
 
+// Fuzzel has no blur option. Match its own 16 px rounded border and blur
+// the windows behind it, keeping this rule scoped to app search.
+layer-rule {
+    match namespace="^graphite-app-launcher$"
+    geometry-corner-radius 16
+    background-effect {
+        blur true
+        xray false
+    }
+}
+
 // Notifications and the OSD stay out of screen recordings.
 layer-rule {
     match namespace="^noctalia-(notification|osd)$"
@@ -233,7 +244,8 @@ binds {
     // Apps and shell.
     Mod+T hotkey-overlay-title="Terminal (Ghostty)" { spawn "ghostty"; }
     Mod+E hotkey-overlay-title="Files" { spawn "nautilus" "--new-window"; }
-    Mod+Space hotkey-overlay-title="App launcher" { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
+    // Toggle only this user's named app launcher, leaving other Fuzzel pickers alone.
+    Mod+Space hotkey-overlay-title="App search" { spawn-sh "pkill -u $(id -u) -f '^fuzzel --namespace=graphite-app-launcher$' || fuzzel --namespace=graphite-app-launcher"; }
     Mod+Comma hotkey-overlay-title="Noctalia settings" { spawn "noctalia" "msg" "settings-toggle"; }
     Mod+S hotkey-overlay-title="Control center" { spawn "noctalia" "msg" "panel-toggle" "control-center"; }
     Mod+Shift+V hotkey-overlay-title="Clipboard history" { spawn "noctalia" "msg" "panel-toggle" "clipboard"; }

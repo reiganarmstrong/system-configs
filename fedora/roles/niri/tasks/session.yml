@@ -29,6 +29,15 @@
     mode: '0644'
     validate: niri validate -c %s
 
+- name: Configure the flat app launcher
+  ansible.builtin.template:
+    src: fuzzel.ini.j2
+    dest: "{{ desktop_home }}/.config/fuzzel/fuzzel.ini"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    validate: fuzzel --config=%s --check-config
+
 - name: Install the Graphite Noctalia palette
   ansible.builtin.copy:
     src: Graphite.json

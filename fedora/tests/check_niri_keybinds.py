@@ -20,7 +20,7 @@ PANEL_IDS = {'launcher', 'session', 'clipboard', 'wallpaper', 'control-center'}
 # Shortcuts NIRI.md documents. Values are the action each must run.
 EXPECTED = {
     'Mod+T': 'spawn "ghostty"',
-    'Mod+Space': 'panel-toggle launcher',
+    'Mod+Space': 'fuzzel --namespace=graphite-app-launcher',
     'Mod+Comma': 'settings-toggle',
     'Mod+S': 'panel-toggle control-center',
     'Mod+L': 'session lock',

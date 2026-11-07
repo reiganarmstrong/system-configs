@@ -1,4 +1,4 @@
-# Light-mode selection by Opus 5.5 medium. Keep source credits and checksums.
+# Selected light app icons. Keep source credits and checksums.
 niri_macos_icons:
 - name: com.mitchellh.ghostty
   object_id: Ll0yqvJc3c
@@ -11,14 +11,14 @@ niri_macos_icons:
   png_sha256: 6d872a855faf2c2dbc1fab9d9bfa9d8ff97524cfeebef1631b6a7288c6dc65b4
   size: 1024
 - name: app.zen_browser.zen
-  object_id: utkbnKde0O
-  title: Zen Browser https://zen-browser.app/- Light
-  creator: kirby_stompp
-  creator_url: https://macosicons.com/#/u/kirby_stompp
-  page: https://macosicons.com/icon/zen-browser-utkbnKde0O
-  url: https://s3-new.macosicons.com/macosicons/parse/Zen_Browser_https___zen-browser.app_-_Light_utkbnKde0O_icns-b37896c150.icns
-  sha256: b0c357b65b7500811ac4623a6ba6f21e7eb4aa48b8cde57ed3afe4fff5e10539
-  png_sha256: a600eb93995f8108ac42561fefcec55c5dba38e7bbce315c98fa16cfadc7d0ac
+  object_id: 0AeL19Hq0J
+  title: Zen iOS Default Light
+  creator: inkyyuki
+  creator_url: https://macosicons.com/#/u/inkyyuki
+  page: https://macosicons.com/?icon=0AeL19Hq0J
+  url: https://s3-new.macosicons.com/macosicons/parse/Zen_iOS_Default_Light_0AeL19Hq0J_icns-a1c1bb5a8f.icns
+  sha256: 2282b23fadfb2dde74b0dbe09c61ad36d54c7b367961a01a6ede4b16231ee79c
+  png_sha256: 43d3097fc9fa27e665aa9e6da502dd80932ecae04331a2c9dcc5b7fb4d4fa813
   size: 1024
 - name: vscodium
   object_id: tGFXNlf1Pq
@@ -119,16 +119,6 @@ niri_macos_icons:
   url: https://s3-new.macosicons.com/macosicons/parse/Google_Account_jfL0NSAXlh-b108892e28.icns
   sha256: b36e42962846cf731c60d49708bc2c4df28ba24f5b13049b0cbcdf000896667e
   png_sha256: ad356283b258d1f4a9bf86c2cd74913f20084c202c83aa67aa4f1b0ec5a2fb60
-  size: 1024
-- name: t3code
-  object_id: Dz3VyhuIYE
-  title: Script Editor
-  creator: Director David
-  creator_url: https://macosicons.com/#/u/Director David
-  page: https://macosicons.com/icon/script-editor-Dz3VyhuIYE
-  url: https://s3-new.macosicons.com/macosicons/parse/Script_Editor_Dz3VyhuIYE_icns-4b24328f8e.icns
-  sha256: 2a0e36d8cca1471ff9faf208b82e2391c36ff40a76f11392614347e9038480b9
-  png_sha256: 890bfb7b25fdbe119756e5e5fcb57712d99c60d255bc656ed3da8f3966fe4ae9
   size: 1024
 - name: org.gnome.Settings
   object_id: Uyq0Y12GTi

@@ -16,9 +16,9 @@ cd system-configs/fedora
 .local/ansible/bin/ansible-playbook niri.yml --ask-become-pass
 ```
 
-Reboot, enter your password at GDM, and you land in Niri. Use `-e niri_user=NAME` to configure another existing account. To preview changes on an already configured machine, add `--check --diff`.
+Reboot, enter your password at GDM, and you land in Niri. Use `-e niri_user=NAME` to configure another existing account. The [Framework hardware guide](FRAMEWORK.md) covers stock firmware, fingerprint enrollment, Tailscale sign-in and physical device checks. To preview changes on an already configured machine, add `--check --diff`.
 
-Tailscale is installed and started, with your account set as its operator, as on NixOS. Run `tailscale up` once after installation to sign this machine into your tailnet. Ansible never authenticates or resets an existing connection. Set `-e niri_tailscale_enabled=false` to skip its setup.
+Tailscale is installed and started, with your account set as its operator, as on NixOS. Run `sudo tailscale up` once after installation and complete the browser sign-in, then `sudo tailscale set --operator="$USER"` to persist your account's permission on that login profile. Ansible never authenticates or resets an existing connection. Set `-e niri_tailscale_enabled=false` to skip its setup.
 
 ### Reproducing this profile on the Framework 13 Pro
 
@@ -44,19 +44,20 @@ The playbook needs internet access for Fedora packages, Flatpak apps, developer 
 | Part of the desktop | Tracked source |
 | --- | --- |
 | Niri layout, widths, shortcuts and blur | `roles/niri/templates/config.kdl.j2` |
-| Top bar, menus, centered launcher, dock and idle behavior | `roles/niri/templates/noctalia.toml.j2` |
+| Top bar, joined menus, dock and idle behavior | `roles/niri/templates/noctalia.toml.j2` |
+| Centered app search | `roles/niri/templates/fuzzel.ini.j2` |
 | Shell colors and terminal appearance | `roles/niri/files/Graphite.json`, `ghostty.config`, `starship.toml` |
 | Approved Fedora/specification wallpaper | `roles/niri/files/wallpaper-fedora.png` and its generation record |
 | Light app icons and fallback theme | `roles/niri/tasks/icons.yml`, `roles/niri/vars/macos-icons.yml` |
 | Apps, login, keyring, services and GTK/Qt settings | `roles/niri/tasks/` and the shared `roles/desktop/` app/shell tasks |
 
-Keep the laptop defaults for the first run: `niri_outputs: []` lets Niri choose the built-in panel's preferred mode and scale, GDM requires a password, and idle locking and suspend are enabled. The VM's MacBook-sized output, disabled idle actions and skipped Tailscale are test overrides, not laptop defaults. The wallpaper's CPU, memory and disk lines describe the supplied laptop specification, not values discovered from the guest.
+Keep the laptop defaults for the first run: `niri_outputs: []` lets Niri choose the built-in panel's preferred mode and scale, GDM requires a password, and idle locking and suspend are enabled. The VM's MacBook-sized output and disabled idle actions are test overrides, not laptop defaults. Tailscale setup is now also tested in the guest, which stays unenrolled. The wallpaper's CPU, memory and disk lines describe the supplied laptop specification, not values discovered from the guest.
 
 After rebooting and logging in with your password:
 
 - Check `niri validate` and `noctalia config validate`, then rerun the playbook with `--check --diff` to look for drift.
 - Test Wi-Fi, Bluetooth, battery and brightness on the real devices, plus lid suspend and resume. The VM cannot verify these.
-- Test audio, screen sharing and external monitors. Enroll Tailscale with `tailscale up` and add online accounts as needed.
+- Test audio, screen sharing and external monitors. Complete the Tailscale sign-in and operator steps in [FRAMEWORK.md](FRAMEWORK.md), and add online accounts as needed.
 - If personal settings hide a managed change, inspect Noctalia's overrides described in [Personalizing](#personalizing), rather than deleting the entire settings file.
 
 ### Choosing and reverting the session
@@ -81,7 +82,7 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 | --- | --- |
 | Super+T | Ghostty |
 | Super+E | Files (Nautilus) |
-| Super+Space | Noctalia launcher |
+| Super+Space | Fuzzel app search, press again to close |
 | Super+, | Noctalia settings |
 | Super+S | Control center (audio, network, Bluetooth, brightness, power profile) |
 | Super+Shift+V | Clipboard history |
@@ -93,7 +94,7 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 | Super+F / Super+Shift+F / Super+Ctrl+F | Fullscreen / maximize column / fill the remaining width |
 | Super+V | Float or tile the window |
 | Super+Shift+Tab | Switch focus between floating and tiled windows |
-| Super+R, Super+− / = | Cycle column width presets (½, ⅔, 90%), narrow or widen by 10% |
+| Super+R, Super+− / = | Cycle column width presets (½, ⅔, 100%), narrow or widen by 10% |
 | Super+C, Super+W | Center the column, tab the column |
 | Super+[ / ] | Pull the neighbouring window into this column, or push it out |
 | Super+arrows, Super+Shift+arrows | Focus, move |
@@ -107,17 +108,22 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 | Super+Shift+P | Turn the displays off |
 | Ctrl+Alt+Delete | Quit Niri (asks first) |
 
-Super+drag moves a window, and Super+right-drag resizes it (Niri defaults). Shell shortcuts go through `noctalia msg`, Noctalia's IPC. `tests/check_niri_keybinds.py` checks every one against the installed Noctalia (see [Testing](#testing)).
+Super+drag moves a window, and Super+right-drag resizes it (Niri defaults). Shell shortcuts go through `noctalia msg`, Noctalia's IPC, except app search, which toggles the user's named Fuzzel instance. `tests/check_niri_keybinds.py` checks every one against the installed Noctalia (see [Testing](#testing)).
 
-The layout's initial column width is `proportion 0.9`. Super+R cycles `0.5`, `0.66667` and `0.9`, in that order. These settings control initial sizing and manual cycling; opening another app does not resize existing columns. Existing window-specific rules still take precedence, including Calendar's two-thirds initial width and the floating Noctalia settings window's fixed size.
+The layout's initial column width is `proportion 1.0` (100% of the usable width). Super+R cycles `0.5`, `0.66667` and `1.0`, in that order. These settings control initial sizing and manual cycling; opening another app does not resize existing columns. Existing window-specific rules still take precedence, including Calendar's two-thirds initial width and the floating Noctalia settings window's fixed size.
 
-Click the time in the center of the top bar to open the control center. The launcher is a plain search list with no category chips, centered on the screen. Its selected row uses medium gray with dark text so the light app icons stand out. Search keeps automatic keyboard focus with a quieter gray outline; Noctalia 5.4.1 cannot remove the focused ring through configuration. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Clipboard, control center, wallpaper and session panels touch the lower edge of the bar; app search stays centered. The keyboard shortcuts above still work, including over fullscreen apps.
+Click the time in the center of the top bar to open the control center. App search uses Fuzzel, centered on the screen, with a dark glass body, a subtle darker-gray selection, light text and an unboxed search prompt. It uses the same app icons as the dock. There are no category chips, subtitles, search-field border or focus ring. Super+Space toggles only the named app-search instance, leaving other Fuzzel pickers alone. Terminal apps such as btop use the configured Ghostty terminal through `xdg-terminal-exec`.
+
+The user chose Fuzzel to make launcher styling independent of Noctalia's shared colors. App search no longer includes Noctalia's calculator, emoji, `/` providers, pinned-first sorting or icon grid. Noctalia still supplies clipboard history, settings, lock screen, media controls and the other shell shortcuts. Its launcher configuration remains available for explicit IPC use. The dock's built-in launcher button is hidden because it always opens Noctalia search; use Super+Space for app search.
+
+Fedora's package also ships a "Noctalia" launcher entry that only starts the already-running shell daemon. A user-level override hides that entry; Super+, opens Noctalia's settings. Control center, wallpaper and session menus attach to the bar. Clipboard history and polkit prompts stay centered and floating. The bar and its attached menus remain visible over fullscreen apps, as requested.
+
 
 ## Graphite
 
 The NixOS desktop uses a hand-built Quickshell bar. Graphite uses black, white and gray shell controls, with chrome as frosted glass over the wallpaper. The Fedora fetch wallpaper adds one blue palette swatch. Shell status colors still carry meaning: red for errors and urgent windows, amber for warnings, green for success in the terminal.
 
-The dock, notifications, OSD, panels and window switcher are translucent with real background blur. The top bar is solid black instead (see [Top bar](#top-bar)). App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
+The dock, notifications, OSD, floating Noctalia panels and window switcher are translucent with real background blur. The top bar and attached menus share an opaque black fill (see [Top bar](#top-bar)). Fuzzel uses its own 84%-opaque Graphite surface with real Niri blur, rounded to match its 16 px border. App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
 
 | Token | Value | Used for |
 | --- | --- | --- |
@@ -127,16 +133,16 @@ The dock, notifications, OSD, panels and window switcher are translucent with re
 | Outline | `#3a3a3f` | Separators, selections |
 | Text | `#ececee` | Primary text |
 | Muted text | `#a3a3a9` | Secondary labels |
-| Primary | `#a3a3a9` | Selected rows and active controls, with dark text |
+| Primary | `#a3a3a9` | Noctalia selections and active controls, with dark text |
 | Secondary | `#7c7c83` | Focus rings and secondary labels |
 | Error | `#ff5c5c` | Errors, urgent window border |
 | Warning | `#d4a95a` | Warnings (terminal yellow, Starship's warning style) |
 | Active border | `#ffffff5c` | 1 px focused-window hairline |
 | Inactive border | `#ffffff1a` | 1 px hairline on other windows |
 
-Primary and Secondary are shared shell roles, so the softer grays also apply to Settings selections, control-center active tiles, clipboard selections, slider fills and input focus rings. They are not launcher-only overrides. The active workspace pill uses a fixed `#f2f2f3` fill with calculated dark text, keeping it distinct from these selections. Terminal colors and the light palette are unchanged.
+Primary and Secondary are shared Noctalia roles used by Settings selections, control-center active tiles, clipboard selections, slider fills and input focus rings. Fuzzel has its own colors and does not change these roles. The active workspace pill uses a fixed `#f2f2f3` fill with calculated dark text, keeping it distinct from these selections. Terminal colors and the light palette are unchanged.
 
-These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, including the 16 terminal colors), `ghostty.config`, `starship.toml`, `btop-graphite.theme` and `templates/config.kdl.j2`.
+These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, including the 16 terminal colors), `ghostty.config`, `starship.toml`, `btop-graphite.theme` and `templates/config.kdl.j2`. App-search colors live only in `templates/fuzzel.ini.j2`: body `#18181a` at 84% opacity, selected row `#2e2e31` at 90%, normal text `#e4e4e6` and selected text `#ffffff`. A scoped Niri layer rule blurs the windows behind it and matches its rounded corners. The layout keeps the flat reference's quiet selection and plain prompt; the later glass revision restores the desktop's translucent material.
 
 - **Geometry.** 12 px gaps and 14 px corners on windows, 18 px on the dock. The top bar is a flat 34 px strip. A soft drop shadow and a hairline border mark the focused window. Niri's border does not draw behind Ghostty's translucent background.
 - **Blur.** Niri 26.04's `blur` block uses 3 passes, a small offset, a little noise against banding and 60% saturation, so colorful windows behind the glass don't tint it. Noctalia's layers and floating windows use non-xray blur, so they blur the windows that are really behind them. Niri marks non-xray blur experimental.
@@ -145,11 +151,14 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
-- **Icons.** `Graphite-macOS-Light` uses light-mode app icons selected from [macOSicons.com](https://macosicons.com/). Every currently installed launcher app has a mapping, with suitable stand-ins for apps missing from the site. The original 1024 px PNGs are extracted unchanged from checksum-pinned Mac icon files. The user theme inherits Papirus-Dark for folders, status symbols and future unmapped apps. Fedora's separate `papirus-icon-theme-dark` package remains installed, and normal provisioning fails if either required theme is missing. The shell and GTK theme stay dark. See [MACOS-ICONS.md](MACOS-ICONS.md) for sources, substitutes and maintenance.
+- **Icons.** `Graphite-macOS-Light` uses light-mode app icons selected from [macOSicons.com](https://macosicons.com/). Every currently installed launcher app has a mapping, with suitable stand-ins for apps missing from the site. Zen uses the exact requested `0AeL19Hq0J` icon, and T3 Code uses the official Nightly macOS PNG from a pinned upstream commit. Selecting its artwork does not change the app's release channel. The original 1024 px PNGs are extracted unchanged from checksum-pinned Mac icon files. The user theme inherits Papirus-Dark for folders, status symbols and future unmapped apps. Fedora's separate `papirus-icon-theme-dark` package remains installed, and normal provisioning fails if either required theme is missing. The shell and GTK theme stay dark. See [MACOS-ICONS.md](MACOS-ICONS.md) for sources, substitutes and maintenance.
 
 ### Top bar
 
-A solid black strip, 34 px tall, runs across the top of every output. It has no transparency, blur, border, shadow or rounded corners. Glass menus touch its lower edge with `shell.panel.floating_offset = 0`, so there is no strip of wallpaper between the bar and the menu. Their upper corners stay rounded and a faint border marks the join; this is a flush card, rather than a merged shape. Niri's 12 px gap separates it from windows, so a full-height window sits as far below the bar as above the bottom edge.
+A solid black strip, 34 px tall, runs across the top of every output. It has no transparency, blur, border, shadow or rounded corners. Control center, wallpaper and session menus use native attached placement, sharing the bar's opaque fill and meeting it with concave corners. There is no border at the join. Niri's 12 px gap separates the bar from tiled windows.
+
+The bar uses the Overlay layer, which its attached menus inherit. This keeps both visible above fullscreen windows. The user explicitly chose this behavior: fullscreen content draws under the top 34 px, rather than pushing the bar away. App search, clipboard and polkit stay centered and floating.
+
 
 - **Left:** numbered workspace pills. The active one is white with dark text and only half again as long as the round inactive ones. Workspaces with windows use a lighter gray fill than empty ones.
 - **Center:** the time, alone in Noctalia's center lane, so it stays centered on the output whatever the side lanes hold. Clicking it opens the control center on Home, with its tab sidebar.
@@ -159,19 +168,20 @@ Widgets with no device hide themselves: brightness without a backlight and batte
 
 These single-tab cards are the control center's own tabs, not separate popovers. Noctalia 5.4.1 has no standalone network, audio or Bluetooth panels, and building them would mean a plugin that has to track Noctalia's internals on every upgrade. Its tab cards keep the control center's fixed height, so a short tab such as Network on a wired VM leaves empty space below its content.
 
-The menus keep native floating placement on the Overlay layer. Noctalia 5.4.1's attached placement inherits the bar's Top layer, which Niri draws beneath fullscreen apps: live testing opened invisible menus that Escape did not close. Keeping floating placement preserves fullscreen access while the bar itself stays hidden behind fullscreen content. The centered launcher and polkit prompt do not use `floating_offset` and keep their positions. No fork, plugin or state-tracking script is involved.
+An earlier attached candidate with a Top-layer bar opened invisible menus underneath fullscreen apps. The final configuration moves the bar and its menus together to Overlay. This is native Noctalia behavior with no fork, plugin or state-tracking script. The tray drawer is a separate native popover and keeps its own shape; it does not use PanelManager's concave join.
 
 This bar replaces the earlier floating notch (a capsule group inside a transparent bar), whose [review record](reviews/niri-notch.md) is kept for history.
 
 ## Services
 
-Noctalia is a full shell, so most session services come from it. Niri's weak dependencies (waybar, fuzzel, swaylock, mako-style tools, gnome-keyring) are skipped (`install_weak_deps: false`) so nothing runs twice.
+Noctalia is a full shell, so most session services come from it. Niri's competing weak dependencies (waybar, swaylock, mako-style tools, gnome-keyring) are skipped (`install_weak_deps: false`) so nothing runs twice.
 
 | Need | Provided by |
 | --- | --- |
 | Login | GDM with a password and the `niri` Wayland session. Automatic login is off. |
-| Bar, launcher, dock, tray, OSD, notifications | Noctalia, started by Niri (`spawn-at-startup`). It's the only notification daemon. |
-| Lock screen | Noctalia, checked against the `login` PAM stack. It locks before suspend. |
+| Bar, dock, tray, OSD, notifications | Noctalia, started by Niri (`spawn-at-startup`). It's the only notification daemon. |
+| App search | Fuzzel, with its own validated dark glass theme and the shared app icon theme. |
+| Lock screen | Noctalia, checked against the `login` PAM stack for passwords, with native fprintd support for enrolled readers. It locks before suspend. |
 | Idle | Noctalia: lock at 5 min, displays off at 6 min, suspend at 15 min (`niri_idle_*_seconds`, 0 disables). Apps that inhibit idle, such as video players, are respected. |
 | Polkit prompts | Noctalia's built-in agent (`polkit_agent = true`). |
 | Keyring | Fedora 45's `oo7-daemon`, started as a dependency of `niri.service` and stopped with the graphical session. GDM's vendor `pam_oo7` stack hands it the login password. Fedora ships the daemon disabled, so installing its package alone is insufficient. A user-level `niri-portals.conf` routes the Secret portal to `oo7-portal` in Niri sessions only. VSCodium uses libsecret. |
@@ -202,11 +212,12 @@ Ansible rewrites the files it owns on every run, so edits to them don't survive.
 | --- | --- |
 | `~/.config/niri/config.kdl` | `~/.config/niri/local.kdl`, included last, so it can add binds, outputs and window rules or override earlier settings |
 | `~/.config/noctalia/00-fedora-niri.toml` | Noctalia's Settings window (Super+,), which saves to `~/.local/state/noctalia/settings.toml`. Or a later-sorting file such as `~/.config/noctalia/50-mine.toml`. Both take precedence. |
+| `~/.config/fuzzel/fuzzel.ini` | No override; change `roles/niri/templates/fuzzel.ini.j2` |
 | `~/.config/ghostty/config` | `~/.config/ghostty/local` |
 | `~/.zshrc` | `~/.zshrc.local` |
 | `~/.config/starship.toml`, btop's theme lines, fastfetch's config | No override; change them in the role |
 
-Niri and Noctalia reload their config while running, so a rerun takes effect without logging out. Both configs are checked before they're written (`niri validate`, `noctalia config validate`), so a bad template can't break a running session.
+Niri and Noctalia reload their config while running, so a rerun takes effect without logging out. Fuzzel reads its config each time it opens. All three configs are checked before they are written with `niri validate`, `noctalia config validate` and `fuzzel --check-config`.
 
 Reordering bar widgets in Noctalia's Settings window saves lane and capsule-group overrides in `~/.local/state/noctalia/settings.toml`. Those override the role, and arrays replace rather than merge. If a later bar change does not appear, inspect the saved `[bar.main]` lanes and `capsule_group` entries, plus any widget overrides. Remove only the overrides you want the role to manage; other personal settings can stay.
 
@@ -217,6 +228,7 @@ Variables in `roles/niri/defaults/main.yml`:
 - `niri_idle_lock_seconds`, `niri_idle_screen_off_seconds` and `niri_idle_suspend_seconds`.
 - `niri_dock_pinned` lists the dock's apps by desktop entry id.
 - `niri_default_session` (see above).
+- `niri_fingerprint_pam_enabled` adds fingerprint authentication to the existing authselect profile by default. Set false to leave PAM policy unchanged. See [FRAMEWORK.md](FRAMEWORK.md) for enrollment, password/keyring behavior and the stock hardware package list.
 - `niri_tailscale_enabled` installs and starts Tailscale by default. Turning it off skips management; it does not uninstall or disconnect an existing installation.
 
 ## Shared state between profiles
@@ -322,7 +334,13 @@ Checked in the same VM at 1512×982 on November 6, 2026. `noctalia config valida
 
 The VM has no Wi-Fi, Bluetooth adapter, battery or backlight, so those widgets and their cards still need a check on the laptop.
 
-### Launcher grays and flush menus verification
+### Current joined menus, glass search and Framework verification
+
+Opus 5.5 at medium effort designed the final joined menus and dark glass Fuzzel launcher. Native attachment uses the Overlay bar layer, as chosen by the user, so menus and bar remain visible in fullscreen. The exact Zen and official T3 Nightly macOS icons are installed. The global width is 100%, with 50%, two-thirds and 100% presets; live reload and actual Super+R cycling were verified without resizing existing columns.
+
+All three config validators pass, all 93 shortcut checks and 13 unit tests pass, and the final normal rerun reports `ok=102 changed=0 failed=0`. The final dry run reports `ok=93 changed=0 failed=0`. The [review record](reviews/niri-framework-ready.md) covers glass corner/blur checks, fullscreen interaction, icons, fingerprint policy guards and Tailscale dry runs. Physical device testing, fingerprint enrollment and Tailscale browser sign-in remain laptop steps in [FRAMEWORK.md](FRAMEWORK.md).
+
+### Previous launcher grays and flush menus verification
 
 On November 7, 2026, Opus 5.5 at medium effort approved actual VM captures of the softer launcher selection, quieter search ring and gapless glass menus. Codex verified keyboard search and app launching, bar clicks, menu placement at scales 1, 1.25 and 1.5, reduced motion and fullscreen access. Both native config validators pass. The final unchanged Ansible rerun reports `ok=78 changed=0 failed=0`.
 
