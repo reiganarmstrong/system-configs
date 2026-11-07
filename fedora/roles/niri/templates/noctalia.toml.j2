@@ -27,20 +27,20 @@ borders = true
 border_color = "outline_variant"
 border_width = 1.0
 shadow = true
-# Menus opened from the bar share its opaque fill and concave join. Both use
-# the overlay layer, so they remain visible over fullscreen content. A click
-# anchors the menu under its widget; keyboard shortcuts center it on the bar.
-# Keyboard palettes and authentication prompts stay floating at screen center.
+# Floating glass menus have their own Overlay layer, so they remain accessible
+# when Niri covers the Top-layer bar with a fullscreen app. They stay close to
+# the bar with rounded corners; clicks anchor menus beneath their widgets.
+floating_layer = "overlay"
 launcher_placement = "floating"
 # App search opens in the middle of the screen, not under the bar.
 launcher_position = "center"
 clipboard_placement = "floating"
 clipboard_position = "center"
-control_center_placement = "attached"
+control_center_placement = "floating"
 control_center_position = "auto"
-wallpaper_placement = "attached"
+wallpaper_placement = "floating"
 wallpaper_position = "auto"
-session_placement = "attached"
+session_placement = "floating"
 session_position = "auto"
 floating_offset = 0
 open_near_click_control_center = true
@@ -138,13 +138,12 @@ enabled = {{ (niri_idle_suspend_seconds | int > 0) | lower }}
 
 [bar.main]
 position = "top"
-# The user chose joined menus and a bar that remains visible in fullscreen.
-# Fullscreen windows draw under this 34 px overlay instead of reserving space.
-layer = "overlay"
+# Niri covers the bar during fullscreen. Menus stay on their own Overlay layer.
+layer = "top"
 reserve_space = true
 thickness = 34
-# A plain, opaque black strip across the full width: no glass, blur, border,
-# shadow or rounded corners. Attached menus share this opaque fill.
+# A plain black strip across the full width. Floating menus use glass styling
+# independently, with no opacity or stacking inherited from this bar.
 background_opacity = 1.0
 compositor_blur = false
 shadow = false

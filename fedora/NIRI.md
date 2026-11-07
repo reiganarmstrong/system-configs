@@ -44,7 +44,7 @@ The playbook needs internet access for Fedora packages, Flatpak apps, developer 
 | Part of the desktop | Tracked source |
 | --- | --- |
 | Niri layout, widths, shortcuts and blur | `roles/niri/templates/config.kdl.j2` |
-| Top bar, joined menus, dock and idle behavior | `roles/niri/templates/noctalia.toml.j2` |
+| Top bar, glass menus, dock and idle behavior | `roles/niri/templates/noctalia.toml.j2` |
 | Centered app search | `roles/niri/templates/fuzzel.ini.j2` |
 | Shell colors and terminal appearance | `roles/niri/files/Graphite.json`, `ghostty.config`, `starship.toml` |
 | Approved Fedora/specification wallpaper | `roles/niri/files/wallpaper-fedora.png` and its generation record |
@@ -116,14 +116,14 @@ Click the time in the center of the top bar to open the control center. App sear
 
 The user chose Fuzzel to make launcher styling independent of Noctalia's shared colors. App search no longer includes Noctalia's calculator, emoji, `/` providers, pinned-first sorting or icon grid. Noctalia still supplies clipboard history, settings, lock screen, media controls and the other shell shortcuts. Its launcher configuration remains available for explicit IPC use. The dock's built-in launcher button is hidden because it always opens Noctalia search; use Super+Space for app search.
 
-Fedora's package also ships a "Noctalia" launcher entry that only starts the already-running shell daemon. A user-level override hides that entry; Super+, opens Noctalia's settings. Control center, wallpaper and session menus attach to the bar. Clipboard history and polkit prompts stay centered and floating. The bar and its attached menus remain visible over fullscreen apps, as requested.
+Fedora's package also ships a "Noctalia" launcher entry that only starts the already-running shell daemon. A user-level override hides that entry; Super+, opens Noctalia's settings. Control center, wallpaper and session menus float near the bar with glass styling. Clipboard history and polkit prompts stay centered and floating. Niri covers the bar during fullscreen; menus retain their own Overlay layer and remain accessible.
 
 
 ## Graphite
 
 The NixOS desktop uses a hand-built Quickshell bar. Graphite uses black, white and gray shell controls, with chrome as frosted glass over the wallpaper. The Fedora fetch wallpaper adds one blue palette swatch. Shell status colors still carry meaning: red for errors and urgent windows, amber for warnings, green for success in the terminal.
 
-The dock, notifications, OSD, floating Noctalia panels and window switcher are translucent with real background blur. The top bar and attached menus share an opaque black fill (see [Top bar](#top-bar)). Fuzzel uses its own 84%-opaque Graphite surface with real Niri blur, rounded to match its 16 px border. App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
+The dock, notifications, OSD, floating Noctalia panels and window switcher are translucent with real background blur. The top bar remains solid black; its menus float independently with glass styling (see [Top bar](#top-bar)). Fuzzel uses its own 84%-opaque Graphite surface with real Niri blur, rounded to match its 16 px border. App windows stay opaque, so text sits on a solid surface. Ghostty's 84%-opaque background blurs the wallpaper behind it using Niri's default xray blur.
 
 | Token | Value | Used for |
 | --- | --- | --- |
@@ -155,9 +155,9 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 
 ### Top bar
 
-A solid black strip, 34 px tall, runs across the top of every output. It has no transparency, blur, border, shadow or rounded corners. Control center, wallpaper and session menus use native attached placement, sharing the bar's opaque fill and meeting it with concave corners. There is no border at the join. Niri's 12 px gap separates the bar from tiled windows.
+A solid black strip, 34 px tall, runs across the top of every output. It has no transparency, blur, border, shadow or rounded corners. Control center, wallpaper and session menus use native floating placement with translucent bodies, rounded corners, a fine border and blur. They stay near the bar without sharing its fill or layer. Niri's 12 px gap separates the bar from tiled windows.
 
-The bar uses the Overlay layer, which its attached menus inherit. This keeps both visible above fullscreen windows. The user explicitly chose this behavior: fullscreen content draws under the top 34 px, rather than pushing the bar away. App search, clipboard and polkit stay centered and floating.
+The bar uses the Top layer, so Niri draws fullscreen content over it automatically. Floating menus explicitly use Overlay and stay accessible over fullscreen without revealing the bar. Leaving fullscreen exposes the bar again. App search, clipboard and polkit stay centered and floating. No hide shortcut or fullscreen watcher is required.
 
 
 - **Left:** numbered workspace pills. The active one is white with dark text and only half again as long as the round inactive ones. Workspaces with windows use a lighter gray fill than empty ones.
@@ -172,7 +172,7 @@ Status glyphs use native per-widget `scale = 1.25` (20 px instead of 16 px) and 
 
 These single-tab cards are the control center's own tabs, not separate popovers. Noctalia 5.4.1 has no standalone network, audio or Bluetooth panels, and building them would mean a plugin that has to track Noctalia's internals on every upgrade. Its tab cards keep the control center's fixed height, so a short tab such as Network on a wired VM leaves empty space below its content.
 
-An earlier attached candidate with a Top-layer bar opened invisible menus underneath fullscreen apps. The final configuration moves the bar and its menus together to Overlay. This is native Noctalia behavior with no fork, plugin or state-tracking script. The tray drawer is a separate native popover and keeps its own shape; it does not use PanelManager's concave join.
+An earlier attached candidate with a Top-layer bar opened invisible menus underneath fullscreen apps. Moving both to Overlay fixed access but left the bar over video and made the menus opaque. The current floating placement separates menu stacking from the bar, restoring fullscreen and glass through native settings. The tray drawer remains a separate native popover. The [fullscreen verification record](reviews/niri-glass-fullscreen.md) covers live stacking, dismissal and blur checks.
 
 This bar replaces the earlier floating notch (a capsule group inside a transparent bar), whose [review record](reviews/niri-notch.md) is kept for history.
 
@@ -365,9 +365,9 @@ Checked in the same VM at 1512×982 on November 6, 2026. `noctalia config valida
 
 The VM has no Wi-Fi, Bluetooth adapter, battery or backlight, so those widgets and their cards still need a check on the laptop.
 
-### Current joined menus, glass search and Framework verification
+### Previous joined menus, glass search and Framework verification
 
-Opus 5.5 at medium effort designed the final joined menus and dark glass Fuzzel launcher. Native attachment uses the Overlay bar layer, as chosen by the user, so menus and bar remain visible in fullscreen. The exact Zen and official T3 Nightly macOS icons are installed. The global width is 100%, with 50%, two-thirds and 100% presets; live reload and actual Super+R cycling were verified without resizing existing columns.
+Opus 5.5 at medium effort designed the earlier joined menus and dark glass Fuzzel launcher. Native attachment uses the Overlay bar layer, as chosen by the user, so menus and bar remain visible in fullscreen. The exact Zen and official T3 Nightly macOS icons are installed. The global width is 100%, with 50%, two-thirds and 100% presets; live reload and actual Super+R cycling were verified without resizing existing columns.
 
 All three config validators pass, all 93 shortcut checks and 13 unit tests pass, and the final normal rerun reports `ok=102 changed=0 failed=0`. The final dry run reports `ok=93 changed=0 failed=0`. The [review record](reviews/niri-framework-ready.md) covers glass corner/blur checks, fullscreen interaction, icons, fingerprint policy guards and Tailscale dry runs. Physical device testing, fingerprint enrollment and Tailscale browser sign-in remain laptop steps in [FRAMEWORK.md](FRAMEWORK.md).
 
