@@ -26,6 +26,7 @@ EXPECTED = {
     'Mod+L': 'session lock',
     'Mod+Q': 'close-window',
     'Mod+F': 'fullscreen-window',
+    'Mod+R': 'switch-preset-column-width',
     'Mod+V': 'toggle-window-floating',
     'Mod+Shift+V': 'panel-toggle clipboard',
     'XF86AudioRaiseVolume': 'volume-up',

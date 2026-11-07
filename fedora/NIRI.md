@@ -54,7 +54,7 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 | Super+F / Super+Shift+F / Super+Ctrl+F | Fullscreen / maximize column / fill the remaining width |
 | Super+V | Float or tile the window |
 | Super+Shift+Tab | Switch focus between floating and tiled windows |
-| Super+R, Super+− / = | Cycle column width presets (⅓, ½, ⅔), narrow or widen by 10% |
+| Super+R, Super+− / = | Cycle column width presets (½, ⅔, 90%), narrow or widen by 10% |
 | Super+C, Super+W | Center the column, tab the column |
 | Super+[ / ] | Pull the neighbouring window into this column, or push it out |
 | Super+arrows, Super+Shift+arrows | Focus, move |
@@ -69,6 +69,8 @@ Super is `Mod`. Super+Shift+/ shows every binding with its title.
 | Ctrl+Alt+Delete | Quit Niri (asks first) |
 
 Super+drag moves a window, and Super+right-drag resizes it (Niri defaults). Shell shortcuts go through `noctalia msg`, Noctalia's IPC. `tests/check_niri_keybinds.py` checks every one against the installed Noctalia (see [Testing](#testing)).
+
+The layout's initial column width is `proportion 0.9`. Super+R cycles `0.5`, `0.66667` and `0.9`, in that order. These settings control initial sizing and manual cycling; opening another app does not resize existing columns. Existing window-specific rules still take precedence, including Calendar's two-thirds initial width and the floating Noctalia settings window's fixed size.
 
 Click the time in the center of the top bar to open the control center. The launcher is a plain search list with no category chips, centered on the screen. Fedora's package also ships a "Noctalia" launcher entry that only starts the shell daemon, which is already running, so a user-level override hides it; Super+, opens Noctalia's settings. The launcher button is at the start of the auto-hiding dock. Launcher, clipboard, control center, wallpaper and session panels open beneath the bar; the keyboard shortcuts above still work.
 
