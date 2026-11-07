@@ -41,3 +41,9 @@ The guest stays in NeedsLogin. Before first authentication, operator preferences
 The final configuration, manifests and install guidance are tracked in the Ansible profile. Captures, test probes, downloaded research assets and VM credentials remain ignored. No changes were applied to the host or physical laptop, and nothing was pushed.
 
 Physical fingerprint matching, firmware application, Wi-Fi, Bluetooth, audio, camera, brightness, docks, expansion cards and suspend/resume still need testing on the actual laptop. [FRAMEWORK.md](../FRAMEWORK.md) gives those steps and the official model-specific sources. Installing drivers is not proof that every peripheral operates.
+
+## Close-button follow-up
+
+The native `shell.show_close_buttons = false` hides close controls without custom panel code. Its shell-wide scope, including notifications, dialogs and Settings, is documented in NIRI.md. Settings still closes with Super+Q; toasts support right-click dismissal and dialogs retain Cancel.
+
+Opus 5.5 at medium effort approved actual Home, Network, Audio, Wallpaper and Clipboard captures, with no gaps or unbalanced headers. Actual Escape and outside-click tests pass on Home, Network, Audio, Session, Wallpaper and Clipboard. Native Noctalia validation passes. The apply changed only the managed shell config; the final `--check --diff` reports `ok=93 changed=0 failed=0`.
