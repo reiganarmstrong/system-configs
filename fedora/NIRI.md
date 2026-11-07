@@ -101,7 +101,7 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 - **Lock screen.** A blurred, darkened copy of the wallpaper with the clock, drawn by Noctalia.
 - **GTK and Qt.** libadwaita apps get dark mode and the Slate accent (libadwaita's gray) from dconf. GTK 3 apps get `adw-gtk3-dark`, a port of the libadwaita look. Qt apps follow GTK through `QT_QPA_PLATFORMTHEME=gtk3`. There's no custom app CSS. Overriding libadwaita's stylesheet tends to break with each GNOME release. Windows use server-side decorations where apps support them, and VSCodium hides its own window buttons.
 - **Terminal.** Ghostty and Starship replace the GNOME profile's Catppuccin with the Graphite palette. Starship keeps the server's layout and its ASCII-only symbols. btop gets a matching theme with a transparent background. Fastfetch is configured, with an optional greeting for first-level interactive shells.
-- **Icons.** Papirus-Dark, whose flat icons sit better on gray glass than WhiteSur's glossy ones. Fedora ships this variant in its own package, `papirus-icon-theme-dark`; without it the theme name points at nothing and apps fall back to their own mixed-style icons. The role installs it and fails if the theme is missing.
+- **Icons.** `Graphite-macOS-Light` uses light-mode app icons selected from [macOSicons.com](https://macosicons.com/). Every currently installed launcher app has a mapping, with suitable stand-ins for apps missing from the site. The original 1024 px PNGs are extracted unchanged from checksum-pinned Mac icon files. The user theme inherits Papirus-Dark for folders, status symbols and future unmapped apps. Fedora's separate `papirus-icon-theme-dark` package remains installed, and normal provisioning fails if either required theme is missing. The shell and GTK theme stay dark. See [MACOS-ICONS.md](MACOS-ICONS.md) for sources, substitutes and maintenance.
 
 ### Top bar
 
@@ -177,7 +177,8 @@ Variables in `roles/niri/defaults/main.yml`:
 
 `desktop.yml` and `niri.yml` configure the same account, and some settings exist only once. Whichever playbook ran last decides them:
 
-- dconf's `org.gnome.desktop.interface` keys: color scheme, accent, GTK theme, icon theme and fonts. After `niri.yml`, GNOME uses the Slate accent and Papirus icons until `desktop.yml` runs again.
+- dconf's `org.gnome.desktop.interface` keys: color scheme, accent, GTK theme, icon theme and fonts. After `niri.yml`, GNOME uses the Slate accent and Graphite-macOS-Light icons until `desktop.yml` runs again.
+- `~/.local/share/applications/t3code.desktop`: Niri selects its light coding-tool icon, while the GNOME profile keeps the app's original icon. Its name, command and URI handler are unchanged.
 - `~/.zshrc` (the Niri profile adds the fastfetch greeting), `~/.config/starship.toml` and `~/.config/ghostty/config`.
 
 Everything else is separate. Niri and Noctalia files are read only by Niri. The portal override only applies when `XDG_CURRENT_DESKTOP=niri`. GNOME's extensions and dock settings only load in GNOME.

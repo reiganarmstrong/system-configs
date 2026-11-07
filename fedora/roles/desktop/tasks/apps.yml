@@ -149,7 +149,7 @@
       Name=T3 Code
       Comment=Desktop app for coding agents
       Exec={{ desktop_home }}/Applications/T3-Code.AppImage %U
-      Icon={{ desktop_home }}/.local/share/fedora-desktop/t3code.png
+      Icon={{ desktop_t3code_icon | default(desktop_home ~ '/.local/share/fedora-desktop/t3code.png') }}
       Terminal=false
       Type=Application
       StartupWMClass=t3code

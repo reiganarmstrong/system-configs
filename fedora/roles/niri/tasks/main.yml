@@ -58,12 +58,16 @@
     - .local/share/backgrounds
     - Pictures/Screenshots
 
+- name: Install the selected macOS app icons
+  ansible.builtin.include_tasks: icons.yml
+
 - name: Install the shared apps with the Graphite terminal theme
   ansible.builtin.include_role:
     name: desktop
     tasks_from: apps.yml
   vars:
     desktop_ghostty_config_src: "{{ niri_files_dir }}/ghostty.config"
+    desktop_t3code_icon: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/1024x1024/apps/t3code.png"
 
 - name: Set up zsh, oh-my-zsh and the Graphite Starship prompt
   ansible.builtin.include_role:

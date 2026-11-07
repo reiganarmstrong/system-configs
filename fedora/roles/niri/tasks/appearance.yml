@@ -8,16 +8,29 @@
 # These keys live in the user's dconf database, which the GNOME session reads
 # too: whichever profile ran last decides them (see fedora/NIRI.md).
 # A missing theme fails silently: apps fall back to their own mixed icons.
-- name: Check that the Papirus-Dark icon theme is installed
+- name: Check that the Papirus-Dark fallback theme is installed
   ansible.builtin.stat:
     path: /usr/share/icons/Papirus-Dark/index.theme
   register: niri_icon_theme
 
-- name: Require the selected icon theme
+- name: Require the fallback icon theme
   ansible.builtin.assert:
     that: niri_icon_theme.stat.exists
-    fail_msg: Papirus-Dark is selected but /usr/share/icons/Papirus-Dark is missing; install papirus-icon-theme-dark.
+    fail_msg: The Papirus-Dark fallback is missing; install papirus-icon-theme-dark.
     quiet: true
+  when: not ansible_check_mode
+
+- name: Check that the Graphite macOS Light theme is installed
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/index.theme"
+  register: niri_macos_icon_theme
+
+- name: Require the selected macOS app icon theme
+  ansible.builtin.assert:
+    that: niri_macos_icon_theme.stat.exists
+    fail_msg: Graphite-macOS-Light is selected but its index.theme is missing.
+    quiet: true
+  when: not ansible_check_mode
 
 - name: Apply the Graphite GTK settings
   become: true
@@ -34,7 +47,7 @@
     - key: /org/gnome/desktop/interface/gtk-theme
       value: "'adw-gtk3-dark'"
     - key: /org/gnome/desktop/interface/icon-theme
-      value: "'Papirus-Dark'"
+      value: "'Graphite-macOS-Light'"
     - key: /org/gnome/desktop/interface/cursor-theme
       value: "'Adwaita'"
     - key: /org/gnome/desktop/interface/font-name

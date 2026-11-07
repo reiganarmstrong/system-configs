@@ -1,0 +1,68 @@
+---
+- name: Load the selected macOSicons assets and creator credits
+  ansible.builtin.include_vars: macos-icons.yml
+
+- name: Create the Graphite macOS Light app icon theme
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/{{ item }}"
+    state: directory
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+  loop:
+    - ''
+    - 1024x1024/apps
+    - .sources
+
+- name: Install the native PNG extraction tool
+  ansible.builtin.copy:
+    src: icns-to-png.py
+    dest: "{{ desktop_home }}/.local/bin/icns-to-png"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0755'
+
+- name: Download the selected personal-use app icons
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/.sources/{{ item.object_id }}.icns"
+    checksum: "sha256:{{ item.sha256 }}"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    timeout: 30
+  loop: "{{ niri_macos_icons | unique(attribute='object_id') }}"
+  loop_control:
+    label: "{{ item.name }} by {{ item.creator }}"
+
+- name: Extract the original full-size PNGs
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/python3
+      - "{{ desktop_home }}/.local/bin/icns-to-png"
+      - "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/.sources/{{ item.object_id }}.icns"
+      - "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/1024x1024/apps/{{ item.name }}.png"
+  register: niri_icon_extract
+  changed_when: niri_icon_extract.stdout | default('') == 'updated'
+  loop: "{{ niri_macos_icons }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# Publish the theme only after every icon has downloaded successfully.
+- name: Install the Graphite macOS theme index
+  ansible.builtin.copy:
+    src: macos-icons.index.theme
+    dest: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/index.theme"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+- name: Preserve macOSicons source and creator credits
+  ansible.builtin.template:
+    src: macos-icons-sources.md.j2
+    dest: "{{ desktop_home }}/.local/share/icons/Graphite-macOS-Light/SOURCES.md"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
