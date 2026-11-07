@@ -168,6 +168,8 @@ Noctalia's shell close buttons are hidden with `shell.show_close_buttons = false
 
 Widgets with no device hide themselves: brightness without a backlight and battery without a battery. Bluetooth hides on machines without an adapter but otherwise stays visible, so pairing is one click away. Network names stay in the tooltip, so a long SSID can't stretch the bar.
 
+Status glyphs use native per-widget `scale = 1.25` (20 px instead of 16 px) and an 8 px gap. Noctalia's bundled icon font has no configurable stroke weight; the larger size gives its lines more weight. Clock text, workspace pills and bar height stay unchanged. The graphic battery stays at its original size because its outline is already heavier.
+
 These single-tab cards are the control center's own tabs, not separate popovers. Noctalia 5.4.1 has no standalone network, audio or Bluetooth panels, and building them would mean a plugin that has to track Noctalia's internals on every upgrade. Its tab cards keep the control center's fixed height, so a short tab such as Network on a wired VM leaves empty space below its content.
 
 An earlier attached candidate with a Top-layer bar opened invisible menus underneath fullscreen apps. The final configuration moves the bar and its menus together to Overlay. This is native Noctalia behavior with no fork, plugin or state-tracking script. The tray drawer is a separate native popover and keeps its own shape; it does not use PanelManager's concave join.

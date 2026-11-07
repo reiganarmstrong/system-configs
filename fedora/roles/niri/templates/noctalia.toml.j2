@@ -154,7 +154,8 @@ concave_edge_corners = false
 margin_edge = 0
 margin_ends = 0
 padding = 12
-widget_spacing = 4
+# Give the status glyphs room without changing the clock or workspace pills.
+widget_spacing = 8
 capsule = false
 font_weight = 500
 hover_highlight = true
@@ -190,16 +191,20 @@ occupied_color = "outline_variant"
 empty_color = "hover"
 
 [widget.media]
+scale = 1.25
 album_art_only = true
 hide_when_no_media = true
 
 [widget.network]
+scale = 1.25
 show_label = false
 
 [widget.volume]
+scale = 1.25
 show_label = false
 
 [widget.bluetooth]
+scale = 1.25
 show_label = false
 # Stays visible so its tab is one click away for pairing. It still hides on
 # machines without a Bluetooth adapter.
@@ -210,11 +215,21 @@ display_mode = "graphic"
 show_label = true
 
 [widget.notifications]
+scale = 1.25
 hide_when_no_unread = true
 
 [widget.tray]
+scale = 1.25
 drawer = true
 detached_panel = true
+
+# Native Tabler glyphs have no configurable stroke weight. Scale only the
+# status widgets to 20 px; the graphic battery already has a heavier outline.
+[widget.brightness]
+scale = 1.25
+
+[widget.session]
+scale = 1.25
 
 [dock]
 enabled = true
