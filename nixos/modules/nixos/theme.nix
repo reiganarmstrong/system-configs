@@ -50,6 +50,7 @@ in
       gaps = number 12 "Gap between windows, and between windows and the screen edge.";
       panel = number 14 "Padding inside panels.";
       tile = number 10 "Gap between controls inside panels.";
+      inset = number 10 "Gap between a row's edge and its text or icon, so text in rows, headers and footers lines up.";
     };
 
     blur = {

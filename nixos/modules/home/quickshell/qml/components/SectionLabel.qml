@@ -12,7 +12,7 @@ Item {
 
     Label {
         id: label
-        x: 10
+        x: Theme.spacing.inset
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 4
         text: section.text

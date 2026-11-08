@@ -4,6 +4,7 @@
 // Bluetooth, Sound and Now Playing open detail pages that replace the grid
 // inside the same panel.
 import QtQuick
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.UPower
 import qs.components
@@ -79,22 +80,26 @@ Popup {
         if (!root.visible && !root.open) root.resetPage();
     })
 
+    // The panel is a 4-column grid: capsule toggles span two columns, small
+    // toggles one, Now Playing two rows, and the sliders all four. Pages use
+    // the same padding as the grid, so every view has the same margins.
+    readonly property real padding: Theme.spacing.panel
+    readonly property real gap: Theme.spacing.tile
+    readonly property real panelWidth: 381
+    readonly property real contentWidth: panelWidth - padding * 2
     readonly property real cell: 66
-    readonly property real cellWidth: 80
-    readonly property real gap: 11
-    readonly property real wide: cellWidth * 2 + gap
-    readonly property real full: cellWidth * 4 + gap * 3
-    // A page's text sits about 26 px from every edge of the glass.
-    readonly property real pagePadding: 15
-    readonly property real pageTop: 17
-    readonly property real pageBottom: 16
+    readonly property real cellWidth: (contentWidth - gap * 3) / 4
+    // Width of a tile spanning n columns. The grid places tiles by their
+    // spans; this keeps its four columns equal whatever each tile asks for.
+    function span(n: int): real {
+        return cellWidth * n + gap * (n - 1);
+    }
     // Match the inset of the round badges inside the grid's pills.
     readonly property real headerPadding: 14
 
     Glass {
-        width: root.full + 28
-        height: root.page === "" ? layout.implicitHeight + 28
-            : pageHost.implicitHeight + root.pageTop + root.pageBottom
+        width: root.panelWidth
+        height: (root.page === "" ? layout.implicitHeight : pageHost.implicitHeight) + root.padding * 2
         radius: 26
         fillOpacity: Prefs.get("panelOpacity", Theme.opacity.panel)
         clip: false
@@ -104,9 +109,9 @@ Popup {
         // A page in place of the grid, sliding in from the right.
         Loader {
             id: pageHost
-            x: root.pagePadding + (root.page !== "" ? 0 : 16)
-            y: root.pageTop
-            width: root.full + 28 - root.pagePadding * 2
+            x: root.padding + (root.page !== "" ? 0 : 16)
+            y: root.padding
+            width: root.contentWidth
             opacity: root.page !== "" ? 1 : 0
             visible: opacity > 0
             active: root.shownPage !== ""
@@ -128,27 +133,29 @@ Popup {
 
         Component {
             id: networkPage
-            NetworkPage { maxHeight: root.maxPanelHeight - root.pageTop - root.pageBottom; onBack: root.back() }
+            NetworkPage { maxHeight: root.maxPanelHeight - root.padding * 2; onBack: root.back() }
         }
         Component {
             id: bluetoothPage
-            BluetoothPage { maxHeight: root.maxPanelHeight - root.pageTop - root.pageBottom; onBack: root.back() }
+            BluetoothPage { maxHeight: root.maxPanelHeight - root.padding * 2; onBack: root.back() }
         }
         Component {
             id: soundPage
-            SoundPage { maxHeight: root.maxPanelHeight - root.pageTop - root.pageBottom; onBack: root.back() }
+            SoundPage { maxHeight: root.maxPanelHeight - root.padding * 2; onBack: root.back() }
         }
         Component {
             id: mediaPage
-            MediaPage { maxHeight: root.maxPanelHeight - root.pageTop - root.pageBottom; onBack: root.back(); onFinished: root.back() }
+            MediaPage { maxHeight: root.maxPanelHeight - root.padding * 2; onBack: root.back(); onFinished: root.back() }
         }
 
-        Column {
+        GridLayout {
             id: layout
-            x: 14 + (root.page === "" ? 0 : -12)
-            y: 14
-            width: root.full
-            spacing: root.gap
+            x: root.padding + (root.page === "" ? 0 : -12)
+            y: root.padding
+            width: root.contentWidth
+            columns: 4
+            columnSpacing: root.gap
+            rowSpacing: root.gap
             opacity: root.page === "" ? 1 : 0
             visible: opacity > 0
 
@@ -160,39 +167,40 @@ Popup {
             }
 
             // Who is logged in, and the session buttons.
-            Item {
-                width: parent.width
-                height: 32
+            RowLayout {
+                Layout.columnSpan: 4
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                Layout.leftMargin: root.headerPadding
+                Layout.rightMargin: root.headerPadding
+                spacing: 12
 
-                Column {
-                    anchors.left: parent.left
-                    anchors.leftMargin: root.headerPadding
-                    anchors.right: sessionActions.left
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    Label { width: parent.width; text: Theme.user.name; weight: Font.Bold; size: Theme.textSmall }
-                    Label { width: parent.width; text: Session.uptime; dim: true; size: Theme.textSmall * 0.9 }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 0
+                    Label { Layout.fillWidth: true; text: Theme.user.name; weight: Font.Bold; size: Theme.textSmall }
+                    Label { Layout.fillWidth: true; text: Session.uptime; dim: true; size: Theme.textSmall * 0.9 }
                 }
-                Row {
-                    id: sessionActions
-                    anchors.right: parent.right
-                    anchors.rightMargin: root.headerPadding
-                    anchors.verticalCenter: parent.verticalCenter
+                RowLayout {
+                    Layout.alignment: Qt.AlignVCenter
                     spacing: 4
 
                     Repeater {
                         model: [
                             { icon: "settings", run: () => ShellState.openSettings("appearance") },
                             { icon: "lock", run: () => Session.lock() },
-                            { icon: "moon", run: () => Session.suspend() },
+                            { icon: "moon", enabled: Theme.data.suspendSupported !== false, run: () => Session.suspend() },
                             { icon: "log-out", run: () => Session.logout() },
                             { icon: "rotate-ccw", run: () => Session.reboot() },
                             { icon: "power", run: () => Session.poweroff() },
                         ]
                         Rectangle {
                             required property var modelData
-                            width: 26
-                            height: 26
+                            enabled: modelData.enabled ?? true
+                            opacity: enabled ? 1 : 0.35
+                            Layout.preferredWidth: 26
+                            Layout.preferredHeight: 26
                             radius: 13
                             color: area.containsMouse ? Theme.withAlpha("#ffffff", 0.14) : "transparent"
                             Icon { anchors.centerIn: parent; name: parent.modelData.icon; size: 13 }
@@ -207,126 +215,117 @@ Popup {
                 }
             }
 
-            // Wi-Fi and Bluetooth beside now playing.
-            Row {
-                spacing: root.gap
-
-                Column {
-                    spacing: root.gap
-                    PillToggle {
-                        width: root.wide
-                        height: root.cell
-                        icon: Net.icon
-                        title: Net.title
-                        subtitle: Net.status
-                        active: Net.wiredUp || Net.wifiUp
-                        openable: true
-                        onToggled: if (Net.wifi) Net.setWifi(!Net.wifiOn)
-                        onOpened: root.openPage("network")
-                    }
-                    PillToggle {
-                        width: root.wide
-                        height: root.cell
-                        icon: Bt.enabled ? "bluetooth" : "bluetooth-off"
-                        title: "Bluetooth"
-                        subtitle: Bt.status
-                        active: Bt.enabled
-                        enabled: Bt.available
-                        opacity: enabled ? 1 : 0.5
-                        openable: true
-                        onToggled: Bt.setEnabled(!Bt.enabled)
-                        onOpened: root.openPage("bluetooth")
-                    }
-                }
-
-                MediaCard {
-                    width: root.wide
-                    height: root.cell * 2 + root.gap
-                    onOpened: root.openPage("media")
-                }
+            // Wi-Fi above Bluetooth, beside Now Playing.
+            PillToggle {
+                Layout.columnSpan: 2
+                Layout.preferredWidth: root.span(2)
+                Layout.preferredHeight: root.cell
+                icon: Net.icon
+                title: Net.title
+                subtitle: Net.status
+                active: Net.wiredUp || Net.wifiUp
+                openable: true
+                onToggled: if (Net.wifi) Net.setWifi(!Net.wifiOn)
+                onOpened: root.openPage("network")
+            }
+            MediaCard {
+                Layout.columnSpan: 2
+                Layout.rowSpan: 2
+                Layout.preferredWidth: root.span(2)
+                Layout.fillHeight: true
+                onOpened: root.openPage("media")
+            }
+            PillToggle {
+                Layout.columnSpan: 2
+                Layout.preferredWidth: root.span(2)
+                Layout.preferredHeight: root.cell
+                icon: Bt.enabled ? "bluetooth" : "bluetooth-off"
+                title: "Bluetooth"
+                subtitle: Bt.status
+                active: Bt.enabled
+                enabled: Bt.available
+                opacity: enabled ? 1 : 0.5
+                openable: true
+                onToggled: Bt.setEnabled(!Bt.enabled)
+                onOpened: root.openPage("bluetooth")
             }
 
-            // Focus with Airplane Mode and Caffeine; Power with the microphone
-            // and colour picker.
-            Row {
-                spacing: root.gap
-
-                PillToggle {
-                    width: root.wide
-                    height: root.cell
-                    icon: Notifs.doNotDisturb ? "bell-off" : "bell"
-                    title: "Focus"
-                    subtitle: Notifs.doNotDisturb ? "Do Not Disturb" : "Off"
-                    active: Notifs.doNotDisturb
-                    onClicked: Prefs.set("doNotDisturb", !Notifs.doNotDisturb)
-                }
-                CircleToggle {
-                    width: root.cellWidth
-                    height: root.cell
-                    readonly property bool airplane: !Net.wifiOn && !Bt.enabled
-                    icon: "plane"
-                    active: airplane
-                    enabled: Net.wifi !== null || Bt.available
-                    opacity: enabled ? 1 : 0.5
-                    onClicked: {
-                        Net.setWifi(airplane);
-                        Bt.setEnabled(airplane);
-                    }
-                }
-                CircleToggle {
-                    width: root.cellWidth
-                    height: root.cell
-                    icon: "coffee"
-                    active: Session.caffeine
-                    onClicked: Session.caffeine = !Session.caffeine
+            // Focus with Airplane Mode and Caffeine.
+            PillToggle {
+                Layout.columnSpan: 2
+                Layout.preferredWidth: root.span(2)
+                Layout.preferredHeight: root.cell
+                icon: Notifs.doNotDisturb ? "bell-off" : "bell"
+                title: "Focus"
+                subtitle: Notifs.doNotDisturb ? "Do Not Disturb" : "Off"
+                active: Notifs.doNotDisturb
+                onClicked: Prefs.set("doNotDisturb", !Notifs.doNotDisturb)
+            }
+            CircleToggle {
+                Layout.preferredWidth: root.span(1)
+                Layout.preferredHeight: root.cell
+                readonly property bool airplane: !Net.wifiOn && !Bt.enabled
+                icon: "plane"
+                active: airplane
+                enabled: Net.wifi !== null || Bt.available
+                opacity: enabled ? 1 : 0.5
+                onClicked: {
+                    const enableRadios = airplane;
+                    Net.setWifi(enableRadios);
+                    Bt.setEnabled(enableRadios);
                 }
             }
+            CircleToggle {
+                Layout.preferredWidth: root.span(1)
+                Layout.preferredHeight: root.cell
+                icon: "coffee"
+                active: Session.caffeine
+                onClicked: Session.caffeine = !Session.caffeine
+            }
 
-            Row {
-                spacing: root.gap
-
-                // The icon follows the profile: leaf, gauge or bolt.
-                PillToggle {
-                    readonly property var names: ["Power Saver", "Balanced", "Performance"]
-                    width: root.wide
-                    height: root.cell
-                    icon: ["leaf", "gauge", "zap"][PowerProfiles.profile] ?? "gauge"
-                    title: "Power"
-                    subtitle: names[PowerProfiles.profile] ?? ""
-                    active: PowerProfiles.profile !== PowerProfile.Balanced
-                    onClicked: {
-                        PowerProfiles.profile = PowerProfiles.profile === PowerProfile.Balanced
-                            ? (PowerProfiles.hasPerformanceProfile ? PowerProfile.Performance : PowerProfile.PowerSaver)
-                            : PowerProfiles.profile === PowerProfile.Performance ? PowerProfile.PowerSaver
-                            : PowerProfile.Balanced;
-                    }
+            // Power with the microphone and colour picker. The icon follows
+            // the profile: leaf, gauge or bolt.
+            PillToggle {
+                readonly property var names: ["Power Saver", "Balanced", "Performance"]
+                Layout.columnSpan: 2
+                Layout.preferredWidth: root.span(2)
+                Layout.preferredHeight: root.cell
+                icon: ["leaf", "gauge", "zap"][PowerProfiles.profile] ?? "gauge"
+                title: "Power"
+                subtitle: names[PowerProfiles.profile] ?? ""
+                active: PowerProfiles.profile !== PowerProfile.Balanced
+                onClicked: {
+                    PowerProfiles.profile = PowerProfiles.profile === PowerProfile.Balanced
+                        ? (PowerProfiles.hasPerformanceProfile ? PowerProfile.Performance : PowerProfile.PowerSaver)
+                        : PowerProfiles.profile === PowerProfile.Performance ? PowerProfile.PowerSaver
+                        : PowerProfile.Balanced;
                 }
-                CircleToggle {
-                    width: root.cellWidth
-                    height: root.cell
-                    icon: Audio.micMuted ? "mic-off" : "mic"
-                    active: !Audio.micMuted
-                    onClicked: Audio.toggleMic()
-                }
-                CircleToggle {
-                    width: root.cellWidth
-                    height: root.cell
-                    icon: "pipette"
-                    onClicked: {
-                        ShellState.close();
-                        // Niri's picker prints "Hex: #rrggbb" last; nothing is copied if it's cancelled.
-                        Session.run(["sh", "-c", "sleep 0.3; c=$(niri msg pick-color | sed -n 's/^Hex: //p'); [ -n \"$c\" ] && printf %s \"$c\" | wl-copy"]);
-                    }
+            }
+            CircleToggle {
+                Layout.preferredWidth: root.span(1)
+                Layout.preferredHeight: root.cell
+                icon: Audio.micMuted ? "mic-off" : "mic"
+                active: !Audio.micMuted
+                onClicked: Audio.toggleMic()
+            }
+            CircleToggle {
+                Layout.preferredWidth: root.span(1)
+                Layout.preferredHeight: root.cell
+                icon: "pipette"
+                onClicked: {
+                    ShellState.close();
+                    // Niri's picker prints "Hex: #rrggbb" last; nothing is copied if it's cancelled.
+                    Session.run(["sh", "-c", "sleep 0.3; c=$(niri msg pick-color | sed -n 's/^Hex: //p'); [ -n \"$c\" ] && printf %s \"$c\" | wl-copy"]);
                 }
             }
 
             SliderTile {
-                width: root.full
+                Layout.columnSpan: 4
+                Layout.preferredWidth: root.span(4)
                 title: "Display"
                 onTitleClicked: ShellState.openSettings("display")
                 detail: Brightness.available ? "" : "Not adjustable"
-                enabled: Brightness.available
-                opacity: enabled ? 1 : 0.5
+                sliderEnabled: Brightness.available
                 startIcon: "sun-dim"
                 endIcon: "sun"
                 value: Brightness.level
@@ -334,15 +333,18 @@ Popup {
             }
 
             SliderTile {
-                width: root.full
+                Layout.columnSpan: 4
+                Layout.preferredWidth: root.span(4)
                 title: "Sound"
                 openable: true
                 onOpened: root.openPage("sound")
                 detail: Audio.sinkName
+                sliderEnabled: Audio.sink !== null
                 startIcon: "volume"
                 endIcon: "volume-2"
                 value: Audio.muted ? 0 : Audio.volume
                 onMoved: v => Audio.setVolume(v)
+                onStartIconClicked: Audio.toggleMute()
             }
         }
     }

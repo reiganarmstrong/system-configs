@@ -36,19 +36,30 @@ Popup {
         function onCopied() { if (root.open) ShellState.close(); }
     }
 
+    // Laid out like the control centre's pages: boxes (buttons, the search
+    // field, rows) fill the padded content width, and text and icons inside
+    // them sit Theme.spacing.inset in, level with the title and footer.
+    readonly property real inset: Theme.spacing.inset
+
     Glass {
         width: 480
-        height: layout.implicitHeight + 32
+        height: layout.implicitHeight + Theme.spacing.panel * 2
         radius: 24
         ColumnLayout {
             id: layout
             anchors.fill: parent
-            anchors.margins: 16
-            spacing: 10
+            anchors.margins: Theme.spacing.panel
+            spacing: Theme.spacing.tile
             RowLayout {
                 Layout.fillWidth: true
+                Layout.preferredHeight: 32
                 spacing: 8
-                Label { text: "Clipboard history"; weight: Font.Bold; Layout.fillWidth: true }
+                HeaderLabel {
+                    text: "Clipboard history"
+                    Layout.fillWidth: true
+                    Layout.leftMargin: root.inset
+                    Layout.alignment: Qt.AlignVCenter
+                }
                 SettingButton {
                     text: Clipboard.paused ? "Resume" : "Pause"
                     enabled: Clipboard.ready && !Clipboard.mutating
@@ -64,7 +75,8 @@ Popup {
             RowLayout {
                 Layout.fillWidth: true
                 visible: root.confirmClear
-                Label { text: "Clear all history?"; Layout.fillWidth: true; size: Theme.textSmall }
+                spacing: 8
+                Label { text: "Clear all history?"; Layout.fillWidth: true; Layout.leftMargin: root.inset; size: Theme.textSmall }
                 SettingButton { text: "Cancel"; onClicked: root.confirmClear = false }
                 SettingButton { text: "Clear"; destructive: true; onClicked: { root.confirmClear = false; Clipboard.clear(); } }
             }
@@ -73,32 +85,37 @@ Popup {
                 implicitHeight: 38
                 radius: 12
                 color: Theme.tileFill
-                Icon { id: glyph; anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter; name: "search"; size: 16; color: Theme.colors.textDim }
-                TextInput {
-                    id: search
-                    anchors.left: glyph.right
-                    anchors.right: parent.right
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: Theme.colors.text
-                    font.family: Theme.font
-                    font.pointSize: Theme.textNormal
-                    selectionColor: Theme.withAlpha("#ffffff", 0.3)
-                    Accessible.name: "Search clipboard history"
-                    onTextChanged: root.selectFirst()
-                    Keys.onPressed: event => {
-                        if (event.key === Qt.Key_Down) root.moveSelection(1);
-                        else if (event.key === Qt.Key_Up) root.moveSelection(-1);
-                        else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) root.copySelected();
-                        else return;
-                        event.accepted = true;
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: root.inset
+                    anchors.rightMargin: root.inset
+                    spacing: 8
+                    Icon { Layout.alignment: Qt.AlignVCenter; name: "search"; size: 16; color: Theme.colors.textDim }
+                    TextInput {
+                        id: search
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        color: Theme.colors.text
+                        font.family: Theme.font
+                        font.pointSize: Theme.textNormal
+                        selectionColor: Theme.withAlpha("#ffffff", 0.3)
+                        Accessible.name: "Search clipboard history"
+                        onTextChanged: root.selectFirst()
+                        Keys.onPressed: event => {
+                            if (event.key === Qt.Key_Down) root.moveSelection(1);
+                            else if (event.key === Qt.Key_Up) root.moveSelection(-1);
+                            else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) root.copySelected();
+                            else return;
+                            event.accepted = true;
+                        }
+                        Label { text: "Search history"; dim: true; visible: search.text === "" }
                     }
-                    Label { text: "Search history"; dim: true; visible: search.text === "" }
                 }
             }
             Label {
                 Layout.fillWidth: true
+                Layout.leftMargin: root.inset
+                Layout.rightMargin: root.inset
                 visible: Clipboard.error !== ""
                 text: Clipboard.error
                 wrapMode: Text.Wrap
@@ -130,48 +147,51 @@ Popup {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: { root.selectedId = row.modelData.id; root.copySelected(); }
                     }
-                    Rectangle {
-                        x: 9
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 36
-                        height: 36
-                        radius: 8
-                        color: Theme.tileFill
-                        clip: true
-                        Icon { anchors.centerIn: parent; name: row.modelData.kind === "image" ? "image" : "type"; size: 17; visible: preview.status !== Image.Ready }
-                        Image {
-                            id: preview
-                            anchors.fill: parent
-                            source: row.modelData.thumbnail
-                            sourceSize: Qt.size(96, 72)
-                            asynchronous: true
-                            fillMode: Image.PreserveAspectFit
+                    RowLayout {
+                        anchors.fill: parent
+                        // Thumbnails sit nearer the edge than text, like a row's badge.
+                        anchors.leftMargin: 6
+                        anchors.rightMargin: root.inset
+                        spacing: 10
+
+                        Rectangle {
+                            Layout.preferredWidth: 36
+                            Layout.preferredHeight: 36
+                            Layout.alignment: Qt.AlignVCenter
+                            radius: 8
+                            color: Theme.tileFill
+                            clip: true
+                            Icon { anchors.centerIn: parent; name: row.modelData.kind === "image" ? "image" : "type"; size: 17; visible: preview.status !== Image.Ready }
+                            Image {
+                                id: preview
+                                anchors.fill: parent
+                                source: row.modelData.thumbnail
+                                sourceSize: Qt.size(96, 72)
+                                asynchronous: true
+                                fillMode: Image.PreserveAspectFit
+                            }
                         }
-                    }
-                    Label {
-                        anchors.left: parent.left
-                        anchors.right: removeButton.left
-                        anchors.leftMargin: 56
-                        anchors.rightMargin: 10
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: row.modelData.preview
-                        textFormat: Text.PlainText
-                        size: Theme.textSmall
-                        maximumLineCount: 2
-                        wrapMode: Text.Wrap
-                    }
-                    IconButton {
-                        id: removeButton
-                        anchors.right: parent.right
-                        anchors.rightMargin: 8
-                        anchors.verticalCenter: parent.verticalCenter
-                        icon: "x"
-                        iconSize: 13
-                        visible: copyArea.containsMouse || row.modelData.id === root.selectedId
-                        enabled: !Clipboard.mutating
-                        onClicked: Clipboard.remove(row.modelData.id)
-                        Accessible.role: Accessible.Button
-                        Accessible.name: "Delete clipboard item"
+                        Label {
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                            text: row.modelData.preview
+                            textFormat: Text.PlainText
+                            size: Theme.textSmall
+                            maximumLineCount: 2
+                            wrapMode: Text.Wrap
+                        }
+                        IconButton {
+                            id: removeButton
+                            Layout.alignment: Qt.AlignVCenter
+                            icon: "x"
+                            iconSize: 13
+                            // Keep its space so the text doesn't reflow on hover.
+                            opacity: copyArea.containsMouse || row.modelData.id === root.selectedId ? 1 : 0
+                            enabled: opacity > 0 && !Clipboard.mutating
+                            onClicked: Clipboard.remove(row.modelData.id)
+                            Accessible.role: Accessible.Button
+                            Accessible.name: "Delete clipboard item"
+                        }
                     }
                 }
                 Label {
@@ -186,6 +206,8 @@ Popup {
             }
             RowLayout {
                 Layout.fillWidth: true
+                Layout.leftMargin: root.inset
+                Layout.rightMargin: root.inset
                 Label { text: "Enter copies · Ctrl+D deletes"; dim: true; size: Theme.textSmall * 0.9; Layout.fillWidth: true }
                 Label { text: Clipboard.paused ? "Capture paused" : Clipboard.items.length + " items"; dim: true; size: Theme.textSmall * 0.9 }
             }

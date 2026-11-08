@@ -24,8 +24,8 @@ SubPanel {
         height: 32
         ThinSlider {
             anchors.fill: parent
-            anchors.leftMargin: 10
-            anchors.rightMargin: 10
+            anchors.leftMargin: Theme.spacing.inset
+            anchors.rightMargin: Theme.spacing.inset
             accessibleName: "Output volume"
             startIcon: Audio.icon
             wheelEnabled: false
@@ -51,8 +51,8 @@ SubPanel {
         height: 32
         ThinSlider {
             anchors.fill: parent
-            anchors.leftMargin: 10
-            anchors.rightMargin: 10
+            anchors.leftMargin: Theme.spacing.inset
+            anchors.rightMargin: Theme.spacing.inset
             accessibleName: "Input level"
             startIcon: Audio.micMuted ? "mic-off" : "mic"
             wheelEnabled: false

@@ -3,6 +3,7 @@
 // control centre's pills. Rows can expand to show inline content below.
 import QtQuick
 import Quickshell
+import QtQuick.Layouts
 import qs.services
 
 Item {
@@ -45,70 +46,77 @@ Item {
         Behavior on color { ColorAnimation { duration: Motion.ms(100) } }
     }
 
-    Rectangle {
-        id: badge
-        x: 6
-        y: (row.rowHeight - height) / 2
-        width: 26
-        height: 26
-        radius: 13
-        visible: row.icon !== "" || row.iconSource !== ""
-        color: row.iconSource !== "" && image.status === Image.Ready ? "transparent"
-            : row.selected ? Theme.colors.accent : Theme.withAlpha("#ffffff", 0.14)
-        Behavior on color { ColorAnimation { duration: Motion.ms(150) } }
-
-        Image {
-            id: image
-            anchors.centerIn: parent
-            width: 22
-            height: 22
-            source: row.iconSource
-            sourceSize: Qt.size(44, 44)
-            visible: status === Image.Ready
-        }
-        Icon {
-            anchors.centerIn: parent
-            name: row.icon
-            size: 13
-            visible: !image.visible
-            color: row.selected ? Theme.colors.accentText : Theme.colors.text
-        }
-    }
-
-    Column {
+    // Badge, title and status, then the trailing slot, in one row.
+    RowLayout {
+        id: content
+        height: row.rowHeight
+        // A badge sits nearer the edge than bare text, as in macOS.
         anchors.left: parent.left
-        anchors.leftMargin: badge.visible ? 40 : 10
-        anchors.right: trailingRow.left
-        anchors.rightMargin: 8
-        y: (row.rowHeight - height) / 2
-
-        Label {
-            width: parent.width
-            text: row.title
-            size: Theme.textSmall
-            weight: Font.Medium
-            dim: !row.interactive && row.icon === ""
-        }
-        Label {
-            width: parent.width
-            text: row.subtitle
-            visible: text !== ""
-            size: Theme.textSmall * 0.9
-            dim: !row.error
-            color: row.error ? Theme.colors.urgent : Theme.colors.textDim
-        }
-    }
-
-    Row {
-        id: trailingRow
+        anchors.leftMargin: badge.visible ? 6 : Theme.spacing.inset
         anchors.right: parent.right
-        anchors.rightMargin: 10
-        y: (row.rowHeight - height) / 2
-        spacing: 6
+        anchors.rightMargin: Theme.spacing.inset
+        spacing: 8
 
-        Spinner {
-            visible: row.busy
-            anchors.verticalCenter: parent.verticalCenter
+        Rectangle {
+            id: badge
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: 26
+            Layout.preferredHeight: 26
+            radius: 13
+            visible: row.icon !== "" || row.iconSource !== ""
+            color: row.iconSource !== "" && image.status === Image.Ready ? "transparent"
+                : row.selected ? Theme.colors.accent : Theme.withAlpha("#ffffff", 0.14)
+            Behavior on color { ColorAnimation { duration: Motion.ms(150) } }
+
+            Image {
+                id: image
+                anchors.centerIn: parent
+                width: 22
+                height: 22
+                source: row.iconSource
+                sourceSize: Qt.size(44, 44)
+                visible: status === Image.Ready
+            }
+            Icon {
+                anchors.centerIn: parent
+                name: row.icon
+                size: 13
+                visible: !image.visible
+                color: row.selected ? Theme.colors.accentText : Theme.colors.text
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 0
+
+            Label {
+                Layout.fillWidth: true
+                text: row.title
+                size: Theme.textSmall
+                weight: Font.Medium
+                dim: !row.interactive && row.icon === ""
+            }
+            Label {
+                Layout.fillWidth: true
+                text: row.subtitle
+                visible: text !== ""
+                size: Theme.textSmall * 0.9
+                dim: !row.error
+                color: row.error ? Theme.colors.urgent : Theme.colors.textDim
+            }
+        }
+
+        Row {
+            id: trailingRow
+            Layout.alignment: Qt.AlignVCenter
+            spacing: 6
+
+            Spinner {
+                visible: row.busy
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
     }
 
@@ -125,9 +133,10 @@ Item {
 
     Column {
         id: expander
-        x: 40
+        // Under the title.
+        x: content.anchors.leftMargin + (badge.visible ? badge.width + content.spacing : 0)
         y: row.rowHeight + 4
-        width: parent.width - 50
+        width: parent.width - x - Theme.spacing.inset
         visible: row.expanded
         opacity: row.expanded ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Motion.ms(180) } }

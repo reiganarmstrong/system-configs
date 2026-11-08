@@ -11,13 +11,15 @@ GlassTile {
     property alias startIcon: slider.startIcon
     property alias endIcon: slider.endIcon
     property alias value: slider.value
+    property alias sliderEnabled: slider.enabled
     // When openable, the title row opens a details page (with a chevron).
     property bool openable: false
     signal moved(real value)
     signal titleClicked()
     signal opened()
+    signal startIconClicked()
 
-    height: 70
+    implicitHeight: 70
     radius: 22
 
     MouseArea {
@@ -69,6 +71,8 @@ GlassTile {
         anchors.rightMargin: 14
         anchors.bottomMargin: 8
         accessibleName: tile.title
+        opacity: enabled ? 1 : 0.5
+        onStartIconClicked: tile.startIconClicked()
         onMoved: v => tile.moved(v)
         onReleased: Brightness.flush()
     }
