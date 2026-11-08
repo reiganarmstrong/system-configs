@@ -1,0 +1,117 @@
+---
+# Fedora maintains these drivers. Never flash firmware, enroll fingerprints,
+# replace a custom PAM profile or reboot a running session in this role.
+- name: Install the stock kernel, device firmware and fingerprint support
+  ansible.builtin.dnf:
+    name: "{{ niri_hardware_packages }}"
+    state: present
+    install_weak_deps: false
+
+- name: Check whether authselect is available
+  ansible.builtin.stat:
+    path: /usr/bin/authselect
+  register: niri_authselect_binary
+  when: niri_fingerprint_pam_enabled | bool
+
+- name: Require authselect after a normal install
+  ansible.builtin.assert:
+    that: niri_authselect_binary.stat.exists
+    fail_msg: authselect is missing after installing fingerprint support.
+    quiet: true
+  when:
+    - niri_fingerprint_pam_enabled | bool
+    - not ansible_check_mode
+
+- name: Add fingerprint support without replacing the authentication profile
+  when:
+    - niri_fingerprint_pam_enabled | bool
+    - niri_authselect_binary.stat.exists
+  block:
+    - name: Read the current authselect profile and features
+      ansible.builtin.command:
+        argv: [authselect, current, --raw]
+      register: niri_authselect_before
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Check the existing authentication policy
+      ansible.builtin.command:
+        argv: [authselect, check]
+      register: niri_authselect_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Require a valid existing authselect policy
+      ansible.builtin.assert:
+        that:
+          - niri_authselect_before.rc == 0
+          - niri_authselect_before.stdout.split() | length > 0
+          - niri_authselect_check.rc == 0
+        fail_msg: >-
+          Existing authentication is not a valid selected authselect profile.
+          Repair that policy first, or set niri_fingerprint_pam_enabled=false
+          to leave PAM unchanged. This role never forces a profile replacement.
+        quiet: true
+
+    - name: Read the current profile's supported features
+      ansible.builtin.command:
+        argv: [authselect, list-features, "{{ niri_authselect_before.stdout.split()[0] }}"]
+      register: niri_authselect_features
+      changed_when: false
+      check_mode: false
+
+    - name: Require native fingerprint support in the selected profile
+      ansible.builtin.assert:
+        that: "'with-fingerprint' in niri_authselect_features.stdout.split()"
+        fail_msg: >-
+          The selected authselect profile does not support with-fingerprint.
+          Add support to that profile or set niri_fingerprint_pam_enabled=false.
+        quiet: true
+
+    - name: Preview enabling the fingerprint PAM feature
+      ansible.builtin.debug:
+        msg: Would enable with-fingerprint while preserving the selected profile and other features.
+      changed_when: true
+      when:
+        - ansible_check_mode
+        - "'with-fingerprint' not in niri_authselect_before.stdout.split()[1:]"
+
+    - name: Enable fingerprint authentication with a native policy backup
+      ansible.builtin.command:
+        argv: [authselect, enable-feature, with-fingerprint, -b]
+      changed_when: true
+      when:
+        - not ansible_check_mode
+        - "'with-fingerprint' not in niri_authselect_before.stdout.split()[1:]"
+
+    - name: Read the resulting authentication profile
+      ansible.builtin.command:
+        argv: [authselect, current, --raw]
+      register: niri_authselect_after
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Validate the resulting authentication policy
+      ansible.builtin.command:
+        argv: [authselect, check]
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Verify fingerprint support and preservation of the prior profile
+      ansible.builtin.assert:
+        that:
+          - niri_authselect_after.stdout.split()[0] == niri_authselect_before.stdout.split()[0]
+          - "'with-fingerprint' in niri_authselect_after.stdout.split()[1:]"
+          - niri_authselect_before.stdout.split()[1:] | difference(niri_authselect_after.stdout.split()[1:]) | length == 0
+        quiet: true
+      when: not ansible_check_mode
+
+- name: Explain a fresh dry run without authselect
+  ansible.builtin.debug:
+    msg: Fingerprint policy validation will run after authselect is installed by a normal playbook run.
+  when:
+    - niri_fingerprint_pam_enabled | bool
+    - ansible_check_mode
+    - not niri_authselect_binary.stat.exists

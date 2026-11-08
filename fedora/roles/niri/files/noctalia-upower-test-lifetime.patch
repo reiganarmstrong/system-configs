@@ -1,0 +1,81 @@
+--- a/tests/upower_charge_limit_integration_test.cpp
++++ b/tests/upower_charge_limit_integration_test.cpp
+@@ -28,10 +28,11 @@
+   class FakeBattery {
+   public:
+     FakeBattery(
+-        sdbus::IConnection& connection, std::string path, std::string nativePath, std::string model, bool powerSupply,
++        sdbus::IConnection& connection, std::vector<std::function<void()>>& deferredCalls,
++        std::string path, std::string nativePath, std::string model, bool powerSupply,
+         bool registerChargeMethod, bool unregisterBeforeFirstIntrospection
+     )
+-        : connection(connection), path(std::move(path)), nativePath(std::move(nativePath)), model(std::move(model)),
++        : connection(connection), deferredCalls(deferredCalls), path(std::move(path)), nativePath(std::move(nativePath)), model(std::move(model)),
+           powerSupply(powerSupply), chargeMethodRegistered(registerChargeMethod),
+           unregisterBeforeFirstIntrospection(unregisterBeforeFirstIntrospection) {
+       registerObject();
+@@ -70,7 +71,8 @@
+                   supported = thresholdSupported;
+                 }
+                 if (shouldUnregister) {
+-                  object->unregister();
++                  // Finish the property callback before destroying its D-Bus slot.
++                  deferredCalls.emplace_back([this] { object->unregister(); });
+                 }
+                 return supported;
+               }),
+@@ -174,6 +176,7 @@
+       return percentageReads;
+     }
+     sdbus::IConnection& connection;
++    std::vector<std::function<void()>>& deferredCalls;
+     std::string path;
+     std::string nativePath;
+     std::string model;
+@@ -210,10 +213,24 @@
+               sdbus::registerProperty("OnBattery").withGetter([]() { return false; })
+           )
+           .forInterface(kManagerInterface);
+-      connection->enterEventLoopAsync();
+-    }
+-
+-    ~FakeUPower() { connection->leaveEventLoop(); }
++      // Drain deferred fixture changes between messages, never inside a getter.
++      server = std::jthread([this](std::stop_token stop) {
++        while (!stop.stop_requested()) {
++          const bool handled = connection->processPendingEvent();
++          for (auto& call : std::exchange(deferredCalls, std::vector<std::function<void()>>{})) {
++            call();
++          }
++          if (!handled) {
++            std::this_thread::sleep_for(std::chrono::milliseconds(1));
++          }
++        }
++      });
++    }
++
++    ~FakeUPower() {
++      server.request_stop();
++      server.join();
++    }
+ 
+     FakeBattery& addBattery(
+         std::string id, std::string model, bool emitSignal = false, bool powerSupply = true,
+@@ -222,7 +239,7 @@
+       const std::string path = "/org/freedesktop/UPower/devices/battery_" + id;
+       batteries.push_back(
+           std::make_unique<FakeBattery>(
+-              *connection, path, "NOCTALIA_TEST_" + id, std::move(model), powerSupply, registerChargeMethod,
++              *connection, deferredCalls, path, "NOCTALIA_TEST_" + id, std::move(model), powerSupply, registerChargeMethod,
+               unregisterBeforeFirstIntrospection
+           )
+       );
+@@ -259,6 +276,8 @@
+     std::mutex pathsMutex;
+     std::vector<sdbus::ObjectPath> paths;
+     std::vector<std::unique_ptr<FakeBattery>> batteries;
++    std::vector<std::function<void()>> deferredCalls;
++    std::jthread server;
+   };
+ 
+   template <typename Predicate> void drainUntil(SystemBus& bus, Predicate&& predicate) {

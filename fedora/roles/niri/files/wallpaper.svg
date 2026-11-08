@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Graphite: the Fedora Niri profile's wallpaper (fedora/roles/niri/files/wallpaper.svg).
+     Two folded graphite sheets cross behind the centered glass panels, with
+     faint pleats on the front sheet and a soft shadow pooling at the bottom. Each fold is one edge path drawn three ways:
+     a dark body, a one-sided blurred light falling from the crest, and a crisp
+     hairline. Rim brightness peaks at the screen center so the blurred glass
+     has bright, structured detail to diffuse. Monochrome; no external assets.
+     Panels sit near x1320-2520, y200-1250 in these coordinates. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="2400" viewBox="0 0 3840 2400">
+  <defs>
+    <!-- Fold edges: also update the matching body path when reshaping a fold. -->
+    <path id="edgeA" d="M -200 1300 C 900 1120, 1750 640, 4040 140"/>
+    <path id="edgeB" d="M -200 470 C 1150 560, 2350 1020, 4040 1640"/>
+
+    <!-- Bodies: each fill closes its edge down to the bottom of the canvas. -->
+    <path id="bodyA" d="M -200 1300 C 900 1120, 1750 640, 4040 140 L 4040 2600 L -200 2600 Z"/>
+    <path id="bodyB" d="M -200 470 C 1150 560, 2350 1020, 4040 1640 L 4040 2600 L -200 2600 Z"/>
+    <clipPath id="clipA"><use href="#bodyA"/></clipPath>
+    <clipPath id="clipB"><use href="#bodyB"/></clipPath>
+
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1b1e"/>
+      <stop offset="1" stop-color="#0a0a0b"/>
+    </linearGradient>
+    <!-- Key light behind the panels. -->
+    <radialGradient id="key" cx="1920" cy="620" r="1500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8e8e94" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="#4a4a50" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bodyFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#18181b"/>
+      <stop offset="1" stop-color="#060607"/>
+    </linearGradient>
+    <!-- Rim paint: strongest at screen center, fading to the sides. -->
+    <linearGradient id="rim" x1="0" y1="0" x2="3840" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.2"/>
+    </linearGradient>
+
+    <filter id="glow" x="-10%" y="-30%" width="120%" height="160%">
+      <feGaussianBlur stdDeviation="90"/>
+    </filter>
+    <filter id="shade" x="-10%" y="-30%" width="120%" height="160%">
+      <feGaussianBlur stdDeviation="140"/>
+    </filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="noise"/>
+      <feColorMatrix in="noise" type="matrix"
+        values="0 0 0 0 1
+                0 0 0 0 1
+                0 0 0 0 1
+                0 0 0 0.05 0"/>
+    </filter>
+  </defs>
+
+  <rect width="3840" height="2400" fill="url(#sky)"/>
+  <rect width="3840" height="2400" fill="url(#key)"/>
+
+  <!-- Fold A: rises to the upper right. -->
+  <g clip-path="url(#clipA)">
+    <use href="#bodyA" fill="url(#bodyFill)"/>
+    <use href="#edgeA" fill="none" stroke="url(#rim)" stroke-width="420" opacity="0.30" filter="url(#glow)"/>
+  </g>
+  <use href="#edgeA" fill="none" stroke="url(#rim)" stroke-width="2.5" opacity="0.55"/>
+
+  <!-- Fold B: falls to the lower right and crosses A behind the panels.
+       Its crest casts a soft shadow onto A before the lit edge. -->
+  <use href="#edgeB" fill="none" stroke="#000000" stroke-width="260" opacity="0.55" filter="url(#shade)" transform="translate(0 -90)"/>
+  <g clip-path="url(#clipB)">
+    <use href="#bodyB" fill="url(#bodyFill)"/>
+    <use href="#edgeB" fill="none" stroke="url(#rim)" stroke-width="520" opacity="0.38" filter="url(#glow)"/>
+    <!-- Pleats: offset copies of B's edge, fading with distance from the crest. -->
+    <g fill="none" stroke="url(#rim)" stroke-width="2">
+      <use href="#edgeB" transform="translate(0 150)" opacity="0.16"/>
+      <use href="#edgeB" transform="translate(0 330)" opacity="0.11"/>
+      <use href="#edgeB" transform="translate(0 540)" opacity="0.07"/>
+      <use href="#edgeB" transform="translate(0 780)" opacity="0.04"/>
+    </g>
+  </g>
+  <use href="#edgeB" fill="none" stroke="url(#rim)" stroke-width="3" opacity="0.7"/>
+
+  <!-- Soft shadow pooling along the bottom edge. -->
+  <ellipse cx="1920" cy="2560" rx="2600" ry="640" fill="#000000" opacity="0.7" filter="url(#shade)"/>
+
+  <rect width="3840" height="2400" filter="url(#grain)"/>
+</svg>

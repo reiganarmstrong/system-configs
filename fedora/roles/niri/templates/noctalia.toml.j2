@@ -1,0 +1,250 @@
+# {{ ansible_managed }}
+# Source: fedora/roles/niri/templates/noctalia.toml.j2. Ansible rewrites this
+# file on every run. Noctalia merges every *.toml in this folder in
+# alphabetical order, so a file that sorts later (for example local.toml) can
+# override these values. Changes made in Noctalia's Settings window are saved
+# to ~/.local/state/noctalia/settings.toml, which wins over both and which
+# Ansible never touches.
+# Reference: https://docs.noctalia.dev/noctalia/configuration/
+
+[shell]
+font_family = "Inter"
+corner_radius_scale = 1.0
+# Panels close with Escape or an outside click. This native setting also
+# hides close controls on Noctalia notifications, dialogs and Settings.
+show_close_buttons = false
+telemetry_enabled = false
+# The role supplies the initial theme and wallpaper; the interactive wizard
+# starts from built-in palette choices instead of this custom palette.
+setup_wizard_enabled = false
+# Noctalia is the session's polkit authentication agent; no other agent runs.
+polkit_agent = true
+niri_overview_close_on_launch_enabled = true
+
+[shell.panel]
+transparency_mode = "glass"
+borders = true
+border_color = "outline_variant"
+border_width = 1.0
+shadow = true
+# Floating glass menus have their own Overlay layer, so they remain accessible
+# when Niri covers the Top-layer bar with a fullscreen app. They stay close to
+# the bar with rounded corners; clicks anchor menus beneath their widgets.
+floating_layer = "overlay"
+launcher_placement = "floating"
+# App search opens in the middle of the screen, not under the bar.
+launcher_position = "center"
+clipboard_placement = "floating"
+clipboard_position = "center"
+control_center_placement = "floating"
+control_center_position = "auto"
+wallpaper_placement = "floating"
+wallpaper_position = "auto"
+session_placement = "floating"
+session_position = "auto"
+floating_offset = 0
+open_near_click_control_center = true
+open_near_click_session = true
+
+[shell.shadow]
+direction = "down"
+alpha = 0.6
+
+[shell.launcher]
+layout = "simple"
+# No category chip row above the results; search covers it.
+categories = false
+show_app_origin_indicator = false
+fetch_exchange_rates = false
+
+[shell.screenshot]
+directory = "{{ desktop_home }}/Pictures/Screenshots"
+copy_to_clipboard = true
+save_to_file = true
+
+# Home (from the clock) keeps the tab sidebar. Opened straight to one tab from
+# a status widget, the control center shows just that tab, without the
+# sidebar, as a narrower card of the same height.
+[control_center]
+sidebar = "compact"
+sidebar_section = "none"
+
+[theme]
+mode = "dark"
+source = "custom"
+custom_palette = "Graphite"
+# Color templates for other apps stay off: GTK, Qt, Ghostty and Starship get
+# stable, hand-written configs from Ansible instead of generated CSS.
+[theme.templates]
+enable_builtin_templates = false
+enable_community_templates = false
+
+[wallpaper]
+enabled = true
+fill_mode = "crop"
+fill_color = "#0a0a0b"
+directory = "{{ desktop_home }}/.local/share/backgrounds"
+transition = ["fade"]
+transition_duration = 600
+
+[wallpaper.default]
+path = {{ niri_wallpaper_path | to_json }}
+
+# The wallpaper is placed on Niri's backdrop (see config.kdl), so Noctalia's
+# separate backdrop layer stays off.
+[backdrop]
+enabled = false
+
+[notification]
+background_opacity = 0.78
+border = true
+border_color = "outline_variant"
+offset_x = 16
+offset_y = 12
+
+[osd]
+position = "bottom_center"
+background_opacity = 0.78
+border = true
+border_color = "outline_variant"
+
+[lockscreen]
+enabled = true
+lock_before_suspend = true
+blurred_desktop = false
+transition = ["fade"]
+transition_duration = 500
+blur_intensity = 0.7
+tint_intensity = 0.45
+
+[idle]
+behavior_order = ["lock", "screen-off", "suspend"]
+pre_action_fade_seconds = 3.0
+
+[idle.behavior.lock]
+action = "lock"
+timeout = {{ niri_idle_lock_seconds }}
+enabled = {{ (niri_idle_lock_seconds | int > 0) | lower }}
+
+[idle.behavior.screen-off]
+action = "screen_off"
+timeout = {{ niri_idle_screen_off_seconds }}
+enabled = {{ (niri_idle_screen_off_seconds | int > 0) | lower }}
+
+[idle.behavior.suspend]
+action = "lock_and_suspend"
+timeout = {{ niri_idle_suspend_seconds }}
+enabled = {{ (niri_idle_suspend_seconds | int > 0) | lower }}
+
+[bar.main]
+position = "top"
+# Niri covers the bar during fullscreen. Menus stay on their own Overlay layer.
+layer = "top"
+reserve_space = true
+thickness = 34
+# A plain black strip across the full width. Floating menus use glass styling
+# independently, with no opacity or stacking inherited from this bar.
+background_opacity = 1.0
+compositor_blur = false
+shadow = false
+border_width = 0.0
+radius = 0
+concave_edge_corners = false
+margin_edge = 0
+margin_ends = 0
+padding = 12
+# Give the status glyphs room without changing the clock or workspace pills.
+widget_spacing = 8
+capsule = false
+font_weight = 500
+hover_highlight = true
+show_tooltip = true
+# The clock is alone in the center lane, so it stays centered on the output
+# however wide the side lanes get. Status widgets each open their own
+# control-center tab (Network, Audio, Bluetooth, Power, ...) by default.
+start = ["workspaces"]
+center = ["clock"]
+end = ["media", "tray", "notifications", "network", "bluetooth", "volume", "brightness", "battery", "session"]
+
+[widget.clock]
+format = "{:%H:%M}"
+tooltip_format = "{:%A, %B %d}"
+font_weight = 600
+
+[widget.clock.actions]
+left = "panel-toggle control-center home"
+
+# Numbered pills. The active one is white with dark text and only slightly
+# longer than the round inactive ones; occupied workspaces get a lighter gray
+# fill than empty ones. A fixed white active fill keeps this pill independent
+# of the softer launcher selection; Noctalia derives dark label text from it.
+# The other fills use palette roles with their matching text colors.
+[widget.workspaces]
+style = "regular"
+show_labels = true
+label_source = "id"
+active_pill_size = 1.5
+inactive_pill_size = 1.0
+focused_color = "#f2f2f3"
+occupied_color = "outline_variant"
+empty_color = "hover"
+
+[widget.media]
+scale = 1.25
+album_art_only = true
+hide_when_no_media = true
+
+[widget.network]
+scale = 1.25
+show_label = false
+
+[widget.volume]
+scale = 1.25
+show_label = false
+
+[widget.bluetooth]
+scale = 1.25
+show_label = false
+# Stays visible so its tab is one click away for pairing. It still hides on
+# machines without a Bluetooth adapter.
+hide_when_no_connected_device = false
+
+[widget.battery]
+display_mode = "graphic"
+show_label = true
+
+[widget.notifications]
+scale = 1.25
+hide_when_no_unread = true
+
+[widget.tray]
+scale = 1.25
+drawer = true
+detached_panel = true
+
+# Native Tabler glyphs have no configurable stroke weight. Scale only the
+# status widgets to 20 px; the graphic battery already has a heavier outline.
+[widget.brightness]
+scale = 1.25
+
+[widget.session]
+scale = 1.25
+
+[dock]
+enabled = true
+position = "bottom"
+# The built-in button always opens Noctalia search; Mod+Space uses Fuzzel.
+launcher_position = "none"
+icon_size = 44
+background_opacity = 0.62
+compositor_blur = true
+radius = 18
+margin_edge = 8
+shadow = true
+auto_hide = true
+reserve_space = false
+magnification = false
+show_dots = true
+show_instance_count = false
+inactive_opacity = 1.0
+pinned = {{ niri_dock_pinned | to_json }}

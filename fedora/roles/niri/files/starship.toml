@@ -1,0 +1,80 @@
+# Managed by Ansible (fedora/roles/niri/files/starship.toml).
+# Graphite: green for you and success, blue for paths, magenta for branches,
+# cyan for runtimes, yellow for dirty trees, red for failures/root/conflicts.
+# Plain ASCII, so it needs no Nerd Font.
+
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$nodejs\
+$python\
+$cmd_duration\
+$line_break\
+$character"""
+
+palette = "graphite"
+
+[palettes.graphite]
+text = "#ececee"
+subtext = "#a3a3a9"
+muted = "#8b8b94"
+user = "#5fd38a"
+path = "#5ea8ff"
+branch = "#c58cff"
+runtime = "#4fd6d0"
+success = "#5fd38a"
+warning = "#f2c55c"
+error = "#ff5f57"
+
+[username]
+show_always = true
+style_user = "user bold"
+style_root = "error bold"
+format = "[$user]($style) "
+
+[hostname]
+ssh_only = false
+style = "user"
+format = "[@$hostname]($style) "
+
+[directory]
+style = "path bold"
+format = "[$path]($style)[$read_only]($read_only_style) "
+read_only = " ro"
+read_only_style = "warning"
+truncation_length = 3
+truncate_to_repo = false
+
+[git_branch]
+style = "branch"
+format = "[git:$branch]($style) "
+
+[git_state]
+style = "error bold"
+format = "[$state( $progress_current/$progress_total)]($style) "
+
+[git_status]
+style = "warning bold"
+conflicted = "[=$count](error bold)"
+format = "([$all_status$ahead_behind]($style) )"
+
+[nodejs]
+style = "runtime"
+format = "[node $version]($style) "
+
+[python]
+style = "runtime"
+format = "[py $version( $virtualenv)]($style) "
+
+[cmd_duration]
+min_time = 1000
+style = "muted"
+format = "[took $duration]($style) "
+
+[character]
+success_symbol = "[>](success bold)"
+error_symbol = "[>](error bold)"

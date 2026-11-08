@@ -1,0 +1,8 @@
+---
+# VM-only. Matches the previously used MacBook logical desktop at 1x.
+# Native Framework installs keep niri_outputs: [] and automatic display setup.
+niri_outputs:
+  - name: Virtual-1
+    mode: 1512x982@60
+    mode_custom: true
+    scale: 1

@@ -66,9 +66,10 @@
     - zshrc
     - zshenv
 
+# A profile that includes this file can point desktop_starship_config_src at its own prompt.
 - name: Install the Starship prompt configuration
   ansible.builtin.copy:
-    src: starship.toml
+    src: "{{ desktop_starship_config_src | default('starship.toml') }}"
     dest: "{{ desktop_home }}/.config/starship.toml"
     owner: "{{ desktop_user }}"
     group: "{{ desktop_group }}"

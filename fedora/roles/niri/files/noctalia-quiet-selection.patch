@@ -1,0 +1,70 @@
+--- a/src/shell/panel/panel_button_style.h
++++ b/src/shell/panel/panel_button_style.h
+@@ -1,6 +1,7 @@
+ #pragma once
+ 
+ #include "ui/controls/button.h"
++#include "ui/palette.h"
+ #include "ui/style.h"
+ 
+ namespace panel_button_style {
+@@ -14,4 +15,35 @@
+     button.setRadius(Style::scaledRadiusMd(scale));
+   }
+ 
++  // Control-center toggles and the active sidebar tab. An active item keeps a solid OnSurface
++  // fill with Surface ink (white on dark themes, near-black on light) through hover and press;
++  // those states only let the panel show through a little, so ink never flips. An inactive
++  // press is a one-step lift instead of the Primary flash. Roles only, so theme switches follow.
++  // Callers must re-apply this after every setVariant(), which drops custom palettes.
++  inline Button::ButtonPalette quietPalette(ButtonVariant base, bool on) {
++    Button::ButtonPalette palette = Button::defaultPalette(base);
++    const auto active = [](float alpha) {
++      return Button::ButtonStateColors{
++          .bg = colorSpecFromRole(ColorRole::OnSurface, alpha),
++          .border = clearColorSpec(),
++          .label = colorSpecFromRole(ColorRole::Surface),
++      };
++    };
++    if (on) {
++      palette.normal = active(1.0F);
++      palette.hover = active(1.0F);
++      palette.pressed = active(0.88F);
++    } else {
++      palette.pressed = {
++          .bg = colorSpecFromRole(ColorRole::SurfaceContainerHighest),
++          .border = colorSpecFromRole(ColorRole::OutlineVariant),
++          .label = colorSpecFromRole(ColorRole::OnSurface),
++      };
++    }
++    if (palette.selected.has_value()) {
++      palette.selected = active(1.0F);
++    }
++    return palette;
++  }
++
+ } // namespace panel_button_style
+--- a/src/shell/control_center/tabs/home_tab.cpp
++++ b/src/shell/control_center/tabs/home_tab.cpp
+@@ -133,7 +133,8 @@
+ 
+   void applyShortcutButtonStyle(Button& button, bool enabled, bool active, float fillOpacity) {
+     const bool on = enabled && active;
+-    button.setVariant(on ? ButtonVariant::Primary : ButtonVariant::Default);
++    button.setVariant(ButtonVariant::Default);
++    button.setCustomPalette(panel_button_style::quietPalette(ButtonVariant::Default, on));
+     button.setSurfaceOpacity(on ? 1.0F : fillOpacity);
+     button.setEnabled(enabled);
+   }
+--- a/src/shell/control_center/control_center_panel.cpp
++++ b/src/shell/control_center/control_center_panel.cpp
+@@ -596,6 +596,9 @@
+     if (m_tabButtons[idx] != nullptr) {
+       m_tabButtons[idx]->setVisible(tabEnabled);
+       m_tabButtons[idx]->setVariant(meta.id == tab ? ButtonVariant::TabActive : ButtonVariant::Tab);
++      if (meta.id == tab) {
++        m_tabButtons[idx]->setCustomPalette(panel_button_style::quietPalette(ButtonVariant::TabActive, true));
++      }
+     }
+     if (meta.id == tab && m_contentTitle != nullptr) {
+       m_contentTitle->setText(i18n::tr(meta.titleKey));

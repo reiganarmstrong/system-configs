@@ -1,0 +1,71 @@
+--- a/src/shell/panel/panel_manager.cpp
++++ b/src/shell/panel/panel_manager.cpp
+@@ -1528,9 +1528,9 @@
+       );
+     } else {
+       m_animations.cancelForOwner(m_sceneRoot.get());
+       m_animations.animate(
+-          m_detachedRevealProgress, 0.0F, Style::animNormal, Easing::EaseInQuad,
++          m_detachedRevealProgress, 0.0F, 150.0F, Easing::EaseOutQuad,
+           [this](float v) { applyDetachedReveal(v); },
+           [this, gen] {
+             DeferredCall::callLater([this, gen] {
+               if (m_destroyGeneration == gen) {
+@@ -2280,24 +2280,11 @@
+   float clipY = spanY;
+   float clipW = surfaceW;
+   float clipH = spanH;
+ 
+-  switch (m_detachedRevealDirection) {
+-  case AttachedRevealDirection::Down:
+-    clipH = std::round(spanH * m_detachedRevealProgress);
+-    break;
+-  case AttachedRevealDirection::Up:
+-    clipH = std::round(spanH * m_detachedRevealProgress);
+-    clipY = spanY + spanH - clipH;
+-    break;
+-  case AttachedRevealDirection::Right:
+-    clipW = std::round(surfaceW * m_detachedRevealProgress);
+-    break;
+-  case AttachedRevealDirection::Left:
+-    clipW = std::round(surfaceW * m_detachedRevealProgress);
+-    clipX = surfaceW - clipW;
+-    break;
+-  }
++  // Keep the complete card stationary and fade its whole scene, including the
++  // background, border and shadow. Descendant text must not fade twice.
++  m_sceneRoot->setOpacity(m_detachedRevealProgress);
+ 
+   if (m_detachedRevealClipNode != nullptr && m_detachedRevealContentNode != nullptr) {
+     m_detachedRevealClipNode->setPosition(clipX, clipY);
+     m_detachedRevealClipNode->setFrameSize(clipW, clipH);
+@@ -2305,9 +2292,17 @@
+     m_detachedRevealContentNode->setFrameSize(surfaceW, surfaceH);
+   }
+ 
+   if (m_contentNode != nullptr) {
+-    m_contentNode->setOpacity(panelRevealContentOpacity(m_detachedRevealProgress));
++    m_contentNode->setOpacity(1.0F);
++  }
++  // Compositor blur has no opacity control. Retract it while the card is
++  // faint, so an invisible panel cannot leave a bare frosted rectangle.
++  if (m_detachedRevealProgress < 0.4F) {
++    if (m_surface != nullptr) {
++      m_surface->clearBlurRegion();
++    }
++    return;
+   }
+   applyPanelCompositorBlur(
+       m_panelInsetX, m_panelInsetY, static_cast<int>(m_panelVisualWidth), static_cast<int>(m_panelVisualHeight),
+       static_cast<int>(std::lround(clipX)), static_cast<int>(std::lround(clipY)), static_cast<int>(std::lround(clipW)),
+@@ -2739,9 +2734,9 @@
+       m_attachedOpenAnimationPending = true;
+     } else {
+       applyDetachedReveal(0.0F);
+       m_animations.animate(
+-          0.0F, 1.0F, Style::animNormal, Easing::EaseOutCubic, [this](float v) { applyDetachedReveal(v); }, {},
++          0.0F, 1.0F, 150.0F, Easing::EaseOutCubic, [this](float v) { applyDetachedReveal(v); }, {},
+           m_sceneRoot.get()
+       );
+     }
+ 

@@ -1,0 +1,233 @@
+---
+- name: Read the installed Noctalia package version
+  ansible.builtin.command:
+    argv: [rpm, -q, --qf, '%{VERSION}|%{RELEASE}|%{ARCH}', noctalia]
+  register: niri_noctalia_rpm
+  changed_when: false
+  check_mode: false
+  failed_when: niri_noctalia_rpm.rc != 0 and not ansible_check_mode
+
+- name: Predict the custom package on a fresh dry run
+  ansible.builtin.debug:
+    msg: Noctalia will be installed first, then rebuilt from Fedora's signed source with the checked panel fade patch.
+  changed_when: true
+  when:
+    - niri_noctalia_panel_fade_enabled | bool
+    - niri_noctalia_rpm.rc != 0
+    - ansible_check_mode
+
+- name: Restore the distribution Noctalia package when the fade is disabled
+  ansible.builtin.command:
+    argv: [dnf, --assumeyes, --setopt=install_weak_deps=False, distro-sync, noctalia]
+  register: niri_noctalia_stock_restored
+  changed_when: true
+  when:
+    - not (niri_noctalia_panel_fade_enabled | bool)
+    - niri_noctalia_rpm.rc == 0
+    - "'.graphite.' in niri_noctalia_rpm.stdout"
+
+- name: Explain when the restored stock shell needs restarting
+  ansible.builtin.debug:
+    msg: The distribution Noctalia package was restored. Restart the shell from an unlocked session, or log out and back in, to load the stock binary.
+  when: niri_noctalia_stock_restored is changed
+
+- name: Prepare the versioned Noctalia fade build
+  when:
+    - niri_noctalia_panel_fade_enabled | bool
+    - niri_noctalia_rpm.rc == 0
+  block:
+    - name: Fingerprint the local patch and build helper
+      ansible.builtin.stat:
+        path: "{{ role_path }}/files/{{ item }}"
+        checksum_algorithm: sha256
+        get_mime: false
+      delegate_to: localhost
+      become: false
+      loop: [noctalia-floating-panel-fade.patch, noctalia-quiet-selection.patch, noctalia-upower-test-lifetime.patch, build-noctalia-fade.py]
+      register: niri_noctalia_fade_inputs
+
+    - name: Select the matching Fedora source and local build identity
+      ansible.builtin.set_fact:
+        niri_noctalia_fade_version: "{{ niri_noctalia_rpm.stdout.split('|')[0] }}"
+        niri_noctalia_fade_base_release: "{{ niri_noctalia_rpm.stdout.split('|')[1] | regex_replace('\\.graphite\\.[0-9a-f]{12}$', '') }}"
+        niri_noctalia_fade_id: "{{ ((niri_noctalia_fade_inputs.results | map(attribute='stat.checksum') | join(':')) | hash('sha256'))[:12] }}"
+        niri_noctalia_fade_cache: "{{ desktop_home }}/.cache/noctalia-fade"
+
+    - name: Select the source RPM and expected custom release
+      ansible.builtin.set_fact:
+        niri_noctalia_fade_source: "noctalia-{{ niri_noctalia_fade_version }}-{{ niri_noctalia_fade_base_release }}.src.rpm"
+        niri_noctalia_fade_release: "{{ niri_noctalia_fade_base_release }}.graphite.{{ niri_noctalia_fade_id }}"
+
+    - name: Read the Fedora release package's signing key
+      ansible.builtin.command:
+        argv: [rpm, -q, --qf, '%{RSAHEADER:pgpsig}', fedora-release-common]
+      register: niri_fedora_release_signature
+      changed_when: false
+      check_mode: false
+
+    - name: Require a signed Fedora release package
+      ansible.builtin.assert:
+        that: niri_fedora_release_signature.stdout is search('Key ID [0-9a-fA-F]{16}')
+        fail_msg: Cannot identify Fedora's signing key from fedora-release-common. Review the source RPM download before building.
+
+    - name: Select Fedora's signed source archive directory
+      ansible.builtin.set_fact:
+        niri_noctalia_fedora_key: "{{ ((niri_fedora_release_signature.stdout | regex_search('Key ID ([0-9a-fA-F]{16})', '\\1')) | first | lower)[-8:] }}"
+
+    - name: Build and install only when the source or patch changed
+      when:
+        - niri_noctalia_rpm.stdout.split('|')[1] != niri_noctalia_fade_release
+        - not ansible_check_mode
+      block:
+        - name: Create the Noctalia build cache
+          ansible.builtin.file:
+            path: "{{ niri_noctalia_fade_cache }}/sources"
+            state: directory
+            owner: "{{ desktop_user }}"
+            group: "{{ desktop_group }}"
+            mode: '0755'
+
+        # Immutable Fedora build URL. The builder requires a source RPM whose
+        # signature verifies against this installation's trusted RPM keys.
+        - name: Download the matching Fedora source RPM
+          ansible.builtin.get_url:
+            url: "https://kojipkgs.fedoraproject.org/packages/noctalia/{{ niri_noctalia_fade_version }}/{{ niri_noctalia_fade_base_release }}/data/signed/{{ niri_noctalia_fedora_key }}/src/{{ niri_noctalia_fade_source }}"
+            dest: "{{ niri_noctalia_fade_cache }}/sources/{{ niri_noctalia_fade_source }}"
+            owner: "{{ desktop_user }}"
+            group: "{{ desktop_group }}"
+            mode: '0644'
+            timeout: 120
+
+        - name: Install the RPM build tools
+          ansible.builtin.dnf:
+            name: [rpm-build, git-core]
+            state: present
+            install_weak_deps: false
+
+        - name: Publish the checked patch and build helper
+          ansible.builtin.copy:
+            src: "{{ item }}"
+            dest: "{{ niri_noctalia_fade_cache }}/{{ item }}"
+            owner: "{{ desktop_user }}"
+            group: "{{ desktop_group }}"
+            mode: '0644'
+          loop: [noctalia-floating-panel-fade.patch, noctalia-quiet-selection.patch, noctalia-upower-test-lifetime.patch, build-noctalia-fade.py]
+
+        - name: Inspect the downloaded source RPM
+          ansible.builtin.stat:
+            path: "{{ niri_noctalia_fade_cache }}/sources/{{ niri_noctalia_fade_source }}"
+          register: niri_noctalia_source_file
+
+        - name: Verify Fedora's source RPM signature before reading dependencies
+          ansible.builtin.command:
+            argv: [rpmkeys, --checksig, "{{ niri_noctalia_fade_cache }}/sources/{{ niri_noctalia_fade_source }}"]
+          environment: { LC_ALL: C }
+          register: niri_noctalia_source_signature
+          changed_when: false
+          check_mode: false
+          failed_when: niri_noctalia_source_signature.rc != 0 or 'digests signatures OK' not in niri_noctalia_source_signature.stdout
+          when: niri_noctalia_source_file.stat.exists
+
+        - name: Read Fedora's declared build dependencies
+          ansible.builtin.command:
+            argv: [rpm, -qp, --requires, "{{ niri_noctalia_fade_cache }}/sources/{{ niri_noctalia_fade_source }}"]
+          register: niri_noctalia_build_requires
+          changed_when: false
+          check_mode: false
+          when: niri_noctalia_source_file.stat.exists
+
+        - name: Install Fedora's declared build dependencies
+          ansible.builtin.dnf:
+            name: "{{ niri_noctalia_build_requires.stdout_lines | reject('match', '^rpmlib') | list }}"
+            state: present
+            install_weak_deps: false
+          when: niri_noctalia_source_file.stat.exists
+
+        - name: Rebuild Noctalia as the regular desktop account
+          become: true
+          become_user: "{{ desktop_user }}"
+          ansible.builtin.command:
+            argv:
+              - /usr/bin/python3
+              - "{{ niri_noctalia_fade_cache }}/build-noctalia-fade.py"
+              - --source
+              - "{{ niri_noctalia_fade_cache }}/sources/{{ niri_noctalia_fade_source }}"
+              - --patch
+              - "{{ niri_noctalia_fade_cache }}/noctalia-floating-panel-fade.patch"
+              - --selection-patch
+              - "{{ niri_noctalia_fade_cache }}/noctalia-quiet-selection.patch"
+              - --test-patch
+              - "{{ niri_noctalia_fade_cache }}/noctalia-upower-test-lifetime.patch"
+              - --cache
+              - "{{ niri_noctalia_fade_cache }}"
+              - --jobs
+              - "{{ niri_noctalia_build_jobs | string }}"
+          register: niri_noctalia_fade_build
+          changed_when: (niri_noctalia_fade_build.stdout | from_json).changed
+          when: not ansible_check_mode
+
+        - name: Require the build artifact to match the requested inputs
+          ansible.builtin.assert:
+            that:
+              - (niri_noctalia_fade_build.stdout | from_json).version == niri_noctalia_fade_version
+              - (niri_noctalia_fade_build.stdout | from_json).release == niri_noctalia_fade_release
+              - (niri_noctalia_fade_build.stdout | from_json).build_id == niri_noctalia_fade_id
+            fail_msg: The build returned a different package identity. Rerun after checking the source and patch inputs.
+          when: not ansible_check_mode
+
+        - name: Recheck the upstream package did not change during the build
+          ansible.builtin.command:
+            argv: [rpm, -q, --qf, '%{VERSION}|%{RELEASE}', noctalia]
+          register: niri_noctalia_before_install
+          changed_when: false
+          when: not ansible_check_mode
+
+        - name: Refuse to downgrade a newer upstream package
+          ansible.builtin.assert:
+            that:
+              - niri_noctalia_before_install.stdout.split('|')[0] == niri_noctalia_fade_version
+              - (niri_noctalia_before_install.stdout.split('|')[1] | regex_replace('\\.graphite\\.[0-9a-f]{12}$', '')) == niri_noctalia_fade_base_release
+            fail_msg: Noctalia changed while building. Rerun the playbook to patch the newly installed upstream package.
+          when: not ansible_check_mode
+
+        # Only this locally built artifact is unsigned. Repository signature
+        # checks remain enabled; its Fedora source signature was checked above.
+        - name: Install the locally rebuilt Noctalia RPM
+          ansible.builtin.dnf:
+            name: "{{ (niri_noctalia_fade_build.stdout | from_json).rpm }}"
+            state: present
+            disable_gpg_check: true
+            # Hashes are identities, not monotonically increasing RPM versions.
+            # The preceding assertion limits this to the same upstream package.
+            allow_downgrade: true
+            install_weak_deps: false
+          register: niri_noctalia_fade_installed
+          when: not ansible_check_mode
+
+        - name: Read back the installed custom package
+          ansible.builtin.command:
+            argv: [rpm, -q, --qf, '%{VERSION}|%{RELEASE}', noctalia]
+          register: niri_noctalia_after_install
+          changed_when: false
+          when: not ansible_check_mode
+
+        - name: Require the exact requested patched package
+          ansible.builtin.assert:
+            that: niri_noctalia_after_install.stdout == niri_noctalia_fade_version ~ '|' ~ niri_noctalia_fade_release
+            fail_msg: The requested patched Noctalia RPM was not installed. Check the package transaction before proceeding.
+          when: not ansible_check_mode
+
+        - name: Explain when the running shell needs restarting
+          ansible.builtin.debug:
+            msg: Noctalia's package changed. Restart the shell from an unlocked session, or log out and back in, to load the new binary. Existing app windows are not changed by provisioning.
+          when:
+            - not ansible_check_mode
+            - niri_noctalia_fade_installed.changed
+
+    - name: Report the pending rebuild in check mode
+      ansible.builtin.debug:
+        msg: "Would build and install Noctalia {{ niri_noctalia_fade_version }}-{{ niri_noctalia_fade_release }} with the floating-panel fade and quiet Control Center selections. Build dependencies and compilation are checked during the normal run."
+      changed_when: true
+      when:
+        - ansible_check_mode
+        - niri_noctalia_rpm.stdout.split('|')[1] != niri_noctalia_fade_release

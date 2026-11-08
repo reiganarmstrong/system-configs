@@ -2,6 +2,8 @@
 
 Ansible configures Fedora Workstation's GNOME with the [PaperWM](https://github.com/paperwm/PaperWM) scrolling window manager, stock GNOME styling and macOS-style icons. The Fedora VM is the rehearsal for installing the same desktop on a Framework laptop after the Fedora installer finishes.
 
+This page covers the GNOME profile (`desktop.yml`). A second profile, `niri.yml`, sets up the Niri scrolling compositor with the Noctalia shell in a monochrome Graphite look, alongside GNOME. It reuses this profile's apps and shell setup. See [NIRI.md](NIRI.md).
+
 The `desktop` role owns the GNOME packages, PaperWM, icons, wallpaper, key bindings, portals, audio services and default login session. Both the VM and native laptop execute that role. Changes made while experimenting belong in the role and are reapplied with Ansible.
 
 ## Native Fedora installation

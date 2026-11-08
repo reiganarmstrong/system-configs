@@ -1,0 +1,111 @@
+---
+# Files Ansible owns are rewritten on every run (see "Personalizing" in
+# fedora/NIRI.md). Each one has a personal override that Ansible never touches:
+#   ~/.config/niri/local.kdl                  (included last by config.kdl)
+#   ~/.config/noctalia/<later name>.toml      (merged after 00-fedora-niri.toml)
+#   ~/.local/state/noctalia/settings.toml     (Noctalia's Settings window)
+
+- name: Fingerprint the bundled wallpaper
+  ansible.builtin.stat:
+    path: "{{ role_path }}/files/wallpaper-fedora.png"
+    checksum_algorithm: sha256
+    get_mime: false
+  delegate_to: localhost
+  become: false
+  register: niri_wallpaper_asset
+
+- name: Select the wallpaper path for the bundled image
+  ansible.builtin.set_fact:
+    niri_wallpaper_path: "{{ desktop_home }}/.local/share/backgrounds/fedora-niri-fetch-{{ niri_wallpaper_asset.stat.checksum[:12] }}.png"
+
+# Niri live-reloads its config, so a running session picks up changes. The
+# validate step rejects a config this Niri version can't parse before it lands.
+- name: Configure Niri
+  ansible.builtin.template:
+    src: config.kdl.j2
+    dest: "{{ desktop_home }}/.config/niri/config.kdl"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    validate: niri validate -c %s
+
+- name: Configure the flat app launcher
+  ansible.builtin.template:
+    src: fuzzel.ini.j2
+    dest: "{{ desktop_home }}/.config/fuzzel/fuzzel.ini"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    validate: fuzzel --config=%s --check-config
+
+- name: Install the Graphite Noctalia palette
+  ansible.builtin.copy:
+    src: Graphite.json
+    dest: "{{ desktop_home }}/.config/noctalia/palettes/Graphite.json"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+# Read before /usr/share/xdg-desktop-portal/niri-portals.conf, and only in
+# sessions whose XDG_CURRENT_DESKTOP is niri, so GNOME keeps its own portals.
+- name: Use oo7 for the Secret portal in Niri sessions
+  ansible.builtin.copy:
+    src: niri-portals.conf
+    dest: "{{ desktop_home }}/.config/xdg-desktop-portal/niri-portals.conf"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+# Noctalia scales and crops this static raster itself. Include its content hash
+# in the installed filename so updated artwork bypasses its image cache.
+- name: Install the Fedora fetch wallpaper
+  ansible.builtin.copy:
+    src: wallpaper-fedora.png
+    dest: "{{ niri_wallpaper_path }}"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+# Publish the config after its wallpaper exists so live reload can load it.
+# 00- sorts first, so any other *.toml the user adds in the folder overrides it.
+- name: Configure Noctalia
+  ansible.builtin.template:
+    src: noctalia.toml.j2
+    dest: "{{ desktop_home }}/.config/noctalia/00-fedora-niri.toml"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    validate: noctalia config validate %s
+
+# The packaged "Noctalia" entry only runs `noctalia --daemon`, which does
+# nothing while Niri's copy of the shell is running, so it looked broken in the
+# launcher. A same-named user entry with NoDisplay hides it from launchers
+# (Noctalia's own included) without editing the package's file. Settings stay
+# on Super+,.
+- name: Hide the Noctalia daemon entry from app search
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (fedora/roles/niri/tasks/session.yml).
+      # Hides /usr/share/applications/dev.noctalia.Noctalia.desktop from launchers.
+      [Desktop Entry]
+      Type=Application
+      Name=Noctalia
+      Exec=noctalia --daemon
+      NoDisplay=true
+    dest: "{{ desktop_home }}/.local/share/applications/dev.noctalia.Noctalia.desktop"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+
+- name: Enable Bluetooth
+  ansible.builtin.systemd_service:
+    name: bluetooth
+    enabled: true
+
+- name: Enable printing and local printer discovery
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+  loop:
+    - cups.socket
+    - avahi-daemon.service

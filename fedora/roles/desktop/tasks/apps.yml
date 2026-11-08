@@ -56,9 +56,10 @@
     group: "{{ desktop_group }}"
     mode: '0755'
 
+# A profile that includes this file can point desktop_ghostty_config_src at its own config.
 - name: Configure Ghostty
   ansible.builtin.copy:
-    src: ghostty.config
+    src: "{{ desktop_ghostty_config_src | default('ghostty.config') }}"
     dest: "{{ desktop_home }}/.config/ghostty/config"
     owner: "{{ desktop_user }}"
     group: "{{ desktop_group }}"
@@ -148,7 +149,7 @@
       Name=T3 Code
       Comment=Desktop app for coding agents
       Exec={{ desktop_home }}/Applications/T3-Code.AppImage %U
-      Icon={{ desktop_home }}/.local/share/fedora-desktop/t3code.png
+      Icon={{ desktop_t3code_icon | default(desktop_home ~ '/.local/share/fedora-desktop/t3code.png') }}
       Terminal=false
       Type=Application
       StartupWMClass=t3code

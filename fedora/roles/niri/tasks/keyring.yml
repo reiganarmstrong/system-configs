@@ -1,0 +1,57 @@
+---
+# Fedora ships oo7 disabled, with no D-Bus activation file. GDM's PAM helper
+# holds the login password for 120 seconds, so the graphical session must
+# start the daemon in time for it to collect that password.
+- name: Order the keyring after Niri and stop it with the graphical session
+  ansible.builtin.copy:
+    dest: "{{ desktop_home }}/.config/systemd/user/oo7-daemon.service.d/niri.conf"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+    mode: '0644'
+    content: |
+      [Unit]
+      After=niri.service
+      PartOf=graphical-session.target
+
+# Attach to Niri instead of the vendor unit's default.target so an SSH login
+# does not start the daemon before GDM has captured a password. GNOME keeps
+# its own startup policy, and can still start the same vendor service.
+- name: Enable the keyring for Niri logins
+  ansible.builtin.file:
+    src: /usr/lib/systemd/user/oo7-daemon.service
+    dest: "{{ desktop_home }}/.config/systemd/user/niri.service.wants/oo7-daemon.service"
+    state: link
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_group }}"
+
+- name: Check whether the account has a running user manager
+  ansible.builtin.stat:
+    path: "/run/user/{{ desktop_uid }}/bus"
+  register: niri_user_bus
+
+- name: Update the running user manager
+  become: true
+  become_user: "{{ desktop_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ desktop_uid }}"
+  when: niri_user_bus.stat.exists
+  block:
+    - name: Reload the user service configuration
+      ansible.builtin.systemd_service:
+        scope: user
+        daemon_reload: true
+
+    - name: Check whether Niri is running
+      ansible.builtin.command:
+        argv: [systemctl, --user, is-active, niri.service]
+      register: niri_running_session
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Start the keyring in an existing Niri session
+      ansible.builtin.systemd_service:
+        scope: user
+        name: oo7-daemon.service
+        state: started
+      when: niri_running_session.rc == 0

@@ -17,6 +17,13 @@ plugins=(
 source "$ZSH/oh-my-zsh.sh"
 
 eval "$(starship init zsh)"
+{% if desktop_fastfetch_greeting | default(false) %}
+
+# Greet the first interactive shell of a terminal, not nested shells.
+if [[ -o interactive && $SHLVL -eq 1 ]] && command -v fastfetch >/dev/null; then
+    fastfetch
+fi
+{% endif %}
 
 alias sleep='sudo systemd-run --on-active=5s systemctl suspend && exit'
 alias mv='mv -i'

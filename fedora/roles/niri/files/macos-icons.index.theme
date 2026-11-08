@@ -1,0 +1,10 @@
+[Icon Theme]
+Name=Graphite macOS Light
+Comment=Selected macOSicons.com app icons; creator credits are in SOURCES.md
+Inherits=Papirus-Dark,Adwaita,hicolor
+Directories=1024x1024/apps
+
+[1024x1024/apps]
+Size=1024
+Context=Applications
+Type=Fixed

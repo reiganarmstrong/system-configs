@@ -1,0 +1,27 @@
+# Graphite macOS Light app icons
+
+{{ ansible_managed }}
+
+These icons were selected from [macOSicons.com](https://macosicons.com/) for personal customization. Each icon remains the property of its creator and the underlying brands retain their trademarks. Preserve the credits below. Do not resell the icons or present this selection as your own artwork or an icon-library product. A creator's specific license, if provided, governs that icon.
+
+[Site terms](https://macosicons.com/terms) · [API terms](https://macosicons.com/developers/terms)
+
+The original macOS icon files are downloaded with pinned checksums. An install-time Python tool extracts their native 1024×1024 PNG images without resizing, recoloring or re-encoding them. The manifest at `fedora/roles/niri/vars/macos-icons.yml` records source and PNG checksums. This light app-icon theme inherits Papirus-Dark, Adwaita and hicolor for folders, status symbols and apps installed later. The shell itself stays dark.
+
+All currently installed launcher apps have a selected icon. Zen uses the user-selected `0AeL19Hq0J` artwork. Semantic substitutes are deliberate: btop uses Activity Monitor, Online Accounts uses an account/profile icon, and Volume Control uses Sound Control. App names and launch commands stay unchanged. T3 Code uses official Nightly macOS artwork, documented separately below.
+
+| Linux icon name | Source artwork | Creator | Source SHA-256 |
+| --- | --- | --- | --- |
+{% for icon in niri_macos_icons %}
+| `{{ icon.name }}` | [{{ icon.title }}]({{ icon.page }}) | [{{ icon.creator }}]({{ icon.creator_url }}) | `{{ icon.sha256 }}` |
+{% endfor %}
+
+## Official app artwork
+
+These native PNGs are downloaded unchanged from their upstream projects at pinned revisions. The icon selection does not change the installed app's version or release channel. The manifest is `fedora/roles/niri/vars/official-icons.yml`.
+
+| Linux icon name | Source artwork | Copyright holder | Source SHA-256 | License notice |
+| --- | --- | --- | --- | --- |
+{% for icon in niri_official_icons %}
+| `{{ icon.name }}` | [{{ icon.title }}]({{ icon.page }}) | {{ icon.creator }} | `{{ icon.sha256 }}` | [{{ icon.license }}]({{ icon.name }}-LICENSE.txt) |
+{% endfor %}

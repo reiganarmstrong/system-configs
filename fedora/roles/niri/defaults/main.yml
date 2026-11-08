@@ -1,0 +1,154 @@
+---
+# Account that receives the Niri session. Defaults to the user running Ansible.
+niri_user: "{{ lookup('env', 'USER') }}"
+
+# Make Niri the session GDM preselects for niri_user. GNOME stays installed and
+# selectable from the gear menu on the login screen either way.
+niri_default_session: true
+
+# Install the same VPN as NixOS, without joining a tailnet automatically.
+niri_tailscale_enabled: true
+niri_tailscale_key_fingerprint: 2596A99EAAB33821893C0A79458CA832957F5868
+
+# Add fingerprint authentication to the current authselect profile, retaining
+# its existing features and password fallback. False leaves PAM policy alone.
+niri_fingerprint_pam_enabled: true
+
+# Rebuild Fedora's signed Noctalia source RPM with small floating-panel fade
+# and quiet Control Center patches. Reapplied after distro upgrades; false restores
+# the distribution package. Only a changed source/patch rebuilds the package.
+niri_noctalia_panel_fade_enabled: true
+# Roughly 3 GiB per job, capped at eight and at the available CPU count.
+niri_noctalia_build_jobs: "{{ [ansible_facts.processor_vcpus | int, [1, (ansible_facts.memtotal_mb | int) // 3072] | max, 8] | min }}"
+
+# Stock Fedora drivers and firmware for the Intel Framework 13 Pro. Weak
+# dependencies are disabled, so list the Intel firmware subpackages explicitly.
+niri_hardware_packages:
+  - kernel
+  - linux-firmware
+  - fwupd
+  - authselect
+  - fprintd
+  - fprintd-pam
+  - iwlwifi-mvm-firmware
+  - iwlbluetooth-firmware
+  - intel-gpu-firmware
+  - intel-audio-firmware
+  - alsa-sof-firmware
+  - alsa-ucm
+  - microcode_ctl
+  - pipewire-plugin-libcamera
+
+# Outputs. Empty lets Niri pick each display's mode and scale (it chooses a
+# fractional scale from the panel's DPI). To pin a display, list it by the
+# connector or make/model/serial that `niri msg outputs` prints, for example:
+#   niri_outputs:
+#     - name: eDP-1
+#       scale: 1.5
+#     - name: "Dell Inc. DELL U2723QE ABC123"
+#       mode: "3840x2160@60.000"
+#       scale: 1.75
+#       position: { x: 0, y: -1440 }
+niri_outputs: []
+
+niri_keyboard_layout: us
+niri_keyboard_options: ""
+
+# Idle behaviour, in seconds. 0 disables a step.
+niri_idle_lock_seconds: 300
+niri_idle_screen_off_seconds: 360
+# Locks, then suspends. Leave at 0 on desktops that should never sleep.
+niri_idle_suspend_seconds: 900
+
+# Apps pinned to the Noctalia dock, by desktop entry id (file name without .desktop).
+niri_dock_pinned:
+  - com.mitchellh.ghostty
+  - app.zen_browser.zen
+  - t3code
+
+niri_flatpaks:
+  - app.zen_browser.zen
+  - com.bitwarden.desktop
+
+# Official stable Zed bundle for the first install. Its native updater manages
+# later versions in the user's writable app directory, like T3 Code.
+niri_zed_version: 1.27.0
+niri_zed_sha256: 719f6bf649ea8d87961adbf728e178561bac3f598d72d7949558d1150cfc43dd
+
+niri_packages:
+  # Compositor and shell. Niri's weak dependencies (gnome-keyring, waybar,
+  # swaylock, alacritty) are skipped: Noctalia and oo7 replace them.
+  - niri
+  - xwayland-satellite
+  - noctalia
+  # App-only search has independent flat styling; Noctalia supplies the shell.
+  - fuzzel
+  - procps-ng
+  # Session plumbing.
+  - gdm
+  - xdg-desktop-portal
+  - xdg-desktop-portal-gnome
+  - xdg-desktop-portal-gtk
+  - xdg-user-dirs
+  - xdg-utils
+  - xdg-terminal-exec
+  - oo7-daemon
+  - oo7-portal
+  - pam_oo7
+  - polkit
+  - pipewire
+  - pipewire-pulseaudio
+  - wireplumber
+  - sound-theme-freedesktop
+  - NetworkManager-wifi
+  - bluez
+  - upower
+  # Either tuned-ppd (Workstation's default) or power-profiles-daemon; both
+  # provide the profiles API Noctalia drives. Naming the capability keeps
+  # whichever one is already installed.
+  - ppd-service
+  - gvfs
+  - wl-clipboard
+  - cups
+  - avahi
+  # Apps.
+  - flatpak
+  - nautilus
+  - gnome-calendar
+  - gnome-disk-utility
+  - seahorse
+  - system-config-printer
+  - pavucontrol
+  - gnome-online-accounts-gtk
+  - evolution-ews-core
+  - btop
+  - fastfetch
+  # Include Zed's Mesa Vulkan driver explicitly with weak deps disabled.
+  - mesa-vulkan-drivers
+  - libsecret
+  - rsync
+  # Developer tools, as in the GNOME profile. nodejs24-bin and nodejs24-npm-bin
+  # make Node 24 own node, npm and npx.
+  - git
+  - curl
+  - make
+  - zsh
+  - vim-enhanced
+  - nodejs24
+  - nodejs24-bin
+  - nodejs24-npm
+  - nodejs24-npm-bin
+  - pnpm
+  - uv
+  # Appearance.
+  - adw-gtk3-theme
+  - papirus-icon-theme
+  # Fedora packages Papirus-Dark, the variant dconf selects, separately.
+  - papirus-icon-theme-dark
+  - rsms-inter-fonts
+  - jetbrains-mono-fonts-all
+  - google-noto-sans-fonts
+  - google-noto-emoji-color-fonts
+  # Ansible's dconf module.
+  - dconf
+  - python3-psutil
