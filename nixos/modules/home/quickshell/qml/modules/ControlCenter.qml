@@ -53,9 +53,7 @@ Popup {
 
     // The panel is a 4-column grid: capsule toggles span two columns, small
     // toggles one, Now Playing two rows, and the sliders all four. The grid
-    // and pages share Theme.spacing.panel at the sides and top; the grid
-    // has Theme.bottomPadding below it, matching the space under a page's
-    // footer text.
+    // and pages share Theme.spacing.panel padding on every side.
     readonly property real padding: Theme.spacing.panel
     readonly property real gap: Theme.spacing.tile
     readonly property real panelWidth: Theme.menuWidth
@@ -72,7 +70,7 @@ Popup {
 
     Glass {
         width: root.panelWidth
-        height: root.page === "" ? layout.implicitHeight + root.padding + Theme.bottomPadding
+        height: root.page === "" ? layout.implicitHeight + root.padding * 2
             : pageHost.implicitHeight + root.padding * 2
         radius: 26
         fillOpacity: Prefs.get("panelOpacity", Theme.opacity.panel)
