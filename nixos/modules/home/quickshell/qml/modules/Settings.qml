@@ -192,7 +192,18 @@ FloatingWindow {
         }
     }
     // No close button: Esc (after clearing a search), Ctrl+W or Super+Q.
+    // Ctrl+F or / searches.
     Shortcut { sequence: "Ctrl+F"; enabled: window.visible && !wallpaperPicker.visible; onActivated: search.forceActiveFocus() }
+    // "/" too, unless a text field has focus, where it's just a slash.
+    Shortcut {
+        sequence: "/"
+        enabled: window.visible && !wallpaperPicker.visible
+            && window.contentItem.Window.activeFocusItem?.cursorPosition === undefined
+        onActivated: {
+            search.forceActiveFocus();
+            search.selectAll();
+        }
+    }
     Shortcut { sequence: "Ctrl+W"; enabled: window.visible && !wallpaperPicker.visible; onActivated: ShellState.settingsOpen = false }
     Shortcut {
         sequence: "Escape"
