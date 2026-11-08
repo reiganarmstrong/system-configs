@@ -1,4 +1,4 @@
-# Ghostty: a translucent monochrome terminal that niri blurs behind.
+# Ghostty: a translucent monochrome terminal that Hyprland blurs behind.
 { osConfig, lib, ... }:
 let
   theme = osConfig.desktop.theme;

@@ -26,7 +26,7 @@
   users.users.reagan.initialPassword = "nixos";
   users.mutableUsers = false;
 
-  # SSH from the host on 127.0.0.1:2222, for logs and `niri msg` while testing.
+  # SSH from the host on 127.0.0.1:2222, for logs and `Hyprland msg` while testing.
   services.openssh.enable = true;
   users.users.reagan.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMULy3x+bptXlXcZ6JmEh5dKxrHyqaY8uoplaEGGWKQy pc"

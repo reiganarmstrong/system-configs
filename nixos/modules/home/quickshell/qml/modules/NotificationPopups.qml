@@ -13,7 +13,7 @@ PanelWindow {
     // Pairing agents ask for approval through notification actions. Keep
     // those reachable while the page that requested pairing stays open.
     readonly property var shownPopups: Notifs.popups.filter(n => !held || (n.actions?.length ?? 0) > 0)
-    screen: Niri.focusedScreen()
+    screen: Compositor.focusedScreen()
     visible: shownPopups.length > 0 && !Session.locked
     color: "transparent"
     WlrLayershell.namespace: "shell-notifications"

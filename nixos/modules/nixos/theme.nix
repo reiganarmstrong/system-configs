@@ -1,4 +1,4 @@
-# The single source for the desktop's look. Niri, Quickshell, GTK and the
+# The single source for the desktop's look. Hyprland, Quickshell, GTK and the
 # terminal all read these values, so restyling is one edit here.
 { lib, ... }:
 let

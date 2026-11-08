@@ -56,7 +56,7 @@ PanelWindow {
         spacing: 6
 
         Repeater {
-            model: Niri.workspacesOn(bar.screen?.name ?? "")
+            model: Compositor.workspacesOn(bar.screen?.name ?? "")
 
             Rectangle {
                 id: ws
@@ -95,7 +95,7 @@ PanelWindow {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Niri.focusWorkspace(ws.modelData.id)
+                    onClicked: Compositor.focusWorkspace(ws.modelData.id)
                 }
             }
         }

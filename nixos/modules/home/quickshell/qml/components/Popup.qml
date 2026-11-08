@@ -30,7 +30,7 @@ PanelWindow {
             shown = false;
     }
 
-    screen: Niri.focusedScreen()
+    screen: Compositor.focusedScreen()
     visible: shown
     color: "transparent"
     WlrLayershell.namespace: "shell-" + name
@@ -43,7 +43,7 @@ PanelWindow {
         width: popup.width
         height: Math.max(0, popup.height - Theme.barHeight)
     }
-    // The window covers the screen, so only the content is blurred. niri
+    // The window covers the screen, so only the content is blurred. Hyprland
     // can't fade a blur, so it is on only while the glass is mostly drawn:
     // off as soon as closing starts, on once opening is three-quarters done.
     // Otherwise the blur outlives the faded glass and the sharp background

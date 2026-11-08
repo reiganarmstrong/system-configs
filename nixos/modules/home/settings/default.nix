@@ -7,13 +7,26 @@
   ...
 }:
 let
-  niri = osConfig.programs.niri.package;
   python = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
   code = pkgs.runCommand "desktop-settings-python" { } ''
     mkdir -p $out
     cp ${./settings.py} $out/settings.py
     cp ${./admin.py} $out/admin.py
+    cp ${./compositor.py} $out/compositor.py
   '';
+  compositor = pkgs.writeShellApplication {
+    name = "desktop-compositor";
+    runtimeInputs = [
+      pkgs.python3
+      pkgs.hyprland
+      pkgs.uwsm
+      pkgs.hyprpicker
+      pkgs.grim
+      pkgs.slurp
+      pkgs.wl-clipboard
+    ];
+    text = "exec python3 ${code}/compositor.py \"$@\"";
+  };
   defaults = pkgs.writeText "desktop-settings-defaults.json" (
     builtins.toJSON {
       clock24h = true;
@@ -28,7 +41,8 @@ let
     name = "desktop-settings";
     runtimeInputs = [
       pkgs.python3
-      niri
+      pkgs.hyprland
+      compositor
       pkgs.hypridle
       pkgs.systemd
       pkgs.iproute2
@@ -41,19 +55,20 @@ let
         lib.escapeShellArg (builtins.toJSON { inherit (osConfig.desktop.display) output mode scale; })
       }
       export DESKTOP_CURSOR_NAME=${lib.escapeShellArg config.home.pointerCursor.name}
-      exec python3 ${./settings.py} "$@"
+      exec python3 ${code}/settings.py "$@"
     '';
     passthru.tests.settings =
       pkgs.runCommand "desktop-settings-tests"
         {
-          # The tests check generated settings with the real `niri validate`.
+          # The tests check generated settings with the real `Hyprland --verify-config`.
           nativeBuildInputs = [
             pkgs.python3
-            niri
+            pkgs.hyprland
+            compositor
           ];
         }
         ''
-          python3 ${../../../tests/settings.py} ${./settings.py}
+          python3 ${../../../tests/settings.py} ${code}/settings.py
           touch $out
         '';
   };
@@ -69,7 +84,8 @@ let
       pkgs.udisks2
       pkgs.tailscale
       pkgs.util-linux
-      niri
+      pkgs.hyprland
+      compositor
       pkgs.quickshell
     ];
     text = ''
@@ -131,6 +147,7 @@ in
   dconf.settings."org/blueman/general".plugin-list = [ "!ConnectionNotifier" ];
   home.packages = [
     helper
+    compositor
     admin
     pkgs.pavucontrol
     pkgs.blueman
@@ -158,12 +175,12 @@ in
   home.activation.userFlatpakExports = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p ${config.xdg.dataHome}/flatpak/exports/share/applications
   '';
-  # Niri's settings.kdl and hypridle's idle.conf follow Nix default changes
+  # Hyprland's settings.lua and hypridle's idle.conf follow Nix default changes
   # (gaps, corner radius, the host display) without waiting for a save in
   # Settings. A rejected file is left as it was, so activation carries on.
   home.activation.desktopSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run ${helper}/bin/desktop-settings regenerate \
-      || echo "desktop-settings: keeping the previous settings.kdl" >&2
+      || echo "desktop-settings: keeping the previous settings.lua" >&2
   '';
   home.activation.desktopAppearance = lib.hm.dag.entryAfter [ "dconfSettings" ] ''
     if [ -S "/run/user/$(id -u)/bus" ]; then

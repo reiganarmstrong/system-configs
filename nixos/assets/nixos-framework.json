@@ -1,0 +1,48 @@
+{
+  "preset": "fedora",
+  "logo_file": "nixos.txt",
+  "logo_format": "fastfetch",
+  "header": "NixOS",
+  "swatches": [
+    "#2a2b2d",
+    "#494b4e",
+    "#686b6e",
+    "#888b8e",
+    "#a7aaad",
+    "#c7c9cb",
+    "#e6e7e9",
+    "#7ebae4"
+  ],
+  "rows": [
+    {
+      "label": "Host",
+      "value": "Framework 13 Pro",
+      "color": "#7a7e85"
+    },
+    {
+      "label": "CPU",
+      "value": "Intel Core i5",
+      "color": "#7a7e85"
+    },
+    {
+      "label": "Memory",
+      "value": "32 GB",
+      "color": "#7a7e85"
+    },
+    {
+      "label": "Disk",
+      "value": "1 TB SSD",
+      "color": "#7a7e85"
+    },
+    {
+      "label": "WM",
+      "value": "Hyprland",
+      "color": "#7a7e85"
+    },
+    {
+      "label": "Panel",
+      "value": "Quickshell",
+      "color": "#7a7e85"
+    }
+  ]
+}

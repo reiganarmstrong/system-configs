@@ -39,7 +39,7 @@ FloatingWindow {
     }
 
 
-    // Niri rounds the window's corners and draws its border, so the content
+    // Hyprland rounds the window's corners and draws its border, so the content
     // is a plain square fill; a second rounded border inside it doubled up.
     Rectangle {
         anchors.fill: parent

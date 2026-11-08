@@ -109,13 +109,13 @@ Scope {
 
         WlSessionLockSurface {
             id: surface
-            color: Theme.colors.background
+            color: "#202020"
 
             Image {
                 id: wallpaper
                 anchors.fill: parent
                 anchors.margins: -80
-                source: "file://" + Theme.wallpaper
+                source: "file://" + (Prefs.get("wallpaper", "") || Theme.wallpaper)
                 fillMode: Image.PreserveAspectCrop
                 sourceSize: Qt.size(width, height)
                 visible: false
@@ -126,10 +126,13 @@ Scope {
                 anchors.margins: -80
                 source: wallpaper
                 blurEnabled: true
-                blur: 1
-                blurMax: 64
-                brightness: -0.12
+                blur: 0.3
+                blurMax: 32
+                brightness: 0
             }
+
+            // A slight neutral shade keeps text legible without coloring the image.
+            Rectangle { anchors.fill: parent; color: "#121212"; opacity: 0.06 }
 
             SystemClock {
                 id: clock
@@ -162,30 +165,9 @@ Scope {
                 anchors.bottomMargin: parent.height * 0.12
                 spacing: 14
 
-                Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 72
-                    height: 72
-                    radius: 36
-                    color: Theme.withAlpha("#ffffff", 0.9)
-                    Label {
-                        anchors.centerIn: parent
-                        text: Theme.user.fullName.charAt(0)
-                        size: 26
-                        weight: Font.Bold
-                        color: Theme.colors.accentText
-                    }
-                }
-                Label {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: Theme.user.fullName
-                    weight: Font.Bold
-                    size: Theme.textLarge
-                }
-
                 Glass {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: 260
+                    width: Math.min(210, surface.width - 48)
                     height: 40
                     radius: 20
 

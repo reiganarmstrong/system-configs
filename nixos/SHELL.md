@@ -9,7 +9,7 @@ The QML lives in `modules/home/quickshell/qml/`. Nothing on the machine reads th
 - `theme.json`, made from `modules/nixos/theme.nix`. Colours, corner radii, opacity, spacing and fonts all come from here.
 - `icons.json`, which maps Lucide icon names such as `wifi` to characters in the Lucide icon font.
 
-Home Manager then links that store copy to `~/.config/quickshell`, and niri starts `qs` at login, which loads `~/.config/quickshell/shell.qml`.
+Home Manager then links that store copy to `~/.config/quickshell`, and the Hyprland starts `qs` at login, which loads `~/.config/quickshell/shell.qml`.
 
 The practical upshot is that editing the repo changes nothing until you rebuild, unless you run the shell straight from the repo. Both ways are covered below.
 
@@ -19,7 +19,7 @@ Inside `modules/home/quickshell/qml/`:
 
 | Path | What's in it |
 | --- | --- |
-| `shell.qml` | The entry point. It creates a bar, dock and wallpaper for each monitor, one of each popup, and the `qs ipc` commands that niri's key bindings call. |
+| `shell.qml` | The entry point. It creates a bar, dock and wallpaper for each monitor, one of each popup, and the `qs ipc` commands that Hyprland's key bindings call. |
 | `modules/` | Whole surfaces. `Bar.qml`, `Dock.qml`, `ControlCenter.qml`, `StatusMenu.qml`, `ClipboardHistory.qml`, `Launcher.qml`, `Lock.qml`, `Osd.qml`, `Settings.qml` and so on. |
 | `modules/cc/` | The pages. `NetworkPage.qml` is Wi-Fi, then `BluetoothPage.qml`, `SoundPage.qml` and `MediaPage.qml`. Each is one self-contained component that works in more than one place. |
 | `components/` | Pieces used in many places. Change one of these and every panel that uses it changes too. |
@@ -47,6 +47,7 @@ The services worth knowing:
 - `ShellState.qml` tracks which popup is open by name, such as `"control"` or `"network"`. Only one is open at a time, and `ShellState.toggle(name)` opens or closes one.
 - `Net`, `Bt`, `Audio`, `Brightness`, `Media`, `Notifs` and `Clipboard` wrap NetworkManager, BlueZ, PipeWire and the rest.
 - `Prefs.qml` stores choices made in Settings, such as panel opacity and Focus mode.
+- `Compositor.qml` supplies focused monitors, workspaces and logout through Quickshell's native Hyprland model.
 
 ## How the layout works
 
@@ -118,7 +119,7 @@ qs ipc -p . call launcher toggle
 
 When you're done, press Ctrl+C in the first terminal and run `qs -d` to bring the installed shell back. `qs list` shows which shells are running.
 
-Two things don't update live. Changes to `theme.nix` only reach `theme.json` on a rebuild, though you can edit the copied `theme.json` to experiment. Changes to Nix files, such as niri key bindings, need a rebuild too. Git ignores both copied JSON files, so they won't end up in a commit.
+Two things don't update live. Changes to `theme.nix` only reach `theme.json` on a rebuild, though you can edit the copied `theme.json` to experiment. Changes to Nix files, such as Hyprland key bindings, need a rebuild too. Git ignores both copied JSON files, so they won't end up in a commit.
 
 ## Making changes permanent
 
@@ -149,3 +150,29 @@ nix build --no-link .#checks.x86_64-linux.brightness         # parsing ddcutil o
 ## Trying it in the VM
 
 `./nixos/run-vm` builds the current config and boots it in QEMU, viewed over VNC on `127.0.0.1:5902`. It's the safest place to try anything that touches the lock screen or session, because a broken lock screen there costs you a VM restart and nothing else.
+
+## Hyprland and HyprMod
+
+Hyprland starts at boot in its native scrolling layout and immediately opens
+the shared lock screen. It is the only configured desktop session.
+
+The configuration lives in `modules/home/hyprland/hyprland.lua`.
+Super+T opens Ghostty, Super+Space or Super+D opens the launcher, Super+E opens
+Files, Super+Comma opens Settings, and Super+S opens the control centre.
+Super+L locks the screen. Super+arrows changes focus and Super+Shift+arrows
+moves windows. Super+R cycles column widths, Super+C centres a column, and
+Super+number changes workspaces. Three-finger horizontal swipes scroll
+columns; vertical swipes change workspaces.
+
+HyprMod is installed through its upstream Nix flake and pinned in flake.lock.
+Open **HyprMod** from the launcher or press Super+H. Its writable file is
+`~/.config/hypr/hyprland-gui.lua`, loaded last by the main configuration.
+Advanced overrides there take priority over matching Settings values and
+survive Nix rebuilds. The Home Manager activation creates an empty file only
+when it does not exist, so HyprMod never needs to modify the Nix store.
+
+Settings generates `~/.local/state/system-configs/settings.lua` from saved
+preferences. It validates the Lua before saving and restores the previous
+files if activation fails. `modules/home/settings/compositor.py` handles
+monitor power, screenshots and colour picking. The lock screen uses the
+existing PAM service for passwords and fingerprints.

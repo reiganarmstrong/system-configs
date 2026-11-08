@@ -1,5 +1,5 @@
 {
-  description = "NixOS systems with niri and a Quickshell desktop shell";
+  description = "NixOS systems with Hyprland and a Quickshell desktop shell";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
@@ -9,6 +9,10 @@
     };
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
+    hyprmod = {
+      url = "github:BlueManCZ/hyprmod/v0.5.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     disko = {
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";

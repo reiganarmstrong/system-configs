@@ -286,8 +286,8 @@ Popup {
                 icon: "pipette"
                 onClicked: {
                     ShellState.close();
-                    // Niri's picker prints "Hex: #rrggbb" last; nothing is copied if it's cancelled.
-                    Session.run(["sh", "-c", "sleep 0.3; c=$(niri msg pick-color | sed -n 's/^Hex: //p'); [ -n \"$c\" ] && printf %s \"$c\" | wl-copy"]);
+                    // The active compositor's picker copies a hex colour only after selection.
+                    Session.run(["desktop-compositor", "pick-color"]);
                 }
             }
 

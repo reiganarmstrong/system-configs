@@ -12,7 +12,7 @@ Column {
     }
     SettingRow {
         title: "Desktop"
-        detail: "Niri with the shared Quickshell desktop. System packages and hardware support are maintained by the Nix configuration."
+        detail: "Hyprland with the shared Quickshell desktop. System packages and hardware support are maintained by the Nix configuration."
     }
     SettingAction {
         title: "Storage"

@@ -23,7 +23,7 @@ PanelWindow {
         hide.restart();
     }
 
-    screen: Niri.focusedScreen()
+    screen: Compositor.focusedScreen()
     visible: onScreen
     color: "transparent"
     WlrLayershell.namespace: "shell-osd"

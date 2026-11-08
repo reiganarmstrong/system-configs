@@ -20,7 +20,7 @@ class AdminTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.env = patch.dict(os.environ, {"XDG_STATE_HOME": self.tmp.name, "XDG_RUNTIME_DIR": self.tmp.name,
-                                         "NIRI_SOCKET": "/run/user/1000/niri.wayland-1.42.sock", "DESKTOP_ADMIN_CONFIG": "{}"})
+                                         "HYPRLAND_INSTANCE_SIGNATURE": "hyprland_session_42", "DESKTOP_ADMIN_CONFIG": "{}"})
         self.env.start()
 
     def tearDown(self):

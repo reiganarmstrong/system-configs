@@ -4,7 +4,7 @@
 
 // `ddcutil detect` (normal output level) -> [{bus, output}], one per display
 // that answers DDC/CI. `output` is the DRM connector without its card prefix
-// ("card1-DP-3" -> "DP-3"), which is the name niri gives the output.
+// ("card1-DP-3" -> "DP-3"), which is the name Hyprland gives the output.
 function parseDetect(text) {
     const displays = [];
     let current = null;

@@ -3,7 +3,7 @@
 { ... }:
 {
   imports = [
-    ./niri
+    ./hyprland
     ./quickshell
     ./appearance.nix
     ./folders.nix

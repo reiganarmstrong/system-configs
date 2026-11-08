@@ -1,18 +1,21 @@
-# The Niri desktop: compositor, login, audio, hardware services and fonts.
+# The Hyprland desktop: compositor, login, audio, hardware services and fonts.
 # The look lives in the Home Manager modules; this provides what they run on.
 {
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
   cfg = config.desktop;
-  niri = config.programs.niri.package;
+  session = pkgs.writeShellScript "hyprland-session" ''
+    exec ${pkgs.uwsm}/bin/uwsm start -F -- ${config.programs.hyprland.package}/share/wayland-sessions/hyprland.desktop
+  '';
 in
 {
   options.desktop = {
-    enable = lib.mkEnableOption "the Niri desktop";
+    enable = lib.mkEnableOption "the Hyprland desktop";
     suspendSupported = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -32,16 +35,15 @@ in
       output = lib.mkOption {
         type = lib.types.str;
         default = "";
-        description = "Niri output name of the built-in display, as `niri msg outputs` prints it; empty leaves every output automatic.";
+        description = "Hyprland output name of the built-in display, as `hyprctl monitors` prints it; empty leaves every output automatic.";
       };
       mode = lib.mkOption {
         type = lib.types.str;
         default = "preferred";
         description = ''
-          Resolution, such as 2880x1920, or "preferred". Niri picks the
-          highest refresh rate for it. A refresh rate needs Niri's exact
-          value, such as 2880x1920@120.000, so Settings is the easier place
-          to choose one.
+          Resolution, such as 2880x1920, or "preferred". An optional refresh
+          rate can be appended, such as 2880x1920@120.000. Settings lists
+          the supported modes.
         '';
       };
       scale = lib.mkOption {
@@ -63,7 +65,7 @@ in
       type = lib.types.bool;
       default = true;
       description = ''
-        Start Niri for the user at boot without a login prompt. The shell
+        Start Hyprland for the user at boot without a login prompt. The shell
         locks the session immediately, so its lock screen acts as the login
         screen; disk encryption already asks for a password at boot.
       '';
@@ -71,29 +73,39 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    programs.niri.enable = true;
-    # NixOS gives every unit TZDIR=<tzdata store path>. Flatpak names the
-    # sandbox's zone by stripping TZDIR from /etc/localtime's target
-    # (/etc/zoneinfo/…), so with the store path every app niri starts runs
-    # in UTC. /etc/zoneinfo is the same complete database.
-    systemd.user.services.niri.environment.TZDIR = lib.mkForce "/etc/zoneinfo";
+    programs.hyprland = {
+      enable = true;
+      withUWSM = true;
+    };
+    # Portal routing follows XDG_CURRENT_DESKTOP; retain GNOME file dialogs.
+    xdg.portal.config.hyprland = {
+      default = [
+        "hyprland"
+        "gnome"
+        "gtk"
+      ];
+      "org.freedesktop.impl.portal.FileChooser" = [ "gnome" ];
+      "org.freedesktop.impl.portal.Secret" = [ "gnome-keyring" ];
+    };
+    services.dbus.packages = [ pkgs.nautilus ];
+    xdg.portal.extraPortals = [
+      pkgs.xdg-desktop-portal-gnome
+      pkgs.xdg-desktop-portal-gtk
+    ];
 
     services.greetd = {
       enable = true;
       settings = {
         # Shown only after logging out.
-        default_session.command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --cmd niri-session";
+        default_session.command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --cmd ${session}";
       }
       // lib.optionalAttrs cfg.autoLogin {
         initial_session = {
           user = cfg.user;
-          command = "${niri}/bin/niri-session";
+          command = "${session}";
         };
       };
     };
-
-    # The Niri module sets up the portals: GNOME's for screencasts and for
-    # open and save dialogs (shown in Files), GTK's for the rest.
 
     security.rtkit.enable = true;
     services.pipewire = {
@@ -165,8 +177,7 @@ in
       pkgs.libnotify
       pkgs.gnome-keyring
       pkgs.networkmanagerapplet
-      # Niri starts it on demand so X11-only apps can open windows.
-      pkgs.xwayland-satellite
+      inputs.hyprmod.packages.${pkgs.stdenv.hostPlatform.system}.default
     ];
 
     desktop.theme.wallpaper = lib.mkDefault ../../assets/nixos-framework.png;

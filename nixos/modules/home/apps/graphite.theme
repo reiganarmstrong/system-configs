@@ -1,4 +1,4 @@
-# Managed by Ansible (fedora/roles/niri/files/btop-graphite.theme).
+# Shared with the Fedora Graphite profile.
 # Graphite for btop: gray boxes and graphs; temperature and usage meters move
 # from gray through yellow to red so pressure still reads at a glance.
 

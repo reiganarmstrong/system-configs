@@ -17,7 +17,7 @@ Singleton {
         locked = true;
     }
     function logout() {
-        Niri.quit();
+        Compositor.quit();
     }
     function suspend() {
         if (Theme.data.suspendSupported === false)

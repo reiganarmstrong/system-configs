@@ -11,9 +11,9 @@ import "ddc.js" as Ddc
 Singleton {
     id: root
 
-    // "builtin" or a niri output name -> {kind: "backlight" | "ddc", bus, max, level}.
+    // "builtin" or a Hyprland output name -> {kind: "backlight" | "ddc", bus, max, level}.
     property var targets: ({})
-    readonly property string target: Ddc.pickTarget(targets, Niri.focusedOutput)
+    readonly property string target: Ddc.pickTarget(targets, Compositor.focusedOutput)
     readonly property bool available: target !== ""
     readonly property real level: targets[target]?.level ?? 1
     // Writes waiting for the writer, by target; only the latest value is kept.

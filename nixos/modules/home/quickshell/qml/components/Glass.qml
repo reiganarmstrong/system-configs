@@ -1,5 +1,5 @@
 // A frosted surface: translucent fill and a faint white rim. The window it
-// sits in asks niri to blur behind it with a BackgroundEffect region.
+// sits in asks Hyprland to blur behind it with a BackgroundEffect region.
 import QtQuick
 import qs.services
 

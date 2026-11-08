@@ -25,6 +25,34 @@ class SettingsTests(unittest.TestCase):
         self.env.stop()
         self.tmp.cleanup()
 
+    def test_hyprland_preferences_and_monitors(self):
+        text = s.settings_lua(s.validate({"gaps": 8, "reduceMotion": True, "keyboardLayout": "us,gb"}), {})
+        self.assertIn('["gaps_in"]=8', text)
+        self.assertIn('["enabled"]=false', text)
+        self.assertIn('["kb_layout"]="us,gb"', text)
+        s.check_lua(text)
+        self.assertEqual(s.normalize_hypr_mode("2560x1440@144.00000Hz"), "2560x1440@144.000Hz")
+        monitor = {"name":"DP-1", "width":2560, "height":1440, "refreshRate":143.998,
+                   "scale":1.25, "x":0, "y":0, "transform":0, "availableModes":["2560x1440@144.000Hz"]}
+        with patch.dict(os.environ, {"HYPRLAND_INSTANCE_SIGNATURE":"audit"}), patch.object(s,"run",return_value=json.dumps([monitor])) as run:
+            result = s.monitors()[0]
+            self.assertEqual(result["width"], 2560)
+            self.assertEqual(result["refreshRate"], 144.0)
+            self.assertEqual(result["availableModes"], monitor["availableModes"])
+            run.assert_called_once_with(["hyprctl", "-j", "monitors"])
+
+    def test_idle_dispatches_through_active_compositor(self):
+        text = s.idle_config(s.defaults())
+        self.assertIn("desktop-compositor power-on", text)
+        self.assertIn("desktop-compositor power-off", text)
+
+    def test_hyprland_reload_failure_restores_saved_files(self):
+        with patch.dict(os.environ, {"HYPRLAND_INSTANCE_SIGNATURE":"audit"}), patch.object(s, "reload_hyprland", side_effect=[RuntimeError("IPC failure"), None]):
+            with self.assertRaisesRegex(RuntimeError, "IPC failure"):
+                s.save({"gaps": 9})
+        for name in s.ARTIFACTS:
+            self.assertFalse((s.state_dir() / name).exists(), name)
+
     def test_rejects_invalid_preferences_before_writing(self):
         for value in [{"pointerSpeed": True}, {"repeatRate": 1000}, {"panelOpacity": float("nan")},
                       {"keyboardLayout": "us\";os.execute('bad')"}, {"unrecognized": 1}, {"reduceMotion": 1}]:
@@ -42,55 +70,41 @@ class SettingsTests(unittest.TestCase):
 
     def test_compositor_rejection_preserves_saved_state(self):
         s.write_json("preferences.json", {"pointerSpeed": 0.2})
-        with patch.object(s, "check_kdl", side_effect=RuntimeError("Niri rejected the settings")):
+        with patch.object(s, "check_lua", side_effect=RuntimeError("Hyprland rejected the settings")):
             with self.assertRaises(RuntimeError):
                 s.save({"pointerSpeed": 0.5})
         self.assertEqual(s.read_json("preferences.json", {}), {"pointerSpeed": 0.2})
-        self.assertFalse((s.state_dir() / "settings.kdl").exists())
+        self.assertFalse((s.state_dir() / "settings.lua").exists())
 
-    def test_generated_settings_are_accepted_by_niri(self):
+    def test_generated_settings_are_accepted_by_hyprland(self):
         flipped = {key: not value for key, value in s.defaults().items() if type(value) is bool}
         for values in [{}, flipped, {"capsLock": "ctrl:nocaps", "keyboardLayout": "us,gb", "pointerAcceleration": "flat",
                                      "pointerSpeed": -1, "scrollFactor": 3, "gaps": 0, "rounding": 30}]:
             with self.subTest(values=values):
-                s.check_kdl(s.settings_kdl(s.validate(values)))
-        self.assertIn("animations {\n    off\n}", s.settings_kdl(s.validate({"reduceMotion": True})))
-        self.assertNotIn("animations", s.settings_kdl(s.validate({})))
+                s.check_lua(s.settings_lua(s.validate(values)))
+        self.assertIn('["enabled"]=false', s.settings_lua(s.validate({"reduceMotion": True})))
         with self.assertRaises(RuntimeError):
-            s.check_kdl("input {\n    focus-follows-mouse false\n}\n")
+            s.check_lua('hl.config({input={nonexistent_option=true}})')
 
     def test_outputs_come_from_nix_then_confirmed_choices(self):
         display = {"output": "eDP-1", "mode": "2880x1920", "scale": 2}
         confirmed = {"output": "HDMI-A-1", "mode": "1920x1080@60.000", "scale": 1, "transform": 1}
         with patch.dict(os.environ, {"DESKTOP_SETTINGS_DISPLAY": json.dumps(display)}):
-            text = s.settings_kdl(s.defaults(), {"HDMI-A-1": confirmed})
-            s.check_kdl(text)
-            self.assertIn('output "eDP-1" {\n    mode "2880x1920"\n    scale 2\n}', text)
-            self.assertIn('transform "90"', text)
-            kept = s.settings_kdl(s.defaults(), {"eDP-1": display | {"mode": "2880x1920@120.000", "transform": 0}})
-            self.assertEqual(kept.count('output "eDP-1"'), 1)
-            self.assertIn('mode "2880x1920@120.000"', kept)
+            text = s.settings_lua(s.defaults(), {"HDMI-A-1": confirmed})
+            s.check_lua(text)
+            self.assertIn('["output"]="eDP-1"', text)
+            self.assertIn('["scale"]=2', text)
+            self.assertIn('["transform"]=1', text)
+            kept = s.settings_lua(s.defaults(), {"eDP-1": display | {"mode": "2880x1920@120.000", "transform": 0}})
+            self.assertEqual(kept.count('["output"]="eDP-1"'), 1)
+            self.assertIn('["mode"]="2880x1920@120.000"', kept)
         with patch.dict(os.environ, {"DESKTOP_SETTINGS_DISPLAY": json.dumps({"output": "", "mode": "preferred", "scale": 1})}):
-            self.assertNotIn("output", s.settings_kdl(s.defaults(), {}))
-
-    def test_niri_outputs_become_settings_monitors(self):
-        outputs = {"eDP-1": {"name": "eDP-1", "make": "BOE", "model": "NE135A1M", "serial": None,
-                             "modes": [{"width": 2880, "height": 1920, "refresh_rate": 120000, "is_preferred": True},
-                                       {"width": 2880, "height": 1920, "refresh_rate": 59951, "is_preferred": False}],
-                             "current_mode": 0,
-                             "logical": {"x": 0, "y": 0, "width": 1440, "height": 960, "scale": 2.0, "transform": "90"}},
-                   "DP-2": {"name": "DP-2", "make": "", "model": "", "modes": [], "current_mode": None, "logical": None}}
-        with patch.object(s, "run", return_value=json.dumps(outputs)):
-            [monitor] = s.monitors()
-        self.assertEqual(monitor["description"], "BOE NE135A1M")
-        self.assertEqual(monitor["transform"], 1)
-        self.assertEqual(monitor["availableModes"], ["2880x1920@120.000Hz", "2880x1920@59.951Hz"])
-        self.assertEqual(s.monitor_config(monitor)["mode"], "2880x1920@120.000")
+            self.assertNotIn('hl.monitor(', s.settings_lua(s.defaults(), {}))
 
     def test_saved_overrides_do_not_freeze_nix_defaults(self):
         s.save({"pointerSpeed": 0.3})
         self.assertEqual(s.read_json("preferences.json", {}), {"pointerSpeed": 0.3})
-        self.assertIn("accel-speed 0.3", (s.state_dir() / "settings.kdl").read_text())
+        self.assertIn('["sensitivity"]=0.3', (s.state_dir() / "settings.lua").read_text())
         defaults_file = Path(self.tmp.name) / "defaults.json"
         defaults_file.write_text(json.dumps({"rounding": 20, "suspendMinutes": 0}))
         with patch.dict(os.environ, {"DESKTOP_SETTINGS_DEFAULTS": str(defaults_file)}):
@@ -110,9 +124,9 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(s.read_json("preferences.json",{}), {"textScale":1.15})
 
     def test_pointer_handedness_is_a_real_compositor_setting(self):
-        self.assertIn("left-handed", s.input_kdl(s.validate({"leftHanded": True}))["mouse"])
-        self.assertIn("focus-follows-mouse", s.settings_kdl(s.defaults()))
-        self.assertNotIn("focus-follows-mouse", s.settings_kdl(s.validate({"focusFollowsMouse": False})))
+        self.assertIn('["left_handed"]=true', s.settings_lua(s.validate({"leftHanded": True})))
+        self.assertIn('["follow_mouse"]=1', s.settings_lua(s.defaults()))
+        self.assertIn('["follow_mouse"]=0', s.settings_lua(s.validate({"focusFollowsMouse": False})))
 
     def test_corrupt_state_is_reported_without_overwriting(self):
         s.atomic_write("preferences.json", "not json")
@@ -156,9 +170,8 @@ class SettingsTests(unittest.TestCase):
 
     # Fault injection at each boundary of the save transaction. Every case
     # starts from saved state that differs from defaults, so a partial commit
-    # or a missed rollback is visible in the files and the live calls. Niri
-    # applies settings.kdl when it changes, so restoring that file is the
-    # compositor's rollback.
+    # or a missed rollback is visible in the files and the live calls.
+    # Restoring settings.lua and reloading reverses compositor changes.
     def seed(self):
         with patch.object(s, "apply_appearance"), patch.object(s, "run"):
             s.save({"textScale": 1.15, "pointerSpeed": 0.2, "lockMinutes": 4, "screenOffMinutes": 6})
@@ -250,15 +263,15 @@ class SettingsTests(unittest.TestCase):
         with patch.object(s, "apply_appearance"), patch.object(s, "atomic_write", side_effect=write):
             with self.assertRaisesRegex(RuntimeError, "preferences.json"):
                 s.save({"textScale": 1.25, "gaps": 3})
-        # settings.kdl was still restored even though preferences.json could not be.
-        self.assertEqual((s.state_dir() / "settings.kdl").read_text(), before["settings.kdl"])
+        # settings.lua was still restored even though preferences.json could not be.
+        self.assertEqual((s.state_dir() / "settings.lua").read_text(), before["settings.lua"])
 
     def test_keep_display_failure_restores_monitor_choices(self):
         new = {"output": "Virtual-1", "mode": "1440x960@75.000", "scale": 1.25, "transform": 0}
         s.write_json("displays.json", {"Virtual-1": new | {"scale": 1}})
         before = (s.state_dir() / "displays.json").read_text()
         s.write_json("display-pending.json", {"token": "t", "new": new, "old": new | {"scale": 1}, "expires": 9e9})
-        with patch.object(s, "verify_display"), patch.object(s, "atomic_write", self.failing_write("settings.kdl")):
+        with patch.object(s, "verify_display"), patch.object(s, "atomic_write", self.failing_write("settings.lua")):
             with self.assertRaises(OSError):
                 s.keep_display("t")
         self.assertEqual((s.state_dir() / "displays.json").read_text(), before)
@@ -269,7 +282,7 @@ class SettingsTests(unittest.TestCase):
         s.write_json("display-pending.json", {"token": "t", "old": old, "new": old | {"scale": 2}, "expires": 0})
         with patch.object(s, "apply_display") as apply, patch.object(s, "monitors", return_value=[]):
             s.revert_display("t")
-        # The output gets its saved settings.kdl block on its next connection,
+        # The output gets its saved settings.lua block on its next connection,
         # and Settings stays usable.
         apply.assert_not_called()
         self.assertEqual(s.read_json("display-pending.json", {}), {})
@@ -285,7 +298,7 @@ class SettingsTests(unittest.TestCase):
         s.write_json("displays.json", displays)
         s.save({"showSeconds": True})
         s.save(s.defaults())
-        self.assertIn('output "Virtual-1"', (s.state_dir() / "settings.kdl").read_text())
+        self.assertIn('["output"]="Virtual-1"', (s.state_dir() / "settings.lua").read_text())
         self.assertEqual(s.read_json("preferences.json", None), {})
         self.assertEqual(s.read_json("displays.json", {}), displays)
 

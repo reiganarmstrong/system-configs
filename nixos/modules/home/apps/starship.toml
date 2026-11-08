@@ -1,4 +1,4 @@
-# Managed by Ansible (fedora/roles/niri/files/starship.toml).
+# Shared with the Fedora Graphite profile.
 # Graphite: green for you and success, blue for paths, magenta for branches,
 # cyan for runtimes, yellow for dirty trees, red for failures/root/conflicts.
 # Plain ASCII, so it needs no Nerd Font.

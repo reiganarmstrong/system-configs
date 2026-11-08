@@ -50,7 +50,7 @@ ShellRoot {
             Session.locked = true;
     }
 
-    // `qs ipc call <target> <function> [args]`, used by Niri key bindings.
+    // `qs ipc call <target> <function> [args]`, used by Hyprland key bindings.
     IpcHandler {
         target: "settings"
         function open(page: string): void { ShellState.openSettings(page); }
