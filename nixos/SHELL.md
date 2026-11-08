@@ -76,9 +76,9 @@ Spacing comes from three values in `theme.nix`:
 | `Theme.spacing.panel` | 14 | Padding between the glass edge and everything inside it. |
 | `Theme.spacing.tile` | 10 | The gap between controls. |
 | `Theme.spacing.inset` | 10 | How far text sits inside a row, header or footer. |
-| `Theme.contentPadding` | 24 | `panel` plus `inset`. Padding for panels without hover highlights, such as the control centre grid and the clipboard menu. |
+| `Theme.bottomPadding` | 24 | `panel` plus `inset`. Extra room under panels that end in a box or small text. |
 
-Every panel shows the same 24 px margin between its border and its content. The Wi-Fi, Bluetooth and Sound pages get there in two steps: 14 px of padding, so hover highlights reach nearly to the border, then 10 px more for their text. The control centre grid and the clipboard menu have nothing that needs the wider highlight, so they pad by 24 px directly. Round icons in rows sit 4 px further out than text, the way macOS does it.
+Panels pad their sides and top by 14 px, and boxes (tiles, rows, the search field, hover highlights) run out to that edge. Text that isn't inside a box lines up with the boxes' edges, except in the Wi-Fi, Bluetooth and Sound pages, whose text sits 10 px further in, level with the text inside their rows. The bottom gets more room: a page ends in a 32 px "… Settings" row, so its text sits about 24 px above the border, and the control centre grid and the clipboard menu use `Theme.bottomPadding` to match. Round icons in rows sit 4 px further out than text, the way macOS does it.
 
 A few rules that will save you some confusion:
 

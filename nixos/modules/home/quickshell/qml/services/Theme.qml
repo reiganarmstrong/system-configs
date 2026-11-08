@@ -42,12 +42,12 @@ Singleton {
     readonly property color barFill: "#000000"
     readonly property int popupGap: 6
     readonly property int popupTop: barHeight + popupGap
-    // Gap between a panel's border and what you see inside it. Pages keep
-    // spacing.panel padding so hover fills reach wider, with their text
-    // spacing.inset further in; panels without those fills, such as the
-    // control centre grid and the clipboard menu, pad by the sum, so all of
-    // them show the same margin.
-    readonly property real contentPadding: spacing.panel + spacing.inset
+    // Panels pad their sides and top by spacing.panel. Their bottom gets
+    // more: a control-centre page ends in a 32 px footer row whose text sits
+    // about this far above the border, so panels that end in a box or in
+    // small text, like the control centre grid and the clipboard menu, pad
+    // their bottom by this to match.
+    readonly property real bottomPadding: spacing.panel + spacing.inset
     // Width of the control centre and the bar's status menus.
     readonly property int menuWidth: 381
 

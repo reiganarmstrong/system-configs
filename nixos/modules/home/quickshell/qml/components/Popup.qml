@@ -18,9 +18,20 @@ PanelWindow {
     // Return true to consume Esc (e.g. to go back a page) instead of closing.
     property var escapeHandler: null
     readonly property bool open: ShellState.openPanel === name
+    // On screen: from opening until the closing fade has finished. Set
+    // explicitly, not bound to `open || fade.running`: on closing, that
+    // binding can read false for an instant before the fade starts, and the
+    // blink unloads and reloads whatever the popup holds.
+    property bool shown: false
+    onOpenChanged: {
+        if (open)
+            shown = true;
+        else if (holder.opacity === 0)
+            shown = false;
+    }
 
     screen: Niri.focusedScreen()
-    visible: open || fade.running
+    visible: shown
     color: "transparent"
     WlrLayershell.namespace: "shell-" + name
     WlrLayershell.layer: WlrLayer.Overlay
@@ -82,9 +93,10 @@ PanelWindow {
         transformOrigin: popup.placement === "top-right" ? Item.TopRight : Item.Top
         // Region tracks geometry changes, but not item transforms.
         onScaleChanged: blurRegion.changed()
+        onOpacityChanged: if (opacity === 0 && !popup.open) popup.shown = false
 
         Behavior on opacity {
-            NumberAnimation { id: fade; duration: Prefs.get("reduceMotion", false) ? 0 : 140; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: Prefs.get("reduceMotion", false) ? 0 : 140; easing.type: Easing.OutCubic }
         }
         Behavior on scale {
             NumberAnimation { duration: Prefs.get("reduceMotion", false) ? 0 : 170; easing.type: Easing.OutCubic }

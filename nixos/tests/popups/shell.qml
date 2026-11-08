@@ -24,6 +24,8 @@ ShellRoot {
     // Every change of the resizing popup's window visibility, with how opaque
     // its content was at that moment.
     property var visibilityLog: []
+    // The same for the status menu, plus whether its page was loaded.
+    property var menuLog: []
     property real approvalStart: 0
     QtObject { id: first; property string summary: "First" }
     QtObject { id: acceptAction; property string text: "Accept"; function invoke() {} }
@@ -35,6 +37,8 @@ ShellRoot {
         id: statusMenu
         name: "menu-test"
         page: Component { SubPanel { title: "Menu test"; Item { width: 10; height: 40 } } }
+        onVisibleChanged: test.menuLog = [...test.menuLog,
+            {visible: visible, open: open, loaded: pageItem !== null}]
     }
     Popup {
         id: resizingPopup
@@ -164,10 +168,18 @@ ShellRoot {
                     Qt.exit(1);
                     return;
                 }
+                test.menuLog = [];
                 ShellState.close();
                 break;
             case 11:
                 if (statusMenu.visible) { test.step--; break; }
+                // One hide, at the end of the fade. An early hide unloads the
+                // page and the reshown, refilled glass flashes as it closes.
+                if (test.menuLog.length !== 1) {
+                    console.warn("FAILED: status menu blinked while closing: " + JSON.stringify(test.menuLog));
+                    Qt.exit(1);
+                    return;
+                }
                 if (statusMenu.pageItem) {
                     console.warn("FAILED: a closed status menu kept its page loaded");
                     Qt.exit(1);

@@ -11,6 +11,10 @@ PanelWindow {
     property string icon: "volume-2"
     property real value: 0
     property bool shown: false
+    // On screen until the fade-out ends; see Popup's `shown` for why this
+    // isn't bound to `shown || fade.running`.
+    property bool onScreen: false
+    onShownChanged: if (shown) onScreen = true
 
     function show(icon: string, value: real) {
         osd.icon = icon;
@@ -20,7 +24,7 @@ PanelWindow {
     }
 
     screen: Niri.focusedScreen()
-    visible: shown || fade.running
+    visible: onScreen
     color: "transparent"
     WlrLayershell.namespace: "shell-osd"
     WlrLayershell.layer: WlrLayer.Overlay
@@ -48,7 +52,8 @@ PanelWindow {
         anchors.fill: parent
         radius: height / 2
         opacity: osd.shown ? 1 : 0
-        Behavior on opacity { NumberAnimation { id: fade; duration: 180 } }
+        Behavior on opacity { NumberAnimation { duration: 180 } }
+        onOpacityChanged: if (opacity === 0 && !osd.shown) osd.onScreen = false
 
         Row {
             anchors.centerIn: parent
