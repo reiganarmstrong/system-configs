@@ -24,6 +24,11 @@ in
     pkgs.git
     pkgs.vim
     pkgs.gnumake
+    # Packages that compile while installing: node-gyp needs a C compiler
+    # and Python, as do Python packages built from source. Anything linking
+    # a system library still needs a dev shell or a container.
+    pkgs.gcc
+    pkgs.python3
     pkgs.nodejs_24
     pkgs.pnpm
     pkgs.uv

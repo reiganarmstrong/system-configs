@@ -31,11 +31,22 @@ in
       binfmt = true;
     };
 
+    # Containers through Podman, which runs them as the user without a root
+    # daemon. dockerCompat adds a `docker` command, and podman-compose
+    # (in systemPackages below) answers `docker compose` and `podman compose`.
+    virtualisation.podman = {
+      enable = true;
+      dockerCompat = true;
+      # Containers on a compose network find each other by service name.
+      defaultNetwork.settings.dns_enabled = true;
+    };
+
     services.flatpak.enable = true;
     environment.systemPackages = [
       (pkgs.writeTextDir "share/polkit-1/actions/com.bitwarden.desktop.policy" (
         builtins.readFile ./bitwarden.policy
       ))
+      pkgs.podman-compose
     ];
     systemd.services.flatpak-apps = {
       description = "Install the configured Flathub apps";

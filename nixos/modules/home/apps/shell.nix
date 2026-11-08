@@ -22,6 +22,12 @@
       EDITOR = "vim";
       CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH = "2";
       PNPM_HOME = "$HOME/.local/share/pnpm";
+      # npm's default global prefix is Node's own folder in the read-only Nix
+      # store, so `npm install -g` fails. Install into ~/.local/bin instead.
+      NPM_CONFIG_PREFIX = "$HOME/.local";
+      # uv builds tools on Pythons it downloads, not the Nix python3, which
+      # a later rebuild and garbage collection could remove from under them.
+      UV_PYTHON_PREFERENCE = "only-managed";
     };
     initContent = ''
       ${builtins.readFile ./zsh-functions.zsh}

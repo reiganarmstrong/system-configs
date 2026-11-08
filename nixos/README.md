@@ -162,7 +162,8 @@ The VM checks exercised Focus, Power profile switching, microphone mute, the sou
 - **Claude Code** through Anthropic's native installer (the latest channel, as on Fedora). A user service installs it once into `~/.local/bin`, and it updates itself from then on. Stable nixpkgs lags it by months.
 - **T3 Code**: Nix places the pinned first-install AppImage in `~/applications` once (moving an earlier `~/Applications` copy there), and the app updates itself in place.
 - **zsh** with oh-my-zsh, autosuggestions, syntax highlighting, the Starship prompt and the aliases and functions from the Fedora setup. Put machine-only additions in `~/.zshrc.local`.
-- Node 24, pnpm, uv, git, vim and make.
+- Node 24, pnpm, uv, git, vim, make, gcc and Python 3. `npm install -g`, `pnpm add -g` and `uv tool install` all install into your home folder, so they work without sudo.
+- **Podman** for containers, run as your user without a root daemon. The `docker` and `docker compose` commands work too, through Podman.
 
 Vim and GVim are hidden from the app launcher; Vim remains available in the terminal. The launcher and dock open apps marked `Terminal=true`, such as btop, in Ghostty instead of starting them without a terminal.
 
