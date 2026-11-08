@@ -1,5 +1,5 @@
-// A frosted surface: translucent fill and a faint white rim. Hyprland blurs
-// what is behind it through the layer rules in rules.lua.
+// A frosted surface: translucent fill and a faint white rim. The window it
+// sits in asks niri to blur behind it with a BackgroundEffect region.
 import QtQuick
 import qs.services
 

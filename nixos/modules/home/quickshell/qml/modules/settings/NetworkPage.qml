@@ -28,7 +28,6 @@ Column {
     }
     Radio.NetworkPage {
         id: networks
-        showBack: false
         scrolls: false
         footerText: ""
         configureEnterprise: () => Session.run(["nm-connection-editor", "--create", "--type", "802-11-wireless"])

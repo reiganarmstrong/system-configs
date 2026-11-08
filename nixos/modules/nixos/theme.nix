@@ -1,4 +1,4 @@
-# The single source for the desktop's look. Hyprland, Quickshell, GTK and the
+# The single source for the desktop's look. Niri, Quickshell, GTK and the
 # terminal all read these values, so restyling is one edit here.
 { lib, ... }:
 let
@@ -20,23 +20,23 @@ in
   options.desktop.theme = {
     colors = {
       # Monochrome glass: colour comes from the wallpaper and content.
-      background = color "#000000" "Behind everything, where no wallpaper shows.";
-      panel = color "#1c1c20" "Fill of bars, docks and popups, before translucency.";
+      background = color "#0a0a0b" "Behind everything, where no wallpaper shows.";
+      panel = color "#0a0a0b" "Fill of bars, docks and popups, before translucency.";
       tile = color "#ffffff" "Fill of controls inside panels, before translucency.";
       text = color "#ffffff" "Primary text and icons.";
-      textDim = color "#b4b4bc" "Secondary text.";
+      textDim = color "#a3a3a9" "Secondary text.";
       accent = color "#ffffff" "Active controls and the focused window border.";
-      accentText = color "#111114" "Text and icons on the accent colour.";
-      highlight = color "#2f7cf6" "Selected controls in Settings and slider fill.";
-      urgent = color "#ff6b6b" "Errors and critical notifications.";
+      accentText = color "#0a0a0b" "Text and icons on the accent colour.";
+      highlight = color "#626269" "Selected controls in Settings and slider fill.";
+      urgent = color "#ff5c5c" "Errors and critical notifications.";
     };
 
     opacity = {
-      panel = number 0.55 "Opacity of panel fills over the blurred background.";
+      panel = number 0.78 "Opacity of panel fills over the blurred background.";
       tile = number 0.1 "Opacity of control fills inside panels.";
-      border = number 0.14 "Opacity of the white rim around panels and windows.";
-      activeBorder = number 0.75 "Opacity of the rim around the focused window.";
-      inactiveBorder = number 0.06 "Opacity of the rim around unfocused windows.";
+      border = number 0.10 "Opacity of the white rim around panels and windows.";
+      activeBorder = number 0.36 "Opacity of the rim around the focused window.";
+      inactiveBorder = number 0.10 "Opacity of the rim around unfocused windows.";
     };
 
     radius = {
@@ -47,23 +47,24 @@ in
     };
 
     spacing = {
-      gapsIn = number 5 "Gap between tiled windows.";
-      gapsOut = number 10 "Gap between windows and the screen edge.";
+      gaps = number 12 "Gap between windows, and between windows and the screen edge.";
       panel = number 14 "Padding inside panels.";
       tile = number 10 "Gap between controls inside panels.";
     };
 
     blur = {
-      size = number 7 "Blur radius behind translucent surfaces.";
       passes = number 3 "Blur passes; more is smoother and slower.";
-      vibrancy = number 0.17 "Colour saturation boost through the blur.";
+      offset = number 3 "Sample spread per pass; higher is a wider blur.";
+      noise = number 0.03 "Grain added to the blur so it doesn't band.";
+      saturation = number 0.6 "Colour saturation through the blur; below 1 keeps the glass neutral.";
     };
 
     shadow = {
-      range = number 28 "Window shadow size.";
-      offsetY = number 6 "Window shadow downward offset.";
-      opacity = number 0.6 "Shadow opacity under the focused window.";
-      inactiveOpacity = number 0.33 "Shadow opacity under unfocused windows.";
+      softness = number 36 "Window shadow blur radius.";
+      spread = number 2 "How far the shadow extends past the window.";
+      offsetY = number 10 "Window shadow downward offset.";
+      opacity = number 0.63 "Shadow opacity under the focused window.";
+      inactiveOpacity = number 0.38 "Shadow opacity under unfocused windows.";
     };
 
     icons = mkOption {
@@ -84,7 +85,7 @@ in
     fonts = {
       ui = mkOption {
         type = types.str;
-        default = "Manrope";
+        default = "Inter";
         description = "Shell and application interface font.";
       };
       icons = mkOption {

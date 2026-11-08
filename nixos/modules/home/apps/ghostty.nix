@@ -1,7 +1,8 @@
-# Ghostty: a translucent monochrome terminal that Hyprland blurs behind.
-{ osConfig, ... }:
+# Ghostty: a translucent monochrome terminal that niri blurs behind.
+{ osConfig, lib, ... }:
 let
   theme = osConfig.desktop.theme;
+  palette = builtins.fromJSON (builtins.readFile ./terminal-palette.json);
 in
 {
   programs.ghostty = {
@@ -9,32 +10,39 @@ in
     settings = {
       font-family = theme.fonts.mono;
       font-size = 11;
-      background = "#16161a";
-      foreground = "#e6e6ea";
-      background-opacity = 0.82;
+      background = palette.background;
+      foreground = palette.foreground;
+      cursor-color = palette.cursor;
+      cursor-text = palette.cursorText;
+      selection-background = palette.selectionBg;
+      selection-foreground = palette.selectionFg;
+      background-opacity = 0.84;
+      background-blur = true;
+      window-padding-balance = true;
+      mouse-hide-while-typing = true;
+      shell-integration-features = "ssh-env";
       window-padding-x = 14;
       window-padding-y = 12;
       window-decoration = false;
       cursor-style = "bar";
       confirm-close-surface = false;
-      palette = [
-        "0=#2a2a30"
-        "1=#e06c75"
-        "2=#98c379"
-        "3=#e5c07b"
-        "4=#82aaff"
-        "5=#c792ea"
-        "6=#89ddff"
-        "7=#d4d4d8"
-        "8=#5c5c66"
-        "9=#ff7a85"
-        "10=#b5e08f"
-        "11=#f2d394"
-        "12=#a3c2ff"
-        "13=#d9adf2"
-        "14=#a8e8ff"
-        "15=#ffffff"
-      ];
+      palette = builtins.genList (
+        i:
+        let
+          names = [
+            "black"
+            "red"
+            "green"
+            "yellow"
+            "blue"
+            "magenta"
+            "cyan"
+            "white"
+          ];
+          colors = if i < 8 then palette.normal else palette.bright;
+        in
+        "${toString i}=${colors.${builtins.elemAt names (lib.mod i 8)}}"
+      ) 16;
     };
   };
 }

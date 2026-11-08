@@ -26,6 +26,7 @@ in
         "networkmanager"
         "video"
         "input"
+        "i2c"
       ];
     };
 

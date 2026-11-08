@@ -7,6 +7,7 @@ import qs.services
 
 Popup {
     id: launcher
+    surfaceRadius: Theme.radius.panel + 4
     name: "launcher"
     placement: "center"
     keyboard: true
@@ -35,6 +36,9 @@ Popup {
         if (open) {
             search.text = "";
             selected = 0;
+            // Reset the viewport directly instead of animating the old
+            // selection back into view across the entire application list.
+            list.positionViewAtBeginning();
             search.forceActiveFocus();
         }
     }
@@ -122,8 +126,8 @@ Popup {
                     required property int index
                     width: list.width
                     height: 46
-                    radius: 12
-                    color: index === launcher.selected ? Theme.tileFillHover : "transparent"
+                    radius: 10
+                    color: index === launcher.selected ? Theme.selectFill : "transparent"
 
                     Row {
                         anchors.left: parent.left

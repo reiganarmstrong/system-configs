@@ -14,19 +14,11 @@ let
       url = "https://github.com/pingdotgg/t3code/releases/download/v${version}/T3-Code-${version}-x86_64.AppImage";
       hash = "sha256-+q7kCU3KEnYFeEChpFprLQDXQYr79XNfdadQO3dOY9E=";
     };
-    contents = pkgs.appimageTools.extract {
-      pname = "t3code";
-      inherit version;
-      src = appimage;
-    };
     installed = "${config.home.homeDirectory}/Applications/T3-Code.AppImage";
   };
 in
 {
   home.packages = [
-    # Electron doesn't recognise Hyprland as a desktop with a keyring, so name
-    # GNOME Keyring explicitly or VSCodium can't store secrets.
-    (pkgs.vscodium.override { commandLineArgs = "--password-store=gnome-libsecret"; })
     pkgs.git
     pkgs.vim
     pkgs.gnumake
@@ -36,22 +28,18 @@ in
     pkgs.curl
   ];
 
-  # Hyprland manages windows, so VSCodium's own minimise, maximise and close
-  # buttons are redundant. VSCodium owns settings.json, so add the key only when
-  # it's missing and leave everything else, including a later change, alone.
-  home.activation.vscodiumSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    settings=${config.xdg.configHome}/VSCodium/User/settings.json
-    jq=${pkgs.jq}/bin/jq
-    if [ -z "''${DRY_RUN:-}" ]; then
-      if [ ! -e "$settings" ]; then
-        mkdir -p "$(dirname "$settings")"
-        $jq -n '{"window.controlsStyle": "hidden"}' > "$settings"
-      elif $jq -e 'has("window.controlsStyle") | not' "$settings" >/dev/null 2>&1; then
-        tmp=$(mktemp)
-        $jq '. + {"window.controlsStyle": "hidden"}' "$settings" > "$tmp" && mv "$tmp" "$settings"
-      fi
-    fi
-  '';
+  programs.zed-editor = {
+    enable = true;
+    userSettings = {
+      theme = "One Dark";
+      ui_font_family = "Inter";
+      buffer_font_family = "JetBrains Mono";
+      telemetry = {
+        diagnostics = false;
+        metrics = false;
+      };
+    };
+  };
 
   home.activation.t3code = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -e ${t3code.installed} ]; then
@@ -78,7 +66,7 @@ in
     name = "T3 Code";
     comment = "Desktop app for coding agents";
     exec = "${t3code.installed} %U";
-    icon = "${t3code.contents}/usr/share/icons/hicolor/512x512/apps/t3code.png";
+    icon = "t3code";
     terminal = false;
     categories = [ "Development" ];
     mimeType = [ "x-scheme-handler/t3code" ];

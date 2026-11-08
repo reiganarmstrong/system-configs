@@ -1,4 +1,4 @@
-// The control centre, dropping from the status pill. Laid out on a grid of
+// The control centre, dropping from the bar's status icons. Laid out on a grid of
 // cells like macOS: capsule toggles span two columns, small toggles one,
 // now playing two rows, and the sliders the full width. Wi-Fi,
 // Bluetooth, Sound and Now Playing open detail pages that replace the grid
@@ -12,6 +12,7 @@ import qs.services
 
 Popup {
     id: root
+    surfaceRadius: 26
     name: "control"
     placement: "top-right"
     // Keyboard input for Esc and the Wi-Fi password field.
@@ -22,16 +23,25 @@ Popup {
     property string page: ""
     // The page still on screen while fading out after going back.
     property string shownPage: ""
+    // Keep the entry route through the closing fade, like the shown page.
+    property bool standalone: false
     readonly property real maxPanelHeight: Math.min(560, root.height - 68)
 
     function openPage(name: string) {
         shownPage = name;
         page = name;
+        if (open)
+            ShellState.controlPage = name;
     }
     function back(): bool {
         if (page === "")
             return false;
+        if (standalone) {
+            ShellState.close();
+            return true;
+        }
         page = "";
+        ShellState.controlPage = "";
         return true;
     }
     function handleEscape(): bool {
@@ -43,11 +53,28 @@ Popup {
     function resetPage() {
         page = "";
         shownPage = "";
+        standalone = false;
     }
     // Preserve the current page and panel height through the outer fade.
     // Deferring the hidden check avoids a transient visible=false before the
     // opacity animation starts. Unloading afterwards stops page discovery.
-    onOpenChanged: if (open) resetPage()
+    onOpenChanged: if (open) {
+        resetPage();
+        standalone = ShellState.controlStandalone;
+        if (ShellState.controlPage !== "")
+            openPage(ShellState.controlPage);
+    }
+    Connections {
+        target: ShellState
+        function onControlStandaloneChanged() {
+            if (root.open)
+                root.standalone = ShellState.controlStandalone;
+        }
+        function onControlPageChanged() {
+            if (root.open && root.page !== ShellState.controlPage)
+                root.openPage(ShellState.controlPage);
+        }
+    }
     onVisibleChanged: if (!visible) Qt.callLater(() => {
         if (!root.visible && !root.open) root.resetPage();
     })
@@ -57,12 +84,19 @@ Popup {
     readonly property real gap: 11
     readonly property real wide: cellWidth * 2 + gap
     readonly property real full: cellWidth * 4 + gap * 3
+    // A page's text sits about 26 px from every edge of the glass.
+    readonly property real pagePadding: 15
+    readonly property real pageTop: 17
+    readonly property real pageBottom: 16
+    // Match the inset of the round badges inside the grid's pills.
+    readonly property real headerPadding: 14
 
     Glass {
         width: root.full + 28
-        height: (root.page === "" ? layout.implicitHeight : pageHost.implicitHeight) + 28
+        height: root.page === "" ? layout.implicitHeight + 28
+            : pageHost.implicitHeight + root.pageTop + root.pageBottom
         radius: 26
-        fillOpacity: Prefs.get("panelOpacity", 0.55)
+        fillOpacity: Prefs.get("panelOpacity", Theme.opacity.panel)
         clip: false
 
         Behavior on height { NumberAnimation { duration: Motion.ms(240); easing.type: Easing.OutCubic } }
@@ -70,9 +104,9 @@ Popup {
         // A page in place of the grid, sliding in from the right.
         Loader {
             id: pageHost
-            x: 14 + (root.page !== "" ? 0 : 16)
-            y: 14
-            width: root.full
+            x: root.pagePadding + (root.page !== "" ? 0 : 16)
+            y: root.pageTop
+            width: root.full + 28 - root.pagePadding * 2
             opacity: root.page !== "" ? 1 : 0
             visible: opacity > 0
             active: root.shownPage !== ""
@@ -94,19 +128,19 @@ Popup {
 
         Component {
             id: networkPage
-            NetworkPage { maxHeight: root.maxPanelHeight - 28; onBack: root.back() }
+            NetworkPage { maxHeight: root.maxPanelHeight - root.pageTop - root.pageBottom; onBack: root.back() }
         }
         Component {
             id: bluetoothPage
-            BluetoothPage { maxHeight: root.maxPanelHeight - 28; onBack: root.back() }
+            BluetoothPage { maxHeight: root.maxPanelHeight - root.pageTop - root.pageBottom; onBack: root.back() }
         }
         Component {
             id: soundPage
-            SoundPage { maxHeight: root.maxPanelHeight - 28; onBack: root.back() }
+            SoundPage { maxHeight: root.maxPanelHeight - root.pageTop - root.pageBottom; onBack: root.back() }
         }
         Component {
             id: mediaPage
-            MediaPage { maxHeight: root.maxPanelHeight - 28; onBack: root.back(); onFinished: root.back() }
+            MediaPage { maxHeight: root.maxPanelHeight - root.pageTop - root.pageBottom; onBack: root.back(); onFinished: root.back() }
         }
 
         Column {
@@ -130,29 +164,19 @@ Popup {
                 width: parent.width
                 height: 32
 
-                Rectangle {
-                    id: avatar
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 30
-                    height: 30
-                    radius: 15
-                    color: Theme.colors.accent
-                    Label {
-                        anchors.centerIn: parent
-                        text: Theme.user.fullName.charAt(0)
-                        color: Theme.colors.accentText
-                        weight: Font.Bold
-                    }
-                }
                 Column {
-                    anchors.left: avatar.right
-                    anchors.leftMargin: 10
+                    anchors.left: parent.left
+                    anchors.leftMargin: root.headerPadding
+                    anchors.right: sessionActions.left
+                    anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
-                    Label { text: Theme.user.name; weight: Font.Bold; size: Theme.textSmall }
-                    Label { text: Session.uptime; dim: true; size: Theme.textSmall * 0.9 }
+                    Label { width: parent.width; text: Theme.user.name; weight: Font.Bold; size: Theme.textSmall }
+                    Label { width: parent.width; text: Session.uptime; dim: true; size: Theme.textSmall * 0.9 }
                 }
                 Row {
+                    id: sessionActions
                     anchors.right: parent.right
+                    anchors.rightMargin: root.headerPadding
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 4
 
@@ -290,7 +314,8 @@ Popup {
                     icon: "pipette"
                     onClicked: {
                         ShellState.close();
-                        Session.run(["sh", "-c", "sleep 0.3; hyprpicker --autocopy"]);
+                        // Niri's picker prints "Hex: #rrggbb" last; nothing is copied if it's cancelled.
+                        Session.run(["sh", "-c", "sleep 0.3; c=$(niri msg pick-color | sed -n 's/^Hex: //p'); [ -n \"$c\" ] && printf %s \"$c\" | wl-copy"]);
                     }
                 }
             }

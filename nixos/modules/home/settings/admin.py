@@ -95,7 +95,8 @@ def startup_run():
     # Preferences survive rebuilds; applications run once per compositor session.
     with locked():
         apply_appearance(validate(read_json("preferences.json", {})))
-    signature = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+    # Niri's socket is named for the compositor's process, so it is new each session.
+    signature = os.path.basename(os.environ.get("NIRI_SOCKET", ""))
     if not signature or not re.fullmatch(r"[A-Za-z0-9_.-]+", signature):
         return {"started": 0}
     marker = Path(os.environ.get("XDG_RUNTIME_DIR", "/run/user/" + str(os.getuid()))) / ("desktop-startup-" + signature)

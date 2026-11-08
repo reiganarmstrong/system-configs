@@ -26,9 +26,9 @@ SettingRow {
             width: 38
             height: 22
             radius: 11
-            color: control.checked ? Theme.colors.highlight : Theme.withAlpha("#ffffff", 0.18)
+            color: control.checked ? Theme.colors.highlight : "#18181b"
             border.width: control.activeFocus ? 2 : 0
-            border.color: "#5b9bff"
+            border.color: Theme.focusRing
             Rectangle {
                 x: control.checked ? 18 : 2
                 y: 2

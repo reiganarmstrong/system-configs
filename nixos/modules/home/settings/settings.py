@@ -1,7 +1,10 @@
 """Validated, per-user desktop preferences and reversible monitor changes.
 
-Nix owns the defaults. Only explicit user overrides go in the state directory.
-No commands are run through a shell; generated Lua uses JSON string escaping.
+Nix owns the defaults. Only explicit user overrides go in preferences.json.
+From them this writes settings.kdl, which niri's config includes last; niri
+reloads it as soon as it changes, so writing the file applies it and restoring
+the file undoes it. No commands are run through a shell, and generated KDL
+quotes every string with JSON escaping, which KDL shares.
 """
 import contextlib
 import fcntl
@@ -187,80 +190,104 @@ def run(command, *, check=True):
     return result.stdout.strip()
 
 
-def lua(value):
-    if isinstance(value, dict):
-        return "{" + ",".join("[" + json.dumps(key) + "]=" + lua(val) for key, val in value.items()) + "}"
-    if type(value) is bool:
-        return "true" if value else "false"
-    return json.dumps(value)
+def kdl_number(value):
+    return str(value) if type(value) is int else repr(float(value))
 
 
-def hypr_config(p):
+def input_kdl(p):
+    def pointer(natural):
+        lines = [f'accel-speed {kdl_number(p["pointerSpeed"])}',
+                 f'accel-profile {json.dumps(p["pointerAcceleration"])}',
+                 f'scroll-factor {kdl_number(p["scrollFactor"])}']
+        if natural:
+            lines.append("natural-scroll")
+        if p["leftHanded"]:
+            lines.append("left-handed")
+        return lines
+    xkb = [f'layout {json.dumps(p["keyboardLayout"])}']
+    if p["capsLock"]:
+        xkb.append(f'options {json.dumps(p["capsLock"])}')
+    touchpad = pointer(p["touchpadNaturalScroll"])
+    touchpad += [flag for flag, on in (("tap", p["tapToClick"]), ("dwt", p["disableWhileTyping"])) if on]
+    touchpad.append('click-method "clickfinger"' if p["twoFingerClick"] else 'click-method "button-areas"')
     return {
-        "input": {
-            "sensitivity": p["pointerSpeed"], "accel_profile": p["pointerAcceleration"],
-            "natural_scroll": p["naturalScroll"], "scroll_factor": p["scrollFactor"],
-            "kb_layout": p["keyboardLayout"], "kb_options": p["capsLock"],
-            "repeat_rate": p["repeatRate"], "repeat_delay": p["repeatDelay"],
-            "follow_mouse": 1 if p["focusFollowsMouse"] else 2,
-            "left_handed": p["leftHanded"],
-            "touchpad": {
-                "natural_scroll": p["touchpadNaturalScroll"], "tap_to_click": p["tapToClick"],
-                "disable_while_typing": p["disableWhileTyping"], "clickfinger_behavior": p["twoFingerClick"],
-            },
-        },
-        "general": {"gaps_in": p["gaps"], "gaps_out": p["gaps"] * 2},
-        "decoration": {"rounding": p["rounding"]},
-        "animations": {"enabled": not p["reduceMotion"]},
+        "keyboard": {"xkb": xkb, "repeat": [f'repeat-rate {p["repeatRate"]}', f'repeat-delay {p["repeatDelay"]}']},
+        "mouse": pointer(p["naturalScroll"]),
+        "touchpad": touchpad,
+        # Focus follows the pointer without scrolling the view to reveal a window.
+        "focusFollowsMouse": p["focusFollowsMouse"],
     }
 
 
-def eval_hypr(code):
-    output = run(["hyprctl", "eval", code])
-    # hyprctl eval can return 0 even when Lua raises an error.
-    if output.lower().startswith("error"):
-        raise RuntimeError(output)
+def compositor_config(p):
+    """Everything settings.kdl sets from preferences, for change detection."""
+    return {"input": input_kdl(p), "gaps": p["gaps"], "rounding": p["rounding"],
+            "reduceMotion": p["reduceMotion"], "cursorSize": p["cursorSize"]}
 
 
-def monitor_config(monitor):
-    return {
-        "output": monitor["name"],
-        "mode": f'{monitor["width"]}x{monitor["height"]}@{monitor["refreshRate"]:.5f}',
-        "scale": monitor["scale"], "position": f'{monitor["x"]}x{monitor["y"]}',
-        "transform": monitor["transform"],
-    }
+def block(name, lines, indent="    "):
+    return [name + " {"] + [indent + line for line in lines] + ["}"]
 
 
-def monitor_lua(config):
-    return "hl.monitor(" + lua(config) + ")"
+TRANSFORMS = ["normal", "90", "180", "270"]
 
 
-def differences(values, baseline):
-    result = {}
-    for key, value in values.items():
-        if isinstance(value, dict):
-            child = differences(value, baseline.get(key, {}))
-            if child: result[key] = child
-        elif value != baseline.get(key):
-            result[key] = value
-    return result
+def output_kdl(config):
+    lines = []
+    if config.get("mode") and config["mode"] != "preferred":
+        lines.append(f'mode {json.dumps(config["mode"])}')
+    if config.get("scale") is not None:
+        lines.append(f'scale {kdl_number(config["scale"])}')
+    if config.get("transform") is not None:
+        lines.append(f'transform {json.dumps(TRANSFORMS[config["transform"]])}')
+    return block(f'output {json.dumps(config["output"])}', lines)
 
 
-def overrides_lua(preferences, displays=None):
+def default_display():
+    """The host's built-in display from Nix, or None when every output is automatic."""
+    value = json.loads(os.environ.get("DESKTOP_SETTINGS_DISPLAY") or "{}")
+    return value if value.get("output") else None
+
+
+def settings_kdl(preferences, displays=None):
     displays = read_json("displays.json", {}) if displays is None else displays
-    # Only apply keys explicitly changed by the user, preserving future Nix defaults.
-    config = differences(hypr_config(preferences), hypr_config(defaults()))
-    lines = ["-- Generated by desktop-settings. Edit preferences.json through Settings.", "hl.config(" + lua(config) + ")"]
-    lines.extend(monitor_lua(value) for value in displays.values())
+    i = input_kdl(preferences)
+    inputs = block("keyboard", block("xkb", i["keyboard"]["xkb"]) + i["keyboard"]["repeat"])
+    inputs += block("mouse", i["mouse"]) + block("touchpad", i["touchpad"])
+    if i["focusFollowsMouse"]:
+        inputs.append('focus-follows-mouse max-scroll-amount="0%"')
+    lines = ["// Generated by desktop-settings from preferences.json and displays.json.",
+             "// Change these through Settings; edits here are replaced.", ""]
+    lines += block("input", inputs)
+    lines += block("layout", [f'gaps {preferences["gaps"]}'])
+    lines += block("window-rule", [f'geometry-corner-radius {preferences["rounding"]}'])
+    lines += block("cursor", [f'xcursor-size {preferences["cursorSize"]}'])
+    if preferences["reduceMotion"]:
+        lines += block("animations", ["off"])
+    outputs = {}
+    if default_display():
+        outputs[default_display()["output"]] = default_display()
+    outputs.update(displays)
+    for config in outputs.values():
+        lines += output_kdl(config)
     return "\n".join(lines) + "\n"
 
 
+def check_kdl(text):
+    """Reject a settings.kdl that niri would refuse, before it is written."""
+    with tempfile.NamedTemporaryFile("w", suffix=".kdl") as candidate:
+        candidate.write(text)
+        candidate.flush()
+        result = subprocess.run(["niri", "validate", "-c", candidate.name], text=True, capture_output=True, timeout=10)
+    if result.returncode:
+        raise RuntimeError("Niri rejected the settings: " + (result.stderr.strip() or result.stdout.strip()).splitlines()[-1])
+
+
 def idle_config(p):
+    on, off = "niri msg action power-on-monitors", "niri msg action power-off-monitors"
     lines = ['general {', ' lock_cmd = qs ipc call lock lock', ' before_sleep_cmd = qs ipc call lock lock',
-             ' after_sleep_cmd = hyprctl dispatch \'hl.dsp.dpms({ action = "on" })\'', '}']
-    entries = [(p["lockMinutes"] * 60, "qs ipc call lock lock", None),
-               (p["screenOffMinutes"] * 60, 'hyprctl dispatch \'hl.dsp.dpms({ action = "off" })\'',
-                'hyprctl dispatch \'hl.dsp.dpms({ action = "on" })\'')]
+             ' after_sleep_cmd = ' + on, '}']
+    entries = [(p["lockMinutes"] * 60, "qs ipc call lock lock", None), (p["screenOffMinutes"] * 60, off, on)]
     if p["suspendMinutes"]:
         entries.append((p["suspendMinutes"] * 60, "systemctl suspend", None))
     for timeout, action, resume in entries:
@@ -272,13 +299,12 @@ def idle_config(p):
 
 
 def apply_appearance(p):
+    # Niri takes the cursor size from settings.kdl.
     run(["dconf", "write", "/org/gnome/desktop/interface/text-scaling-factor", str(float(p["textScale"]))])
     run(["dconf", "write", "/org/gnome/desktop/interface/cursor-size", str(p["cursorSize"])])
-    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
-        run(["hyprctl", "setcursor", os.environ.get("DESKTOP_CURSOR_NAME", "Bibata-Modern-Classic"), str(p["cursorSize"])])
 
 
-ARTIFACTS = ("preferences.json", "settings.lua", "idle.conf")
+ARTIFACTS = ("preferences.json", "settings.kdl", "idle.conf")
 
 
 def save(values):
@@ -286,44 +312,87 @@ def save(values):
     old = validate(read_json("preferences.json", {}))
     if p["wallpaper"] != old["wallpaper"] and p["wallpaper"] and not Path(p["wallpaper"]).is_file():
         raise ValueError("Wallpaper file is no longer available")
-    # Generate everything before touching the session, so a generation error
-    # changes nothing. Store only overrides, so Nix default changes still apply.
+    # Generate and check everything before touching the session, so a bad
+    # value changes nothing. Store only overrides, so Nix default changes
+    # still apply. Writing settings.kdl is what applies compositor changes.
+    compositor = settings_kdl(p)
+    if compositor_config(p) != compositor_config(old):
+        check_kdl(compositor)
     staged = dict(zip(ARTIFACTS, (
         json_text({key: value for key, value in p.items() if value != defaults()[key]}),
-        overrides_lua(p), idle_config(p))))
-    hypr_changed = bool(os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")) and hypr_config(old) != hypr_config(p)
+        compositor, idle_config(p))))
     appearance_changed = any(p[key] != old[key] for key in ("textScale", "cursorSize"))
     undo = []
-    try:
-        # Register each rollback before its step: a step can fail half-applied.
-        if hypr_changed:
-            undo.append(("restoring compositor settings", lambda: eval_hypr("hl.config(" + lua(hypr_config(old)) + ")")))
-            eval_hypr("hl.config(" + lua(hypr_config(p)) + ")")
-        if appearance_changed:
-            undo.append(("restoring text and cursor size", lambda: apply_appearance(old)))
+    if appearance_changed:
+        try:
             apply_appearance(p)
-    except Exception as error:
-        problems = []
-        for label, function in reversed(undo):
-            attempt(problems, label, function)
-        if problems:
-            raise RuntimeError(f"{error}. Recovery was incomplete: " + "; ".join(problems)) from error
-        raise
-    commit(staged, list(reversed(undo)))
+        except Exception as error:
+            problems = []
+            # A step can fail half-applied, so it is always rolled back.
+            attempt(problems, "restoring text and cursor size", apply_appearance, old)
+            if problems:
+                raise RuntimeError(f"{error}. Recovery was incomplete: " + "; ".join(problems)) from error
+            raise
+        undo.append(("restoring text and cursor size", lambda: apply_appearance(old)))
+    commit(staged, undo)
     if any(p[key] != old[key] for key in ("lockMinutes", "screenOffMinutes", "suspendMinutes")):
         run(["systemctl", "--user", "restart", "hypridle"], check=False)
     return {"preferences": p}
 
 
+def regenerate():
+    """Rewrite the generated files from saved state, e.g. after Nix defaults change."""
+    p = validate(read_json("preferences.json", {}))
+    compositor = settings_kdl(p)
+    check_kdl(compositor)
+    commit({"settings.kdl": compositor, "idle.conf": idle_config(p)})
+
+
+def mode_string(mode):
+    # Niri matches a mode's refresh rate exactly, to the millihertz.
+    return f'{mode["width"]}x{mode["height"]}@{mode["refresh_rate"] / 1000:.3f}'
+
+
 def monitors():
-    return json.loads(run(["hyprctl", "monitors", "-j"]))
+    """Connected, enabled outputs in the shape the Settings page reads."""
+    result = []
+    for output in json.loads(run(["niri", "msg", "--json", "outputs"])).values():
+        logical = output.get("logical")
+        if output.get("current_mode") is None or not logical:
+            continue
+        current = output["modes"][output["current_mode"]]
+        transform = str(logical["transform"]).lower()
+        result.append({
+            "name": output["name"],
+            "description": " ".join(filter(None, (output.get("make"), output.get("model")))) or output["name"],
+            "width": current["width"], "height": current["height"], "refreshRate": current["refresh_rate"] / 1000,
+            "scale": logical["scale"], "x": logical["x"], "y": logical["y"],
+            "transform": TRANSFORMS.index(transform) if transform in TRANSFORMS else 0,
+            "availableModes": [mode_string(m) + "Hz" for m in output["modes"]],
+        })
+    return result
+
+
+def monitor_config(monitor):
+    return {"output": monitor["name"],
+            "mode": f'{monitor["width"]}x{monitor["height"]}@{monitor["refreshRate"]:.3f}',
+            "scale": monitor["scale"], "transform": monitor["transform"]}
+
+
+def apply_display(config):
+    """Change an output now. Niri forgets this on the next config reload,
+    so a kept change is also written to settings.kdl."""
+    name = config["output"]
+    run(["niri", "msg", "output", name, "mode", config["mode"]])
+    run(["niri", "msg", "output", name, "scale", kdl_number(config["scale"])])
+    run(["niri", "msg", "output", name, "transform", TRANSFORMS[config["transform"]]])
 
 
 def verify_display(config):
-    width, height = map(int, config["mode"].split("@")[0].split("x"))
-    for attempt in range(20):
-        applied = next((m for m in monitors() if m["name"] == config["output"]), {})
-        if (applied.get("width"), applied.get("height"), applied.get("scale"), applied.get("transform")) == (width, height, config["scale"], config["transform"]) and abs(applied.get("refreshRate", 0) - float(config["mode"].split("@")[1])) < 0.1:
+    for _ in range(20):
+        applied = next((m for m in monitors() if m["name"] == config["output"]), None)
+        if applied and monitor_config(applied)["mode"] == config["mode"] \
+                and applied["transform"] == config["transform"] and abs(applied["scale"] - config["scale"]) < 0.01:
             return
         time.sleep(0.1)
     raise RuntimeError("Display did not accept the requested configuration")
@@ -333,10 +402,11 @@ def revert_display(token):
     pending = read_json("display-pending.json", {})
     if pending.get("token") != token:
         return
-    eval_hypr(monitor_lua(pending["old"]))
-    # An unplugged output keeps the restored rule for its next connection;
-    # there is nothing to verify, and keeping the record would block Settings.
+    # An unplugged output gets its saved settings.kdl block on its next
+    # connection; there is nothing to verify, and keeping the record would
+    # block Settings.
     if any(m["name"] == pending["old"]["output"] for m in monitors()):
+        apply_display(pending["old"])
         verify_display(pending["old"])
     (state_dir() / "display-pending.json").unlink(missing_ok=True)
 
@@ -349,16 +419,13 @@ def preview_display(value):
         raise ValueError("Display is no longer connected")
     mode = value.get("mode")
     modes = {m.replace("Hz", "") for m in current["availableModes"]}
-    modes.add(monitor_config(current)["mode"])
     if mode not in modes or value.get("scale") not in [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]:
         raise ValueError("Unsupported display mode or scale")
     if type(value.get("transform")) is not int or value["transform"] not in range(4):
         raise ValueError("Unsupported display rotation")
     old = monitor_config(current)
-    if os.environ.get("DESKTOP_SETTINGS_FIXED_MODE") == "1":
-        size, refresh = mode.split("@")
-        if size != f'{current["width"]}x{current["height"]}' or abs(float(refresh) - current["refreshRate"]) > 0.1:
-            raise ValueError("This virtual display uses a fixed VNC resolution. Adjust scale instead.")
+    if os.environ.get("DESKTOP_SETTINGS_FIXED_MODE") == "1" and mode != old["mode"]:
+        raise ValueError("This virtual display uses a fixed VNC resolution. Adjust scale instead.")
     new = old | {key: value[key] for key in ["mode", "scale", "transform"]}
     token = uuid.uuid4().hex
     # Start the safety timer before the change, so a crash cannot strand the display.
@@ -366,7 +433,7 @@ def preview_display(value):
     subprocess.Popen([sys.executable, __file__, "display-watch", token], start_new_session=True,
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
-        eval_hypr(monitor_lua(new))
+        apply_display(new)
         verify_display(new)
     except Exception:
         revert_display(token)
@@ -381,8 +448,9 @@ def keep_display(token):
     verify_display(pending["new"])
     displays = read_json("displays.json", {})
     displays[pending["new"]["output"]] = pending["new"]
-    commit({"displays.json": json_text(displays),
-            "settings.lua": overrides_lua(validate(read_json("preferences.json", {})), displays)})
+    compositor = settings_kdl(validate(read_json("preferences.json", {})), displays)
+    check_kdl(compositor)
+    commit({"displays.json": json_text(displays), "settings.kdl": compositor})
     (state_dir() / "display-pending.json").unlink(missing_ok=True)
     return {"kept": True}
 
@@ -417,6 +485,11 @@ def main():
         with locked():
             atomic_write("idle.conf", idle_config(validate(read_json("preferences.json", {}))))
         os.execvp("hypridle", ["hypridle", "-c", str(state_dir() / "idle.conf")])
+    if action == "regenerate":
+        with locked():
+            regenerate()
+        print(json.dumps({"regenerated": True}))
+        return
     if action == "gtk-apply":
         apply_appearance(validate(read_json("preferences.json", {})))
         print(json.dumps({"applied": True}))
@@ -434,7 +507,7 @@ def main():
             revert_display(sys.argv[2])
             result = {"reverted": True}
         elif action == "reset":
-            # settings.lua keeps confirmed monitor modes from displays.json.
+            # settings.kdl keeps confirmed monitor modes from displays.json.
             result = save(defaults())
         else:
             raise ValueError("Unknown action")

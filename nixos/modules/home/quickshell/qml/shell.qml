@@ -45,7 +45,7 @@ ShellRoot {
             Session.locked = true;
     }
 
-    // `qs ipc call <target> <function> [args]`, used by Hyprland key bindings.
+    // `qs ipc call <target> <function> [args]`, used by Niri key bindings.
     IpcHandler {
         target: "settings"
         function open(page: string): void { ShellState.openSettings(page); }
@@ -90,7 +90,7 @@ ShellRoot {
         }
         function status(): string {
             return JSON.stringify({open: controlCenter.open, visible: controlCenter.visible,
-                page: controlCenter.page, shownPage: controlCenter.shownPage, width: controlCenter.full + 28});
+                page: controlCenter.page, shownPage: controlCenter.shownPage, standalone: controlCenter.standalone, width: controlCenter.full + 28});
         }
     }
     IpcHandler {

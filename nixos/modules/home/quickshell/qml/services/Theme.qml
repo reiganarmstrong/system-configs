@@ -30,6 +30,19 @@ Singleton {
     readonly property color tileFillHover: withAlpha(colors.tile, opacity.tile * 1.8)
     readonly property color rim: withAlpha("#ffffff", opacity.border)
 
+    // Graphite interaction greys. Hover and selection are neutral lifts of
+    // the charcoal glass, never a hue, so nothing in the shell turns blue.
+    readonly property color hoverFill: withAlpha("#ffffff", 0.07)
+    readonly property color pressFill: withAlpha("#ffffff", 0.12)
+    readonly property color selectFill: withAlpha("#ffffff", 0.13)
+    readonly property color focusRing: withAlpha("#ffffff", 0.45)
+
+    // The bar is a solid strip; popups and banners hang just below it.
+    readonly property int barHeight: 34
+    readonly property color barFill: "#000000"
+    readonly property int popupGap: 6
+    readonly property int popupTop: barHeight + popupGap
+
     function withAlpha(hex: string, alpha: real): color {
         const c = Qt.color(hex);
         return Qt.rgba(c.r, c.g, c.b, alpha);

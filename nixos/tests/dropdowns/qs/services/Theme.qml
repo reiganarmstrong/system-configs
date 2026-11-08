@@ -5,6 +5,7 @@ QtObject {
     readonly property string font: "DejaVu Sans"
     readonly property string iconFont: font
     readonly property real textNormal: 11
+    readonly property color focusRing: "#737373"
     readonly property var colors: ({text: "white", textDim: "gray", highlight: "#0088ff"})
     function glyph(name) { return name === "check" ? "✓" : "⌄"; }
     function withAlpha(value, alpha) {

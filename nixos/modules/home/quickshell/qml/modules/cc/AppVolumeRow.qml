@@ -21,7 +21,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 10
-        color: hover.hovered ? Theme.withAlpha("#ffffff", 0.08) : "transparent"
+        color: hover.hovered ? Theme.hoverFill : "transparent"
         Behavior on color { ColorAnimation { duration: Motion.ms(100) } }
     }
     HoverHandler { id: hover }

@@ -65,7 +65,7 @@ in
     xdg.desktopEntries.clipboard-history = {
       name = "Clipboard history";
       comment = "Search and recall copied text and images";
-      icon = "edit-paste";
+      icon = "clipboard-history";
       exec = "${pkgs.quickshell}/bin/qs ipc call clipboard toggle";
       categories = [ "Utility" ];
       terminal = false;

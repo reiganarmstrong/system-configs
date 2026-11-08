@@ -15,7 +15,7 @@
     updates.enable = true;
     display = {
       output = "eDP-1";
-      mode = "2880x1920@120";
+      mode = "2880x1920";
       scale = 2;
     };
   };

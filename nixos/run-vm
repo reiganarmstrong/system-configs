@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Build and run the current desktop using the existing test disk and VNC setup.
+set -euo pipefail
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$repo"
+mkdir -p .local
+export VNC_PASSWORD_FILE=${VNC_PASSWORD_FILE:-$repo/fedora/.local/vnc-password}
+export NIX_DISK_IMAGE=${NIX_DISK_IMAGE:-$repo/.local/nixos-vm.qcow2}
+if [[ ! -r "$VNC_PASSWORD_FILE" ]]; then
+  echo "Set VNC_PASSWORD_FILE to the existing VNC password file." >&2
+  exit 1
+fi
+if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
+  echo "This session needs access to /dev/kvm. Log in again after joining the kvm group." >&2
+  exit 1
+fi
+nix build .#nixosConfigurations.vm.config.system.build.vm -o .local/vm-result
+mesa=$(nix build --no-link --print-out-paths "$(nix eval --raw .#nixosConfigurations.vm.pkgs.mesa.drvPath)^out")
+export GBM_BACKENDS_PATH=$mesa/lib/gbm
+export LIBGL_DRIVERS_PATH=$mesa/lib/dri
+export __EGL_VENDOR_LIBRARY_FILENAMES=$mesa/share/glvnd/egl_vendor.d/50_mesa.json
+exec .local/vm-result/bin/run-vm-vm

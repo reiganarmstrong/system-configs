@@ -2,19 +2,11 @@
 # the host GPU (virtio-gpu with virgl) and is viewed over VNC on 127.0.0.1:5902.
 # The VNC password is read from the file named by $VNC_PASSWORD_FILE when the
 # VM starts; classic VNC authentication uses its first eight characters.
-{ lib, pkgs, ... }:
+{ lib, ... }:
 {
   imports = [ ./test-hardware.nix ];
 
   networking.hostName = "vm";
-
-  # The VNC pointer is an absolute device, which hits a Hyprland 0.55 bug that
-  # makes sliders jump on release instead of following a drag. The Framework's
-  # relative touchpad and mice don't, so only the VM carries the patch (and
-  # compiles Hyprland) until NixOS ships Hyprland 0.56 or newer.
-  programs.hyprland.package = pkgs.hyprland.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ./hyprland-absolute-pointer-frame.patch ];
-  });
 
   # The Framework's layout (2880x1920 at 2x) at 1x, so VNC viewers that
   # aren't HiDPI-aware, like TigerVNC on a Mac, show it at a sensible size.
@@ -31,7 +23,7 @@
   users.users.reagan.initialPassword = "nixos";
   users.mutableUsers = false;
 
-  # SSH from the host on 127.0.0.1:2222, for logs and hyprctl while testing.
+  # SSH from the host on 127.0.0.1:2222, for logs and `niri msg` while testing.
   services.openssh.enable = true;
   users.users.reagan.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMULy3x+bptXlXcZ6JmEh5dKxrHyqaY8uoplaEGGWKQy pc"

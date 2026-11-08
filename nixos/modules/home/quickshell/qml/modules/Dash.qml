@@ -8,6 +8,7 @@ import qs.services
 
 Popup {
     name: "dash"
+    keyboard: true
     placement: "top"
 
     Glass {

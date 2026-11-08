@@ -74,6 +74,26 @@ ShellRoot {
     }
 
     readonly property var steps: [
+        () => {
+            ShellState.openControl("network");
+            check(ShellState.openPanel === "control" && ShellState.controlPage === "network", "network status opens its page");
+            check(ShellState.controlStandalone, "direct widget pages have no parent grid");
+            ShellState.openControl("sound");
+            check(ShellState.openPanel === "control" && ShellState.controlPage === "sound", "another status button switches the open page");
+            check(ShellState.controlStandalone, "switching widgets keeps direct navigation");
+            ShellState.openControl("sound");
+            check(ShellState.openPanel === "", "the active status button closes its page");
+            check(!ShellState.controlStandalone, "closing clears the direct entry route");
+            ShellState.openControl("");
+            check(!ShellState.controlStandalone, "the control-centre grid provides parent navigation");
+            ShellState.controlPage = "bluetooth";
+            check(!ShellState.controlStandalone, "pages opened inside the grid retain parent navigation");
+            ShellState.toggle("clipboard");
+            ShellState.openControl("network");
+            check(ShellState.openPanel === "control" && ShellState.controlPage === "network", "status buttons replace other popups");
+            ShellState.close();
+            return true;
+        },
         () => Prefs.ready && idle(),
         () => {
             mark.filtered = find(filtered, i => i.delegateModel !== undefined && i.popup !== undefined);

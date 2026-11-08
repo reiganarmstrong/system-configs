@@ -3,12 +3,13 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import qs.components
 import qs.services
 
 PanelWindow {
-    screen: Quickshell.screens.find(s => Hyprland.monitorFor(s) === Hyprland.focusedMonitor) ?? null
+    id: notifications
+    property list<Region> cardRegions: []
+    screen: Niri.focusedScreen()
     // Held while the control centre or clipboard is open; they
     // still reach the notification centre.
     visible: Notifs.popups.length > 0 && !Session.locked && !["control", "clipboard"].includes(ShellState.openPanel)
@@ -21,11 +22,15 @@ PanelWindow {
         right: true
     }
     margins {
-        top: 44
-        right: 10
+        top: Theme.popupTop
+        right: 8
     }
     implicitWidth: 360
     implicitHeight: stack.implicitHeight
+    // One rounded blur region per card, so the gaps between them stay clear.
+    BackgroundEffect.blurRegion: Region {
+        regions: notifications.cardRegions
+    }
 
     Column {
         id: stack
@@ -33,9 +38,19 @@ PanelWindow {
         spacing: 8
 
         Repeater {
+            id: cards
             model: Notifs.popups
+            // Each region lives with its card. Replacing the model destroys
+            // the old cards, so index-based references can become stale.
+            onItemAdded: (index, item) => notifications.cardRegions = [...notifications.cardRegions, item.blurRegion]
+            onItemRemoved: (index, item) => notifications.cardRegions = notifications.cardRegions.filter(region => region !== item.blurRegion)
 
             NotificationCard {
+                id: card
+                readonly property Region blurRegion: Region {
+                    item: card
+                    radius: card.radius
+                }
                 required property var modelData
                 width: stack.width
                 notification: modelData

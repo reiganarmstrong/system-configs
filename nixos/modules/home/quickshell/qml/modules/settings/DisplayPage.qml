@@ -25,7 +25,7 @@ Column {
             spacing: 10
             // The exact current mode is sent unchanged; listed modes that only
             // differ from it by rounding are the same mode and are not repeated.
-            readonly property string currentMode: modelData.width + "x" + modelData.height + "@" + modelData.refreshRate.toFixed(5)
+            readonly property string currentMode: modelData.width + "x" + modelData.height + "@" + modelData.refreshRate.toFixed(3)
             property string mode: currentMode
             property real scale: modelData.scale
             property int rotation: modelData.transform

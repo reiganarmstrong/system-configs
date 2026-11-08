@@ -8,6 +8,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Pam
 import qs.components
+import qs.components.settings
 import qs.services
 
 Scope {
@@ -15,6 +16,49 @@ Scope {
 
     property string message: ""
     property bool checking: false
+    property bool fingerprintAvailable: false
+    property bool fingerprintChecking: false
+
+    Process {
+        running: Session.locked
+        command: ["busctl", "--system", "call", "net.reactivated.Fprint",
+            "/net/reactivated/Fprint/Manager", "net.reactivated.Fprint.Manager", "GetDefaultDevice"]
+        onExited: code => lock.fingerprintAvailable = code === 0
+    }
+
+    PamContext {
+        id: fingerprint
+        config: "quickshell-fingerprint"
+        configDirectory: "/etc/pam.d"
+        onPamMessage: {
+            if (!responseRequired)
+                lock.message = message;
+        }
+        onCompleted: result => {
+            if (!lock.fingerprintChecking)
+                return;
+            lock.fingerprintChecking = false;
+            if (result === PamResult.Success) {
+                lock.message = "";
+                Session.locked = false;
+            } else {
+                lock.message = "Fingerprint not recognized. Try again or enter your password.";
+            }
+        }
+    }
+
+    function cancelFingerprint() {
+        fingerprintChecking = false;
+        fingerprint.abort();
+    }
+
+    Connections {
+        target: Session
+        function onLockedChanged() {
+            if (!Session.locked)
+                lock.cancelFingerprint();
+        }
+    }
 
     PamContext {
         id: pam
@@ -53,6 +97,7 @@ Scope {
     function submit(text: string) {
         if (checking || text === "")
             return;
+        cancelFingerprint();
         password = text;
         checking = true;
         message = "";
@@ -172,10 +217,42 @@ Scope {
                     }
                 }
 
+                SettingButton {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: lock.fingerprintAvailable
+                    enabled: !lock.checking
+                    text: lock.fingerprintChecking ? "Cancel fingerprint" : "Use fingerprint"
+                    onClicked: {
+                        if (lock.fingerprintChecking) {
+                            lock.cancelFingerprint();
+                            lock.message = "";
+                            field.forceActiveFocus();
+                        } else {
+                            lock.message = "Touch the fingerprint reader";
+                            lock.fingerprintChecking = true;
+                            if (!fingerprint.start()) {
+                                lock.fingerprintChecking = false;
+                                lock.message = "Fingerprint reader unavailable. Enter your password.";
+                            }
+                        }
+                    }
+                }
+
+                Label {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: lock.fingerprintAvailable
+                    text: "Password also unlocks the login keyring"
+                    dim: true
+                    size: Theme.textSmall
+                }
+
                 Label {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: lock.message
-                    color: Theme.colors.urgent
+                    color: lock.fingerprintChecking ? Theme.colors.textDim : Theme.colors.urgent
+                    width: 360
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
                     visible: text !== ""
                 }
             }

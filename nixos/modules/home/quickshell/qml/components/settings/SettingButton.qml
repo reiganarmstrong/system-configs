@@ -24,7 +24,7 @@ Controls.Button {
         radius: 8
         color: control.primary ? Theme.colors.highlight : Theme.withAlpha("#ffffff", control.hovered ? 0.14 : 0.08)
         border.width: control.activeFocus ? 2 : 1
-        border.color: control.activeFocus ? "#5b9bff" : Theme.withAlpha("#ffffff", 0.08)
+        border.color: control.activeFocus ? Theme.focusRing : Theme.withAlpha("#ffffff", 0.08)
         opacity: control.enabled ? 1 : 0.4
     }
 }

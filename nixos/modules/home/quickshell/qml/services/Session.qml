@@ -17,7 +17,7 @@ Singleton {
         locked = true;
     }
     function logout() {
-        run(["hyprctl", "dispatch", "hl.dsp.exit()"]);
+        Niri.quit();
     }
     function suspend() {
         lock();

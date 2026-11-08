@@ -62,6 +62,10 @@ Scope {
         anchors.bottom: true
         implicitWidth: panel.width + 20
         implicitHeight: panel.height + 20
+        BackgroundEffect.blurRegion: Region {
+            item: panel
+            radius: panel.radius
+        }
 
         MouseArea {
             anchors.fill: parent

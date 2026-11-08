@@ -25,7 +25,7 @@ SettingRow {
             radius: 9
             color: "#303037"
             border.width: field.activeFocus ? 2 : 1
-            border.color: field.activeFocus ? "#5b9bff" : "#1affffff"
+            border.color: field.activeFocus ? Theme.focusRing : "#1affffff"
         }
     }
 }

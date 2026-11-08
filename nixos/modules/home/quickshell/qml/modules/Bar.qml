@@ -1,9 +1,8 @@
-// The top bar: three floating pills for workspaces, the clock and status.
+// The top bar: a solid black strip across the output. Numbered workspaces on
+// the left, the clock alone in the middle, status icons on the right.
 import QtQuick
-import QtQuick.Controls.Basic as Controls
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import qs.components
 import qs.services
 
@@ -16,10 +15,8 @@ PanelWindow {
         left: true
         right: true
     }
-    implicitHeight: 40
-    color: "transparent"
-
-    readonly property var monitor: Hyprland.monitorFor(screen)
+    implicitHeight: Theme.barHeight
+    color: Theme.barFill
 
     // The control centre's Caffeine keeps the screen awake through this.
     // It's attached to the bar only while Caffeine is on: an attached but
@@ -29,57 +26,97 @@ PanelWindow {
         enabled: Session.caffeine
     }
 
-    // Workspaces: a number for each, the active one on a white circle.
-    Pill {
-        padding: 4
-        spacing: 2
+    // One status icon. Each opens the control centre, straight to its page
+    // when it has one.
+    component StatusButton: Pill {
+        id: button
+        property string icon
+        property string page: ""
+        property string tip
+        clickable: true
+        padding: 7
+        onClicked: ShellState.openControl(page)
+        Accessible.role: Accessible.Button
+        Accessible.name: tip
+        Accessible.onPressAction: ShellState.openControl(page)
+        BarTip { parent: button; visible: button.hovered; text: button.tip }
+        Icon {
+            anchors.verticalCenter: parent.verticalCenter
+            name: button.icon
+        }
+    }
 
+    // Workspaces: a round grey pill per occupied workspace; the active one is
+    // white, half again as wide, with dark numerals.
+    Row {
+        id: workspaces
         anchors.left: parent.left
-        anchors.leftMargin: 8
+        anchors.leftMargin: 12
         anchors.verticalCenter: parent.verticalCenter
+        spacing: 6
 
         Repeater {
-            model: Hyprland.workspaces.values
-                .filter(w => w.id > 0 && w.monitor === bar.monitor)
-                .sort((a, b) => a.id - b.id)
+            model: Niri.workspacesOn(bar.screen?.name ?? "")
 
             Rectangle {
+                id: ws
                 required property var modelData
-                readonly property bool current: modelData.active
+                readonly property bool current: modelData.is_active
 
                 anchors.verticalCenter: parent.verticalCenter
-                width: 20
-                height: 20
-                radius: 10
-                color: current ? Theme.colors.accent : area.containsMouse ? Theme.tileFillHover : "transparent"
+                height: 18
+                width: current ? 27 : 18
+                radius: height / 2
+                color: current ? "#f2f2f3"
+                    : modelData.is_urgent ? Theme.colors.urgent
+                    : area.containsMouse && ShellState.openPanel === "" ? "#4a4a50"
+                    : modelData.active_window_id !== null ? "#3a3a3f" : "#26262a"
+                Accessible.role: Accessible.Button
+                Accessible.name: "Workspace " + label.text
 
+                Behavior on width {
+                    NumberAnimation { duration: Motion.ms(180); easing.type: Easing.OutCubic }
+                }
                 Behavior on color {
-                    ColorAnimation { duration: 160 }
+                    ColorAnimation { duration: Motion.ms(140) }
                 }
 
                 Label {
+                    id: label
                     anchors.centerIn: parent
-                    text: parent.modelData.id
+                    text: ws.modelData.name ?? ws.modelData.idx
                     size: Theme.textSmall
-                    weight: parent.current ? Font.Bold : Font.Medium
-                    color: parent.current ? Theme.colors.accentText : Theme.colors.textDim
+                    weight: Font.DemiBold
+                    color: ws.current || ws.modelData.is_urgent ? Theme.colors.accentText : "#ececee"
                 }
 
                 MouseArea {
                     id: area
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: parent.modelData.activate()
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Niri.focusWorkspace(ws.modelData.id)
                 }
             }
         }
     }
 
-    // Clock; opens the notification centre.
+    // The time alone, centred on the output; opens the calendar and
+    // notification centre. The date is in its tooltip.
     Pill {
+        id: clockPill
         anchors.centerIn: parent
+        padding: 10
         clickable: true
         onClicked: ShellState.toggle("dash")
+        Accessible.role: Accessible.Button
+        Accessible.name: "Calendar and notifications"
+        Accessible.onPressAction: ShellState.toggle("dash")
+        BarTip {
+            parent: clockPill
+            visible: clockPill.hovered
+            text: Qt.formatDate(clock.date, "dddd, MMMM d")
+        }
 
         SystemClock {
             id: clock
@@ -87,11 +124,8 @@ PanelWindow {
         }
 
         Label {
-            dim: true
-            text: Qt.formatDate(clock.date, "ddd d MMM")
-        }
-        Label {
-            weight: Font.Bold
+            weight: Font.DemiBold
+            font.features: ({ "tnum": 1 })
             text: Qt.formatTime(clock.date,
                 (Prefs.get("clock24h", false) ? "HH:mm" : "h:mm")
                 + (Prefs.get("showSeconds", false) ? ":ss" : "")
@@ -99,43 +133,76 @@ PanelWindow {
         }
     }
 
-    // Clipboard history has its own bar button, separate from Control Center.
-    Pill {
-        anchors.right: status.left
-        anchors.rightMargin: 8
-        anchors.verticalCenter: parent.verticalCenter
-        clickable: true
-        onClicked: ShellState.toggle("clipboard")
-        Accessible.role: Accessible.Button
-        Accessible.name: "Clipboard history"
-        Accessible.onPressAction: ShellState.toggle("clipboard")
-        HoverHandler { id: clipboardHover }
-        Controls.ToolTip.visible: clipboardHover.hovered
-        Controls.ToolTip.delay: 600
-        Controls.ToolTip.text: "Clipboard history · Super+Shift+V"
-        Icon { name: "clipboard-list"; size: 15 }
-    }
-
-    // Status: network, volume and battery; opens the control centre.
-    Pill {
+    // Status icons, each with its own hover target.
+    Row {
         id: status
         anchors.right: parent.right
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
-        clickable: true
-        onClicked: ShellState.toggle("control")
+        spacing: 2
 
-        Icon { name: Net.icon; size: 15 }
-        Icon { name: Audio.icon; size: 15 }
-        Row {
+        // Clipboard history has its own popup, separate from Control Center.
+        Pill {
+            id: clipboardPill
+            anchors.verticalCenter: parent.verticalCenter
+            clickable: true
+            padding: 7
+            onClicked: ShellState.toggle("clipboard")
+            Accessible.role: Accessible.Button
+            Accessible.name: "Clipboard history"
+            Accessible.onPressAction: ShellState.toggle("clipboard")
+            BarTip { parent: clipboardPill; visible: clipboardPill.hovered; text: "Clipboard history · Super+Shift+V" }
+            Icon { anchors.verticalCenter: parent.verticalCenter; name: "clipboard-list" }
+        }
+
+        StatusButton {
+            anchors.verticalCenter: parent.verticalCenter
+            icon: Net.icon
+            page: "network"
+            tip: "Network"
+        }
+        StatusButton {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: Bt.available
+            icon: !Bt.enabled ? "bluetooth-off" : Bt.connected.length > 0 ? "bluetooth-connected" : "bluetooth"
+            page: "bluetooth"
+            tip: "Bluetooth"
+        }
+        StatusButton {
+            anchors.verticalCenter: parent.verticalCenter
+            icon: Audio.icon
+            page: "sound"
+            tip: "Sound"
+        }
+
+        // Battery, with its percentage; opens the control centre's grid.
+        Pill {
+            anchors.verticalCenter: parent.verticalCenter
             visible: Battery.present
-            spacing: 4
-            Icon { name: Battery.icon; size: 15 }
+            clickable: true
+            padding: 7
+            spacing: 5
+            onClicked: ShellState.openControl("")
+            Accessible.role: Accessible.Button
+            Accessible.name: "Battery " + Math.round(Battery.level * 100) + "%"
+            Accessible.onPressAction: ShellState.openControl("")
+            Icon { anchors.verticalCenter: parent.verticalCenter; name: Battery.icon; size: 17 }
             Label {
+                anchors.verticalCenter: parent.verticalCenter
                 size: Theme.textSmall
+                weight: Font.DemiBold
+                font.features: ({ "tnum": 1 })
                 text: Math.round(Battery.level * 100) + "%"
                 visible: Prefs.get("showBatteryPercent", true)
             }
+        }
+
+        // Without a battery, a settings-free way into the control centre grid.
+        StatusButton {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !Battery.present
+            icon: "sliders-horizontal"
+            tip: "Control centre"
         }
     }
 }

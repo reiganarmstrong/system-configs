@@ -1,4 +1,4 @@
-// A control-centre page: header with a back chevron, title and optional
+// A control-centre page: header with a title and optional
 // switch; a scrolling body; and an optional "… Settings" footer link.
 import QtQuick
 import qs.services
@@ -7,7 +7,6 @@ Item {
     id: panel
 
     property string title
-    property bool showBack: true
     property bool showSwitch: false
     property alias checked: toggle.checked
     property alias switchEnabled: toggle.enabled
@@ -20,6 +19,7 @@ Item {
     signal switchToggled(bool on)
     signal footerClicked
 
+    readonly property real contentInset: 10
     readonly property real chromeHeight: header.height + 13 + (footer.visible ? footer.height + 7 : 0)
 
     width: parent ? parent.width : 297
@@ -30,26 +30,21 @@ Item {
         width: parent.width
         height: 32
 
-        IconButton {
-            id: backButton
-            visible: panel.showBack
-            anchors.verticalCenter: parent.verticalCenter
-            icon: "chevron-left"
-            iconSize: 15
-            onClicked: panel.back()
-        }
         Label {
             anchors.left: parent.left
-            anchors.leftMargin: panel.showBack ? 32 : 0
+            anchors.leftMargin: panel.contentInset
             anchors.right: trailing.left
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
+            // The font's ascent leaves the letters a pixel high of the switch.
+            anchors.verticalCenterOffset: 1
             text: panel.title
             weight: Font.Bold
         }
         Row {
             id: trailing
             anchors.right: parent.right
+            anchors.rightMargin: panel.contentInset
             anchors.verticalCenter: parent.verticalCenter
             spacing: 6
 
@@ -64,6 +59,8 @@ Item {
 
     Separator {
         id: topRule
+        x: panel.contentInset
+        width: parent.width - panel.contentInset * 2
         y: header.height + 8
     }
 
@@ -77,9 +74,10 @@ Item {
         interactive: contentHeight > height
         clip: true
 
+        // The body leaves a gutter for the scrollbar so it never covers a row.
         Column {
             id: body
-            width: view.width
+            width: view.width - (view.interactive ? 10 : 0)
             spacing: 2
         }
 
@@ -102,14 +100,17 @@ Item {
         visible: panel.footerText !== ""
         spacing: 6
 
-        Separator {}
+        Separator {
+            x: panel.contentInset
+            width: parent.width - panel.contentInset * 2
+        }
         Rectangle {
             width: parent.width
             height: 32
             radius: 10
-            color: footerArea.containsMouse ? Theme.withAlpha("#ffffff", 0.08) : "transparent"
+            color: footerArea.containsMouse ? Theme.hoverFill : "transparent"
             Label {
-                x: 10
+                x: panel.contentInset
                 anchors.verticalCenter: parent.verticalCenter
                 text: panel.footerText
                 size: Theme.textSmall

@@ -39,7 +39,7 @@ FloatingWindow {
     }
 
 
-    // Hyprland rounds the window's corners and draws its rim, so the content
+    // Niri rounds the window's corners and draws its border, so the content
     // is a plain square fill; a second rounded border inside it doubled up.
     Rectangle {
         anchors.fill: parent
@@ -74,7 +74,7 @@ FloatingWindow {
                     font.pointSize: Theme.textSmall
                     leftPadding: 10
                     Accessible.name: "Search settings"
-                    background: Rectangle { radius: 8; color: "#12ffffff"; border.width: search.activeFocus ? 2 : 0; border.color: "#5b9bff" }
+                    background: Rectangle { radius: 8; color: "#12ffffff"; border.width: search.activeFocus ? 2 : 0; border.color: Theme.focusRing }
                     onAccepted: if (window.filteredPages.length) ShellState.settingsPage = window.filteredPages[0].key
                 }
                 ListView {
@@ -104,7 +104,7 @@ FloatingWindow {
                         height: Math.max(36, navText.implicitHeight + 16)
                         radius: 8
                         readonly property bool selected: window.page.key === modelData.key
-                        color: selected ? Theme.colors.highlight : navMouse.containsMouse ? "#12ffffff" : "transparent"
+                        color: selected ? Theme.selectFill : navMouse.containsMouse ? Theme.hoverFill : "transparent"
                         Icon { anchors.left: parent.left; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter; name: navRow.modelData.icon; size: 16 }
                         Label { id: navText; anchors.left: parent.left; anchors.leftMargin: 36; anchors.verticalCenter: parent.verticalCenter; text: navRow.modelData.title; size: Theme.textSmall; width: parent.width - 40 }
                         MouseArea { id: navMouse; anchors.fill: parent; hoverEnabled: true; onClicked: ShellState.settingsPage = navRow.modelData.key }
@@ -125,6 +125,7 @@ FloatingWindow {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.margins: 28
+            anchors.rightMargin: 12
             spacing: 14
             Item {
                 Layout.fillWidth: true
@@ -156,7 +157,7 @@ FloatingWindow {
                 visible: Prefs.previewSeconds > 0
                 Layout.fillWidth: true
                 implicitHeight: previewRow.implicitHeight + 24
-                color: "#242f7cf6"
+                color: Theme.withAlpha("#ffffff", 0.08)
                 radius: 10
                 RowLayout {
                     id: previewRow
@@ -172,6 +173,8 @@ FloatingWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
+                // Keep the scrollbar near the window edge in its own gutter.
+                rightPadding: 24
                 contentWidth: availableWidth
                 Controls.ScrollBar.horizontal.policy: Controls.ScrollBar.AlwaysOff
                 Loader {

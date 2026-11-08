@@ -1,5 +1,10 @@
 # GTK, icons, cursor and fonts for applications, matched to the shell.
-{ osConfig, pkgs, ... }:
+{
+  osConfig,
+  pkgs,
+  lib,
+  ...
+}:
 let
   theme = osConfig.desktop.theme;
 
@@ -29,7 +34,7 @@ let
     [Icon Theme]
     Name=Custom
     Comment=Images from nixos/icons over ${theme.icons}
-    Inherits=${theme.icons},hicolor
+    Inherits=Graphite-macOS-Light,${theme.icons},hicolor
     Directories=$dirs
     $sections
     EOF
@@ -47,10 +52,12 @@ in
     package = pkgs.bibata-cursors;
     size = 24;
     gtk.enable = true;
-    hyprcursor.enable = true;
   };
 
-  home.packages = [ pkgs.${theme.iconPackage} ];
+  home.packages = [
+    pkgs.${theme.iconPackage}
+    (import ../../icons/macos.nix { inherit pkgs lib; })
+  ];
 
   gtk = {
     enable = true;
@@ -76,14 +83,14 @@ in
     # No window buttons in app title bars: windows close with Super+Q.
     gtk3.extraConfig.gtk-decoration-layout = ":";
     gtk4.extraConfig.gtk-decoration-layout = ":";
-    # Selections and switches in the shell's blue rather than GNOME's.
+    # GTK 3 follows the gray shell selection; libadwaita reads Slate below.
     gtk3.extraCss = accentCss;
-    gtk4.extraCss = accentCss;
   };
 
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
+      accent-color = "slate";
       icon-theme = "Custom";
       font-name = "${theme.fonts.ui} ${toString theme.fonts.size}";
       monospace-font-name = "${theme.fonts.mono} ${toString theme.fonts.size}";

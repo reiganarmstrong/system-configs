@@ -38,10 +38,10 @@ Item {
         height: row.rowHeight
         radius: 10
         color: !row.interactive ? "transparent"
-            : area.pressed ? Theme.withAlpha("#ffffff", 0.14)
-            : area.containsMouse ? Theme.withAlpha("#ffffff", 0.08) : "transparent"
+            : area.pressed ? Theme.pressFill
+            : area.containsMouse ? Theme.hoverFill : "transparent"
         border.width: row.activeFocus ? 1 : 0
-        border.color: Theme.colors.highlight
+        border.color: Theme.focusRing
         Behavior on color { ColorAnimation { duration: Motion.ms(100) } }
     }
 

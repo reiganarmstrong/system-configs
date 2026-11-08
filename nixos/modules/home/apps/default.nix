@@ -14,7 +14,7 @@
     name = "NixOS Manual";
     comment = "Open the official NixOS manual";
     exec = "${pkgs.xdg-utils}/bin/xdg-open https://nixos.org/manual/nixos/stable/";
-    icon = "nix-snowflake";
+    icon = "nixos-manual";
     terminal = false;
     categories = [ "System" ];
   };

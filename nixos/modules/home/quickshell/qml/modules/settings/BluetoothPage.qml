@@ -8,7 +8,6 @@ Column {
     spacing: 10
     Radio.BluetoothPage {
         title: "Devices"
-        showBack: false
         scrolls: false
         footerText: ""
     }

@@ -87,7 +87,8 @@ SubPanel {
     Item {
         width: parent.width
         readonly property real contentPadding: 18
-        height: content.implicitHeight + contentPadding * 2
+        // Less below the controls, so the panel's bottom edge matches the other pages.
+        height: content.implicitHeight + contentPadding + 10
 
         Column {
             id: content

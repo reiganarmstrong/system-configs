@@ -61,7 +61,7 @@ Controls.ComboBox {
             radius: 12
             color: "transparent"
             border.width: 2
-            border.color: "#5b9bff"
+            border.color: Theme.focusRing
             visible: control.visualFocus && !control.popup.visible
         }
     }
@@ -69,7 +69,8 @@ Controls.ComboBox {
         id: option
         required property var modelData
         required property int index
-        width: menuList.width
+        // Rows stop short of the scrollbar's gutter when the list scrolls.
+        width: menuList.width - (menuList.scrolls ? 10 : 0)
         height: control.optionHeight
         padding: 0
         text: String(modelData)
@@ -128,13 +129,14 @@ Controls.ComboBox {
         onOpened: menuList.positionViewAtIndex(control.currentIndex, ListView.Contain)
         contentItem: ListView {
             id: menuList
+            readonly property bool scrolls: contentHeight > height + 1
             clip: true
             spacing: 2
             model: control.delegateModel
             currentIndex: control.highlightedIndex
             boundsBehavior: Flickable.StopAtBounds
             Controls.ScrollBar.vertical: Controls.ScrollBar {
-                visible: menuList.contentHeight > menuList.height + 1
+                visible: menuList.scrolls
                 policy: Controls.ScrollBar.AsNeeded
                 padding: 0
                 implicitWidth: 4

@@ -2,7 +2,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import qs.components
 import qs.services
 
@@ -20,7 +19,7 @@ PanelWindow {
         hide.restart();
     }
 
-    screen: Quickshell.screens.find(s => Hyprland.monitorFor(s) === Hyprland.focusedMonitor) ?? null
+    screen: Niri.focusedScreen()
     visible: shown || fade.running
     color: "transparent"
     WlrLayershell.namespace: "shell-osd"
@@ -30,6 +29,10 @@ PanelWindow {
     margins.bottom: 90
     implicitWidth: 280
     implicitHeight: 52
+    BackgroundEffect.blurRegion: Region {
+        item: glass
+        radius: glass.radius
+    }
 
     Timer {
         id: hide
@@ -38,6 +41,7 @@ PanelWindow {
     }
 
     Glass {
+        id: glass
         anchors.fill: parent
         radius: height / 2
         opacity: osd.shown ? 1 : 0

@@ -1,5 +1,5 @@
 {
-  description = "NixOS systems with Hyprland and a Quickshell desktop shell";
+  description = "NixOS systems with niri and a Quickshell desktop shell";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
@@ -48,8 +48,13 @@
           pkgs = nixpkgs.legacyPackages.${system};
         };
         media = import ./nixos/tests/media { pkgs = nixpkgs.legacyPackages.${system}; };
+        brightness = import ./nixos/tests/brightness { pkgs = nixpkgs.legacyPackages.${system}; };
         dropdowns = import ./nixos/tests/dropdowns { pkgs = nixpkgs.legacyPackages.${system}; };
         settingsFailures = import ./nixos/tests/settings-failures {
+          pkgs = nixpkgs.legacyPackages.${system};
+          shellConfig = (mkHost "vm").config.home-manager.users.reagan.xdg.configFile."quickshell".source;
+        };
+        shellPopups = import ./nixos/tests/popups {
           pkgs = nixpkgs.legacyPackages.${system};
           shellConfig = (mkHost "vm").config.home-manager.users.reagan.xdg.configFile."quickshell".source;
         };

@@ -83,7 +83,7 @@ Item {
             radius: 8
             color: "white"
             border.width: control.activeFocus ? 2 : 1
-            border.color: control.activeFocus ? "#5b9bff" : "#40000000"
+            border.color: control.activeFocus ? Theme.focusRing : "#40000000"
         }
         Keys.onPressed: event => {
             let next = value;

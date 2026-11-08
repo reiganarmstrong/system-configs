@@ -1,6 +1,7 @@
 // One notification: app icon or image, summary, body and actions.
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls.Basic as Controls
 import Quickshell
 import qs.components
 import qs.services
@@ -40,12 +41,14 @@ Glass {
 
             RowLayout {
                 Layout.fillWidth: true
+                Layout.rightMargin: 28
                 Label {
                     Layout.fillWidth: true
                     text: card.notification?.summary ?? ""
                     weight: Font.Bold
                 }
                 Label {
+                    Layout.maximumWidth: Math.min(90, card.width / 3)
                     text: card.notification?.appName ?? ""
                     dim: true
                     size: Theme.textSmall
@@ -94,20 +97,24 @@ Glass {
         z: -1
         onClicked: card.dismissed()
     }
-    Icon {
+    Controls.ToolButton {
+        id: dismissButton
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.margins: 8
-        name: "x"
-        size: 13
-        color: Theme.colors.textDim
-        MouseArea {
-            anchors.fill: parent
-            anchors.margins: -4
-            onClicked: {
-                card.dismissed();
-                card.notification?.dismiss();
-            }
+        width: 28
+        height: 28
+        Accessible.name: "Dismiss notification"
+        contentItem: Icon { name: "x"; size: 13; color: Theme.colors.textDim }
+        background: Rectangle {
+            radius: 7
+            color: dismissButton.hovered ? Theme.hoverFill : "transparent"
+            border.width: dismissButton.activeFocus ? 1 : 0
+            border.color: Theme.focusRing
+        }
+        onClicked: {
+            card.dismissed();
+            card.notification?.dismiss();
         }
     }
 }

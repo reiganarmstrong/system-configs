@@ -1,5 +1,5 @@
 # System support for the user's apps: zsh as the login shell, Flatpak for
-# Zen, and the compatibility layers that let self-updating vendor builds
+# Zen and Bitwarden, and the compatibility layers that let self-updating vendor builds
 # (Claude Code, Codex, T3 Code's AppImage) run on NixOS.
 {
   config,
@@ -13,7 +13,10 @@ in
 {
   options.desktop.flatpaks = lib.mkOption {
     type = lib.types.listOf lib.types.str;
-    default = [ "app.zen_browser.zen" ];
+    default = [
+      "app.zen_browser.zen"
+      "com.bitwarden.desktop"
+    ];
     description = "Flathub apps installed for everyone; Flatpak keeps them updated.";
   };
 
@@ -29,9 +32,15 @@ in
     };
 
     services.flatpak.enable = true;
+    environment.systemPackages = [
+      (pkgs.writeTextDir "share/polkit-1/actions/com.bitwarden.desktop.policy" (
+        builtins.readFile ./bitwarden.policy
+      ))
+    ];
     systemd.services.flatpak-apps = {
       description = "Install the configured Flathub apps";
       wantedBy = [ "multi-user.target" ];
+      restartIfChanged = true;
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
       path = [ pkgs.flatpak ];

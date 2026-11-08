@@ -1,16 +1,10 @@
-# btop, the resource monitor, styled like the shell: no background of its own
-# so Ghostty's blur shows through, grey boxes, and graphs that run from the
-# highlight blue at light load to white at full load. Also fastfetch, the system summary.
+# btop uses the Fedora Graphite palette with a transparent background.
+# Fastfetch prints a short NixOS system summary.
 #
 # btop won't draw a layout wider than the window, and the full one needs 80
 # columns, which a half-screen window misses. It opens with CPU and processes
 # (60 columns); p switches to the full layout, and 1-4 toggle single boxes.
-{ osConfig, ... }:
-let
-  inherit (osConfig.desktop.theme) colors;
-  grey = "#5c5c66";
-  light = "#d4d4d8";
-in
+{ ... }:
 {
   programs.btop = {
     enable = true;
@@ -39,50 +33,7 @@ in
       proc_sorting = "cpu lazy";
       show_battery = true;
     };
-    themes.shell = ''
-      theme[main_bg]="${colors.panel}"
-      theme[main_fg]="${light}"
-      theme[title]="${colors.text}"
-      theme[hi_fg]="${colors.highlight}"
-      theme[selected_bg]="#2f2f36"
-      theme[selected_fg]="${colors.text}"
-      theme[inactive_fg]="${grey}"
-      theme[graph_text]="${colors.textDim}"
-      theme[meter_bg]="#2a2a30"
-      theme[proc_misc]="${colors.textDim}"
-      theme[cpu_box]="${grey}"
-      theme[mem_box]="${grey}"
-      theme[net_box]="${grey}"
-      theme[proc_box]="${grey}"
-      theme[div_line]="#3a3a42"
-      theme[temp_start]="#98c379"
-      theme[temp_mid]="#e5c07b"
-      theme[temp_end]="${colors.urgent}"
-      theme[cpu_start]="${colors.highlight}"
-      theme[cpu_mid]="#a3c2ff"
-      theme[cpu_end]="${colors.text}"
-      theme[free_start]="${colors.textDim}"
-      theme[free_mid]="${colors.textDim}"
-      theme[free_end]="${colors.text}"
-      theme[cached_start]="${colors.textDim}"
-      theme[cached_mid]="#82aaff"
-      theme[cached_end]="${colors.text}"
-      theme[available_start]="${colors.textDim}"
-      theme[available_mid]="${colors.textDim}"
-      theme[available_end]="${colors.text}"
-      theme[used_start]="${colors.highlight}"
-      theme[used_mid]="#a3c2ff"
-      theme[used_end]="${colors.text}"
-      theme[download_start]="${colors.highlight}"
-      theme[download_mid]="#a3c2ff"
-      theme[download_end]="${colors.text}"
-      theme[upload_start]="#c792ea"
-      theme[upload_mid]="#d9adf2"
-      theme[upload_end]="${colors.text}"
-      theme[process_start]="${colors.highlight}"
-      theme[process_mid]="#a3c2ff"
-      theme[process_end]="${colors.text}"
-    '';
+    themes.shell = builtins.readFile ./graphite.theme;
   };
 
   # A short summary beside the small NixOS logo: dim blue labels, plain

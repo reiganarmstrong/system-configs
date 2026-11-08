@@ -7,6 +7,7 @@ import qs.services
 
 Popup {
     id: root
+    surfaceRadius: 24
     name: "clipboard"
     placement: "top-right"
     keyboard: true
@@ -47,7 +48,6 @@ Popup {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
-                Icon { name: "clipboard-list"; size: 18 }
                 Label { text: "Clipboard history"; weight: Font.Bold; Layout.fillWidth: true }
                 SettingButton {
                     text: Clipboard.paused ? "Resume" : "Pause"
@@ -122,7 +122,7 @@ Popup {
                     width: list.width
                     height: 52
                     radius: 12
-                    color: modelData.id === root.selectedId ? Theme.tileFillHover : copyArea.containsMouse ? Theme.tileFill : "transparent"
+                    color: modelData.id === root.selectedId ? Theme.selectFill : copyArea.containsMouse ? Theme.hoverFill : "transparent"
                     MouseArea {
                         id: copyArea
                         anchors.fill: parent

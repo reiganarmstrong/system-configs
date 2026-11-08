@@ -1,6 +1,6 @@
 # Desktop settings
 
-Open Settings with `Super+,`, the launcher, or the control center gear. The VM and Framework use the same interface and backend. This is a Hyprland desktop, so some GNOME and KDE capabilities do not have a corresponding compositor or service here.
+Open Settings with `Super+,`, the launcher, or the control center gear. The VM and Framework use the same interface and backend. This is a niri desktop, so some GNOME and KDE capabilities do not have a corresponding compositor or service here.
 
 ## Coverage
 
@@ -35,7 +35,7 @@ Nix supplies packages, services, defaults and hardware policy. Ordinary runtime 
 - NetworkManager and BlueZ own connections and pairing; PipeWire owns audio.
 - UDisks owns mounts, CUPS owns printer queues, and systemd-timedated owns the time zone.
 - GIO owns MIME associations. Flatpak owns account-local app installs and overrides. GOA/EDS and the keyring own online accounts and secrets.
-- `~/.local/state/system-configs/preferences.json` holds explicitly chosen desktop preferences. Generated `settings.lua` and `idle.conf` apply those preferences; `displays.json` holds confirmed monitor choices.
+- `~/.local/state/system-configs/preferences.json` holds explicitly chosen desktop preferences. Generated `settings.kdl` (included by niri's config, which reloads it on change) and `idle.conf` apply those preferences; `displays.json` holds confirmed monitor choices.
 - `startup.json` in the same private state directory lists desktop-entry IDs. Entries launch once per compositor session, not each time the shell restarts. They use the launcher's normal desktop-entry handling, including terminal applications.
 
 Preference reset preserves monitor modes, startup applications, installed apps and accounts. Copying the state directory transfers desktop choices, but monitor identifiers, selected wallpaper paths and account credentials can differ between machines. Network/account secrets are not Git content.

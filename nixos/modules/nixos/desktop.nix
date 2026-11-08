@@ -1,4 +1,4 @@
-# The Hyprland desktop: compositor, login, audio, hardware services and fonts.
+# The Niri desktop: compositor, login, audio, hardware services and fonts.
 # The look lives in the Home Manager modules; this provides what they run on.
 {
   config,
@@ -8,11 +8,11 @@
 }:
 let
   cfg = config.desktop;
-  hyprland = config.programs.hyprland.package;
+  niri = config.programs.niri.package;
 in
 {
   options.desktop = {
-    enable = lib.mkEnableOption "the Hyprland desktop";
+    enable = lib.mkEnableOption "the Niri desktop";
     autoSuspend = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -27,12 +27,17 @@ in
       output = lib.mkOption {
         type = lib.types.str;
         default = "";
-        description = "Hyprland output name of the built-in display; empty matches any.";
+        description = "Niri output name of the built-in display, as `niri msg outputs` prints it; empty leaves every output automatic.";
       };
       mode = lib.mkOption {
         type = lib.types.str;
         default = "preferred";
-        description = "Resolution and refresh rate, such as 2880x1920@120.";
+        description = ''
+          Resolution, such as 2880x1920, or "preferred". Niri picks the
+          highest refresh rate for it. A refresh rate needs Niri's exact
+          value, such as 2880x1920@120.000, so Settings is the easier place
+          to choose one.
+        '';
       };
       scale = lib.mkOption {
         type = lib.types.number;
@@ -53,7 +58,7 @@ in
       type = lib.types.bool;
       default = true;
       description = ''
-        Start Hyprland for the user at boot without a login prompt. The shell
+        Start Niri for the user at boot without a login prompt. The shell
         locks the session immediately, so its lock screen acts as the login
         screen; disk encryption already asks for a password at boot.
       '';
@@ -61,41 +66,24 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    programs.hyprland.enable = true;
+    programs.niri.enable = true;
 
     services.greetd = {
       enable = true;
       settings = {
         # Shown only after logging out.
-        default_session.command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --cmd start-hyprland";
+        default_session.command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --cmd niri-session";
       }
       // lib.optionalAttrs cfg.autoLogin {
         initial_session = {
           user = cfg.user;
-          command = "${hyprland}/bin/start-hyprland";
+          command = "${niri}/bin/niri-session";
         };
       };
     };
 
-    xdg.portal = {
-      enable = true;
-      extraPortals = [
-        pkgs.xdg-desktop-portal-gtk
-        pkgs.xdg-desktop-portal-gnome
-      ];
-      # Open and save dialogs use GNOME's portal, which shows them in Files
-      # (Nautilus) rather than GTK's plainer chooser. Everything else keeps
-      # Hyprland's portal with GTK as the fallback.
-      config.hyprland = {
-        default = [
-          "hyprland"
-          "gtk"
-        ];
-        "org.freedesktop.impl.portal.FileChooser" = [ "gnome" ];
-      };
-    };
-    # GNOME's portal starts Files over D-Bus to show those dialogs.
-    services.dbus.packages = [ pkgs.nautilus ];
+    # The Niri module sets up the portals: GNOME's for screencasts and for
+    # open and save dialogs (shown in Files), GTK's for the rest.
 
     security.rtkit.enable = true;
     services.pipewire = {
@@ -127,12 +115,22 @@ in
     security.pam.services.greetd.enableGnomeKeyring = true;
     # The Quickshell lock screen authenticates through this PAM service, which
     # also unlocks the login keyring that autologin leaves locked.
-    security.pam.services.quickshell.enableGnomeKeyring = true;
+    services.fprintd.enable = true;
+    # Keep typed-password unlock immediate. The lock screen starts a separate
+    # fingerprint conversation on request, so a missing reader never delays it.
+    security.pam.services.quickshell = {
+      enableGnomeKeyring = true;
+      fprintAuth = false;
+    };
+    security.pam.services.quickshell-fingerprint = {
+      unixAuth = false;
+      fprintAuth = true;
+    };
     programs.dconf.enable = true;
 
     fonts = {
       packages = [
-        (pkgs.google-fonts.override { fonts = [ "Manrope" ]; })
+        (pkgs.google-fonts.override { fonts = [ cfg.theme.fonts.ui ]; })
         pkgs.lucide
         pkgs.jetbrains-mono
         pkgs.noto-fonts
@@ -145,22 +143,22 @@ in
       };
     };
 
+    # External monitors' brightness over DDC/CI; members of the i2c group can
+    # reach /dev/i2c-*. The shell's brightness keys use ddcutil for them.
+    hardware.i2c.enable = true;
+
     environment.systemPackages = [
       pkgs.brightnessctl
+      pkgs.ddcutil
       pkgs.playerctl
       pkgs.wl-clipboard
-      pkgs.grim
-      pkgs.slurp
-      pkgs.hyprpicker
       pkgs.libnotify
       pkgs.gnome-keyring
       pkgs.networkmanagerapplet
+      # Niri starts it on demand so X11-only apps can open windows.
+      pkgs.xwayland-satellite
     ];
 
-    desktop.theme.wallpaper = lib.mkDefault (
-      pkgs.runCommand "wallpaper.png" { nativeBuildInputs = [ pkgs.resvg ]; } ''
-        resvg --width 3840 ${../../assets/wallpaper.svg} $out
-      ''
-    );
+    desktop.theme.wallpaper = lib.mkDefault ../../assets/nixos-framework.png;
   };
 }
