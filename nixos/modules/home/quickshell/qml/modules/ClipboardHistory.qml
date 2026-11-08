@@ -36,9 +36,9 @@ Popup {
         function onCopied() { if (root.open) ShellState.close(); }
     }
 
-    // Laid out like the control centre's pages: boxes (buttons, the search
-    // field, rows) fill the padded content width, and text and icons inside
-    // them sit Theme.spacing.inset in, level with the title and footer.
+    // Boxes (buttons, the search field, rows) fill the padded content width.
+    // Loose text, such as the title, the clear prompt and the footer, lines up
+    // with those boxes' outer edges; text inside a box sits Theme.spacing.inset in.
     readonly property real inset: Theme.spacing.inset
 
     Glass {
@@ -57,7 +57,6 @@ Popup {
                 HeaderLabel {
                     text: "Clipboard history"
                     Layout.fillWidth: true
-                    Layout.leftMargin: root.inset
                     Layout.alignment: Qt.AlignVCenter
                 }
                 SettingButton {
@@ -76,7 +75,7 @@ Popup {
                 Layout.fillWidth: true
                 visible: root.confirmClear
                 spacing: 8
-                Label { text: "Clear all history?"; Layout.fillWidth: true; Layout.leftMargin: root.inset; size: Theme.textSmall }
+                Label { text: "Clear all history?"; Layout.fillWidth: true; size: Theme.textSmall }
                 SettingButton { text: "Cancel"; onClicked: root.confirmClear = false }
                 SettingButton { text: "Clear"; destructive: true; onClicked: { root.confirmClear = false; Clipboard.clear(); } }
             }
@@ -114,8 +113,6 @@ Popup {
             }
             Label {
                 Layout.fillWidth: true
-                Layout.leftMargin: root.inset
-                Layout.rightMargin: root.inset
                 visible: Clipboard.error !== ""
                 text: Clipboard.error
                 wrapMode: Text.Wrap
@@ -206,8 +203,6 @@ Popup {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Layout.leftMargin: root.inset
-                Layout.rightMargin: root.inset
                 Label { text: "Enter copies · Ctrl+D deletes"; dim: true; size: Theme.textSmall * 0.9; Layout.fillWidth: true }
                 Label { text: Clipboard.paused ? "Capture paused" : Clipboard.items.length + " items"; dim: true; size: Theme.textSmall * 0.9 }
             }
