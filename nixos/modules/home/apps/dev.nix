@@ -14,7 +14,9 @@ let
       url = "https://github.com/pingdotgg/t3code/releases/download/v${version}/T3-Code-${version}-x86_64.AppImage";
       hash = "sha256-+q7kCU3KEnYFeEChpFprLQDXQYr79XNfdadQO3dOY9E=";
     };
-    installed = "${config.home.homeDirectory}/Applications/T3-Code.AppImage";
+    installed = "${config.home.homeDirectory}/applications/T3-Code.AppImage";
+    # Where earlier generations installed it; a copy there may have updated itself.
+    legacy = "${config.home.homeDirectory}/Applications/T3-Code.AppImage";
   };
 in
 {
@@ -44,7 +46,13 @@ in
   home.activation.t3code = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -e ${t3code.installed} ]; then
       run mkdir -p "$(dirname ${t3code.installed})"
-      run install -m 0755 ${t3code.appimage} ${t3code.installed}
+      if [ -e ${t3code.legacy} ]; then
+        # Keep the self-updated copy rather than reinstalling the pinned one.
+        run mv ${t3code.legacy} ${t3code.installed}
+        run rmdir --ignore-fail-on-non-empty "$(dirname ${t3code.legacy})"
+      else
+        run install -m 0755 ${t3code.appimage} ${t3code.installed}
+      fi
     fi
   '';
 

@@ -160,7 +160,7 @@ The VM checks exercised Focus, Power profile switching, microphone mute, the sou
 - **Tailscale** starts its daemon at boot on both hosts. Run `tailscale up` once on each machine to sign in. The desktop user can manage the connection without sudo; credentials stay in Tailscale's local state, outside the repository.
 - **Zen and Bitwarden** from Flathub, as on Fedora. Flatpak updates them daily. Bitwarden has the user-authentication PolicyKit action for biometric unlock; enable it in Bitwarden after signing in.
 - **Claude Code** through Anthropic's native installer (the latest channel, as on Fedora). A user service installs it once into `~/.local/bin`, and it updates itself from then on. Stable nixpkgs lags it by months.
-- **T3 Code**: Nix places the pinned first-install AppImage in `~/Applications` once, and the app updates itself in place.
+- **T3 Code**: Nix places the pinned first-install AppImage in `~/applications` once (moving an earlier `~/Applications` copy there), and the app updates itself in place.
 - **zsh** with oh-my-zsh, autosuggestions, syntax highlighting, the Starship prompt and the aliases and functions from the Fedora setup. Put machine-only additions in `~/.zshrc.local`.
 - Node 24, pnpm, uv, git, vim and make.
 

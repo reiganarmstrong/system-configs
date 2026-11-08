@@ -6,6 +6,7 @@
     ./niri
     ./quickshell
     ./appearance.nix
+    ./folders.nix
     ./idle.nix
     ./settings
     ./clipboard

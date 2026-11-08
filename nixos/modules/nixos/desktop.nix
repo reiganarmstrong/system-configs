@@ -72,6 +72,11 @@ in
 
   config = lib.mkIf cfg.enable {
     programs.niri.enable = true;
+    # NixOS gives every unit TZDIR=<tzdata store path>. Flatpak names the
+    # sandbox's zone by stripping TZDIR from /etc/localtime's target
+    # (/etc/zoneinfo/…), so with the store path every app niri starts runs
+    # in UTC. /etc/zoneinfo is the same complete database.
+    systemd.user.services.niri.environment.TZDIR = lib.mkForce "/etc/zoneinfo";
 
     services.greetd = {
       enable = true;
