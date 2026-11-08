@@ -37,7 +37,7 @@ Popup {
     }
 
     // Boxes (buttons, the search field, rows) fill the padded content width.
-    // Loose text, such as the title, the clear prompt and the footer, lines up
+    // Loose text, such as the title and the clear prompt, lines up
     // with those boxes' outer edges; text inside a box sits Theme.spacing.inset in.
     readonly property real inset: Theme.spacing.inset
 
@@ -200,11 +200,6 @@ Popup {
                     dim: true
                     size: Theme.textSmall
                 }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                Label { text: "Enter copies · Ctrl+D deletes"; dim: true; size: Theme.textSmall * 0.9; Layout.fillWidth: true }
-                Label { text: Clipboard.paused ? "Capture paused" : Clipboard.items.length + " items"; dim: true; size: Theme.textSmall * 0.9 }
             }
         }
     }
