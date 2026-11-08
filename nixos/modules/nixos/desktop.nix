@@ -13,6 +13,11 @@ in
 {
   options.desktop = {
     enable = lib.mkEnableOption "the Niri desktop";
+    suspendSupported = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Whether the desktop can reliably suspend and resume on this machine.";
+    };
     autoSuspend = lib.mkOption {
       type = lib.types.bool;
       default = true;

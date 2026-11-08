@@ -20,6 +20,8 @@ Singleton {
         Niri.quit();
     }
     function suspend() {
+        if (Theme.data.suspendSupported === false)
+            return;
         lock();
         run(["systemctl", "suspend"]);
     }

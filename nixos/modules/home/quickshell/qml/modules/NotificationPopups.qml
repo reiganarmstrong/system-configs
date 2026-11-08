@@ -9,10 +9,12 @@ import qs.services
 PanelWindow {
     id: notifications
     property list<Region> cardRegions: []
+    readonly property bool held: ["control", "clipboard"].includes(ShellState.openPanel)
+    // Pairing agents ask for approval through notification actions. Keep
+    // those reachable while the page that requested pairing stays open.
+    readonly property var shownPopups: Notifs.popups.filter(n => !held || (n.actions?.length ?? 0) > 0)
     screen: Niri.focusedScreen()
-    // Held while the control centre or clipboard is open; they
-    // still reach the notification centre.
-    visible: Notifs.popups.length > 0 && !Session.locked && !["control", "clipboard"].includes(ShellState.openPanel)
+    visible: shownPopups.length > 0 && !Session.locked
     color: "transparent"
     WlrLayershell.namespace: "shell-notifications"
     WlrLayershell.layer: WlrLayer.Overlay
@@ -39,7 +41,7 @@ PanelWindow {
 
         Repeater {
             id: cards
-            model: Notifs.popups
+            model: notifications.shownPopups
             // Each region lives with its card. Replacing the model destroys
             // the old cards, so index-based references can become stale.
             onItemAdded: (index, item) => notifications.cardRegions = [...notifications.cardRegions, item.blurRegion]
@@ -56,11 +58,6 @@ PanelWindow {
                 notification: modelData
                 onDismissed: Notifs.dismissPopup(modelData)
 
-                Timer {
-                    running: Prefs.get("bannerSeconds", 6) > 0
-                    interval: Math.max(1, Prefs.get("bannerSeconds", 6)) * 1000
-                    onTriggered: Notifs.dismissPopup(parent.modelData)
-                }
             }
         }
     }

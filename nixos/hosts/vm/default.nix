@@ -14,6 +14,9 @@
     enable = true;
     # A suspended QEMU guest cannot be woken reliably through its VNC keyboard.
     autoSuspend = false;
+    # S3 resumes the guest but leaves the virtio/VNC display inactive;
+    # s2idle also cannot be woken reliably through virtual keyboard input.
+    suspendSupported = false;
     display.scale = 1;
     # Virgl rejects restoring the initial mode after a live resolution change.
     display.fixedMode = true;

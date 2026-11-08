@@ -2,6 +2,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Services.Notifications
 import qs.components
 import qs.modules
 import qs.services
@@ -13,8 +14,17 @@ ShellRoot {
     property real surfaceHeight: 480
     property var launcherList: null
     property int reopenSamples: 0
+    property int muteClicks: 0
+    property var burstFirst: null
+    property real burstStart: 0
+    property real burstNext: 0
+    property int burstSent: 0
+    property var criticalBanner: null
+    property var approvalBanner: null
+    property real approvalStart: 0
     QtObject { id: first; property string summary: "First" }
-    QtObject { id: second; property string summary: "Second" }
+    QtObject { id: acceptAction; property string text: "Accept"; function invoke() {} }
+    QtObject { id: second; property string summary: "Second"; property var actions: [acceptAction] }
     QtObject { id: third; property string summary: "Third" }
     NotificationPopups { id: banners }
     Launcher { id: appLauncher }
@@ -23,7 +33,28 @@ ShellRoot {
         name: "resize-test"
         Glass { id: surface; width: test.surfaceWidth; height: test.surfaceHeight }
     }
-    FloatingWindow { visible: true; implicitWidth: 100; implicitHeight: 100 }
+    FloatingWindow {
+        visible: true
+        implicitWidth: 320
+        implicitHeight: 100
+        SliderTile { id: soundTile; width: 300; title: "Audit sound"; startIcon: "volume" }
+    }
+    Connections {
+        target: soundTile
+        ignoreUnknownSignals: true
+        function onStartIconClicked() { test.muteClicks++; }
+    }
+    function sendBanner(summary, urgency = "normal") {
+        Quickshell.execDetached(["notify-send", "--app-name=popup-regression", "--expire-time=0", "--urgency=" + urgency, summary]);
+    }
+    function findSlider(item) {
+        if (item.accessibleName === "Audit sound") return item;
+        for (const child of item.children ?? []) {
+            const found = findSlider(child);
+            if (found) return found;
+        }
+        return null;
+    }
 
     function check(expected) {
         const regions = Array.from(banners.BackgroundEffect.blurRegion.regions);
@@ -66,7 +97,15 @@ ShellRoot {
         repeat: true
         onTriggered: {
             switch (++test.step) {
-            case 1: Notifs.popups = [first]; break;
+            case 1:
+                test.findSlider(soundTile).startIconClicked();
+                if (test.muteClicks !== 1) {
+                    console.warn("FAILED: sound tile did not forward its speaker-button click");
+                    Qt.exit(1);
+                    return;
+                }
+                Notifs.popups = [first];
+                break;
             case 2: test.check([first]); Notifs.popups = [first, second]; break;
             case 3: test.check([first, second]); Notifs.popups = [second, third]; break;
             case 4: test.check([second, third]); Notifs.popups = [third]; break;
@@ -144,6 +183,109 @@ ShellRoot {
             case 19:
                 test.checkLauncherAtTop();
                 console.log("PASSED: notification blur, resizing popup bounds and launcher reopening");
+                Prefs.values = Object.assign({}, Prefs.values, {bannerSeconds: 1});
+                test.sendBanner("Burst first");
+                break;
+            case 20:
+                test.burstFirst = Notifs.popups.find(n => n.summary === "Burst first") ?? null;
+                if (!test.burstFirst) { test.step--; break; }
+                test.burstStart = Date.now();
+                break;
+            case 21: {
+                const elapsed = Date.now() - test.burstStart;
+                if (elapsed < 1400) {
+                    if (elapsed >= test.burstNext) {
+                        test.sendBanner("Burst " + (++test.burstSent));
+                        test.burstNext = elapsed + 180;
+                    }
+                    test.step--;
+                }
+                break;
+            }
+            case 22:
+                if (Notifs.popups.includes(test.burstFirst)) {
+                    console.warn("FAILED: new notifications reset an older banner's expiry");
+                    Qt.exit(1);
+                    return;
+                }
+                if (!Notifs.history.includes(test.burstFirst)) {
+                    console.warn("FAILED: banner expiry removed notification history");
+                    Qt.exit(1);
+                    return;
+                }
+                Prefs.values = Object.assign({}, Prefs.values, {doNotDisturb: true});
+                break;
+            case 23:
+                if (Notifs.popups.some(n => n.urgency !== NotificationUrgency.Critical)) {
+                    console.warn("FAILED: enabling Focus left ordinary banners visible");
+                    Qt.exit(1);
+                    return;
+                }
+                test.sendBanner("Muted by Focus");
+                test.sendBanner("Critical through Focus", "critical");
+                break;
+            case 24:
+                test.criticalBanner = Notifs.popups.find(n => n.summary === "Critical through Focus") ?? null;
+                if (!test.criticalBanner || !Notifs.history.some(n => n.summary === "Muted by Focus")) {
+                    test.step--;
+                    break;
+                }
+                if (Notifs.popups.some(n => n.summary === "Muted by Focus")) {
+                    console.warn("FAILED: Focus did not suppress an ordinary banner");
+                    Qt.exit(1);
+                    return;
+                }
+                test.criticalBanner.dismiss();
+                break;
+            case 25:
+                if (Notifs.popups.includes(test.criticalBanner)) {
+                    console.warn("FAILED: a closed notification remained in the popup stack");
+                    Qt.exit(1);
+                    return;
+                }
+                Notifs.clearAll();
+                console.log("PASSED: independent banner expiry, Focus and closed notifications");
+                ShellState.openPanel = "control";
+                Notifs.popups = [first, second];
+                break;
+            case 26:
+                if (!banners.visible) {
+                    console.warn("FAILED: control centre hides actionable pairing notifications");
+                    Qt.exit(1);
+                    return;
+                }
+                test.check([second]);
+                ShellState.close();
+                Notifs.replacePopups([]);
+                console.log("PASSED: pairing notification actions remain reachable over control centre");
+                Prefs.values = Object.assign({}, Prefs.values, {doNotDisturb: false});
+                ShellState.openPanel = "control";
+                Quickshell.execDetached(["notify-send", "--app-name=popup-regression", "--expire-time=0", "--action=confirm=Confirm", "Approval request"]);
+                break;
+            case 27:
+                test.approvalBanner = Notifs.popups.find(n => n.summary === "Approval request") ?? null;
+                if (!test.approvalBanner) { test.step--; break; }
+                test.approvalStart = Date.now();
+                break;
+            case 28:
+                if (Date.now() - test.approvalStart < 1400) { test.step--; break; }
+                if (!Notifs.popups.includes(test.approvalBanner)) {
+                    console.warn("FAILED: approval request expired before the user answered");
+                    Qt.exit(1);
+                    return;
+                }
+                Prefs.values = Object.assign({}, Prefs.values, {doNotDisturb: true});
+                break;
+            case 29:
+                if (!Notifs.popups.includes(test.approvalBanner)) {
+                    console.warn("FAILED: Focus hid approval for a control centre action");
+                    Qt.exit(1);
+                    return;
+                }
+                test.approvalBanner.actions[0].invoke();
+                ShellState.close();
+                Notifs.clearAll();
+                console.log("PASSED: approval lifetime and Focus during interactive pairing");
                 Qt.exit(0);
             }
         }

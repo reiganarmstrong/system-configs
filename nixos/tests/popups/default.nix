@@ -6,6 +6,7 @@ pkgs.runCommand "shell-popup-tests"
       pkgs.quickshell
       pkgs.sway
       pkgs.dbus
+      pkgs.libnotify
     ];
     FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
   }

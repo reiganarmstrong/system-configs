@@ -32,6 +32,7 @@ let
             dock.pinned = osConfig.desktop.dock.pinned;
             programs.clipboard = lib.getExe config.services.desktop-clipboard.package;
             lockOnStart = osConfig.desktop.autoLogin;
+            suspendSupported = osConfig.desktop.suspendSupported;
             mutablePassword = osConfig.users.mutableUsers;
           }
         );

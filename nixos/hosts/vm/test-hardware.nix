@@ -22,7 +22,11 @@ let
   });
 
   accessPoint =
-    { iface, ssid, password ? null }:
+    {
+      iface,
+      ssid,
+      password ? null,
+    }:
     pkgs.writeText "hostapd-${iface}.conf" (
       ''
         interface=${iface}
@@ -107,6 +111,40 @@ in
           --interface=wlan1 --interface=wlan2 --no-resolv --pid-file= \
           --dhcp-range=wlan1,10.42.1.10,10.42.1.100,1h \
           --dhcp-range=wlan2,10.42.2.10,10.42.2.100,1h
+      '';
+    };
+
+    # The VM's access points share rfkill with its client radio. Turning
+    # Wi-Fi off tears down their kernel AP state even though hostapd stays
+    # running. Recreate the peers when Wi-Fi comes back on.
+    test-wifi-recover = {
+      description = "Restore simulated access points after a radio toggle";
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "NetworkManager.service"
+        "test-wifi.service"
+      ];
+      path = [
+        pkgs.dbus
+        pkgs.networkmanager
+        pkgs.systemd
+        pkgs.coreutils
+      ];
+      script = ''
+        dbus-monitor --system "type='signal',interface='org.freedesktop.DBus.Properties',path='/org/freedesktop/NetworkManager',arg0='org.freedesktop.NetworkManager'" |
+        while IFS= read -r line; do
+          case "$line" in
+            *'"WirelessEnabled"'*)
+              IFS= read -r value
+              if [[ "$value" == *"boolean true"* ]]; then
+                sleep 0.5
+                if [[ "$(nmcli radio wifi)" == enabled ]]; then
+                  systemctl restart test-wifi.service
+                fi
+              fi
+              ;;
+          esac
+        done
       '';
     };
 

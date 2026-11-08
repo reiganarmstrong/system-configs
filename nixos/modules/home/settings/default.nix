@@ -107,6 +107,14 @@ let
 in
 {
   services.hyprpolkitagent.enable = true;
+  # Quickshell owns Wi-Fi password entry. A second secret agent keeps failed
+  # joins waiting on a separate dialog hidden behind the control centre.
+  xdg.configFile."autostart/nm-applet.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=NetworkManager Applet
+    Hidden=true
+  '';
   # Pairing and authentication work without a traditional desktop's autostart.
   systemd.user.services.blueman-applet = {
     Unit = {
