@@ -24,8 +24,10 @@ in
   xdg.configFile."hypr/hyprland.lua".text = rendered;
   home.activation.hyprmodConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p ${config.xdg.configHome}/hypr
-    if [ ! -e ${config.xdg.configHome}/hypr/hyprland-gui.lua ]; then
-      run touch ${config.xdg.configHome}/hypr/hyprland-gui.lua
+    # HyprMod replaces this file on every save, so it stays an ordinary
+    # writable file. A new install starts from the copy saved in the repo.
+    if [ ! -s ${config.xdg.configHome}/hypr/hyprland-gui.lua ]; then
+      run install -m 0600 ${./hyprland-gui.lua} ${config.xdg.configHome}/hypr/hyprland-gui.lua
     fi
   '';
 }

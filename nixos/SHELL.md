@@ -168,8 +168,16 @@ HyprMod is installed through its upstream Nix flake and pinned in flake.lock.
 Open **HyprMod** from the launcher or press Super+H. Its writable file is
 `~/.config/hypr/hyprland-gui.lua`, loaded last by the main configuration.
 Advanced overrides there take priority over matching Settings values and
-survive Nix rebuilds. The Home Manager activation creates an empty file only
-when it does not exist, so HyprMod never needs to modify the Nix store.
+survive Nix rebuilds. HyprMod never touches the Nix store.
+
+The repo keeps a copy of that file at `modules/home/hyprland/hyprland-gui.lua`.
+Home Manager copies it into place when `~/.config/hypr/hyprland-gui.lua` is
+missing or empty, and leaves an existing file alone. After saving new changes in
+HyprMod (Ctrl+S), copy the file back into the repo and commit it:
+
+```sh
+cp ~/.config/hypr/hyprland-gui.lua nixos/modules/home/hyprland/hyprland-gui.lua
+```
 
 Settings generates `~/.local/state/system-configs/settings.lua` from saved
 preferences. It validates the Lua before saving and restores the previous
