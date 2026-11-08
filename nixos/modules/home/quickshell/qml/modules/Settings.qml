@@ -182,7 +182,7 @@ FloatingWindow {
                     width: scroll.availableWidth
                     enabled: Prefs.ready
                     active: window.visible
-                    sourceComponent: ({appearance: appearancePage, display: displayPage, sound: soundPage, input: inputPage,
+                    sourceComponent: ({appearance: appearancePage, display: displayPage, sound: soundPage,
                         power: powerPage, notifications: notificationsPage, network: networkPage, bluetooth: bluetoothPage,
                         accounts: accountsPage, system: systemPage, accessibility: accessibilityPage, privacy: privacyPage,
                         apps: appsPage, defaults: defaultsPage, startup: startupPage, storage: storagePage,
@@ -217,7 +217,6 @@ FloatingWindow {
     Component { id: appearancePage; Pages.AppearancePage { host: window } }
     Component { id: displayPage; Pages.DisplayPage { host: window } }
     Component { id: soundPage; Pages.SoundPage { host: window } }
-    Component { id: inputPage; Pages.InputPage { host: window } }
     Component { id: powerPage; Pages.PowerPage { host: window } }
     Component { id: notificationsPage; Pages.NotificationsPage { host: window } }
     Component { id: networkPage; Pages.NetworkPage { host: window } }

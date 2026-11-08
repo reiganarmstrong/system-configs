@@ -8,21 +8,30 @@ hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 hl.env("NIXOS_OZONE_WL", "1")
 hl.env("TZDIR", "/etc/zoneinfo")
+-- Hyprland's own options live here, as text. HyprMod can override any of
+-- them on the fly; its file loads last (see the end of this file).
 hl.config({
     general = {
-        layout = "scrolling", gaps_in = 5, gaps_out = 10, border_size = 1,
-        col = { active_border = "rgba(ffffff66)", inactive_border = "rgba(ffffff22)" },
+        layout = "scrolling", gaps_in = 8, gaps_out = 24, border_size = 1,
+        col = { active_border = "rgba(f6f5f4ff)", inactive_border = "rgba(ffffff22)" },
     },
     scrolling = { column_width = 1.0, focus_fit_method = 1, fullscreen_on_one_column = false, explicit_column_widths = "0.5,0.66667,1.0" },
     decoration = { rounding = 14, blur = { enabled = true, size = 5, passes = 3 } },
     misc = { disable_hyprland_logo = true, force_default_wallpaper = 0 },
-    cursor = { hide_on_key_press = true },
+    -- The pointer stays visible while typing and hides after 5 s untouched.
+    cursor = { hide_on_key_press = false, inactive_timeout = 5 },
+    input = {
+        kb_layout = "us", repeat_rate = 25, repeat_delay = 600,
+        follow_mouse = 1,
+        touchpad = { natural_scroll = true, tap_to_click = true, disable_while_typing = true, clickfinger_behavior = true },
+    },
 })
+hl.animation({ leaf = "global", enabled = true, speed = 5, bezier = "default" })
 hl.window_rule({ name = "settings", match = { class = "org.quickshell", title = "Settings" }, float = true, size = "960 680", center = true })
 hl.window_rule({ name = "file-dialogs", match = { title = "^(Open File|Open Folder|Save As|Save File|Choose Files?|Select a File)$" }, float = true })
 hl.layer_rule({ name = "shell-glass", match = { namespace = "^shell-.*" }, blur = true, ignore_alpha = 0.01 })
 
--- Settings supplies the baseline preferences.
+-- Settings adds the cursor size and the monitors you confirmed there.
 local settings = io.open("@SETTINGS@", "r")
 if settings then settings:close(); dofile("@SETTINGS@") end
 
@@ -76,7 +85,8 @@ run("Print", "desktop-compositor screenshot region")
 run("CTRL + Print", "desktop-compositor screenshot screen")
 run("ALT + Print", "desktop-compositor screenshot window")
 
--- HyprMod owns this ordinary user file. Its edits survive Nix rebuilds.
+-- HyprMod owns this ordinary user file, for overrides on the fly. It starts
+-- empty and its edits survive Nix rebuilds; move keepers into this file.
 -- require() also lets Hyprland watch it for automatic reloads.
 local overrides = io.open("@HYPRMOD@", "r")
 if overrides then overrides:close(); require("hyprland-gui") end

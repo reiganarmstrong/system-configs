@@ -31,8 +31,6 @@ let
     builtins.toJSON {
       clock24h = true;
       panelOpacity = osConfig.desktop.theme.opacity.panel;
-      gaps = osConfig.desktop.theme.spacing.gaps;
-      rounding = osConfig.desktop.theme.radius.window;
       cursorSize = config.home.pointerCursor.size;
       suspendMinutes = if osConfig.desktop.autoSuspend then 15 else 0;
     }
@@ -176,7 +174,7 @@ in
     run mkdir -p ${config.xdg.dataHome}/flatpak/exports/share/applications
   '';
   # Hyprland's settings.lua and hypridle's idle.conf follow Nix default changes
-  # (gaps, corner radius, the host display) without waiting for a save in
+  # (cursor size, the host display) without waiting for a save in
   # Settings. A rejected file is left as it was, so activation carries on.
   home.activation.desktopSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run ${helper}/bin/desktop-settings regenerate \

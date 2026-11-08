@@ -22,20 +22,9 @@ Column {
     }
     SettingToggle {
         title: "Reduce motion"
-        detail: "Disable desktop animation and popup transitions."
+        detail: "Disable popup and panel transitions. Window animations are set in Hyprland's config."
         checked: Prefs.get("reduceMotion", false)
         onToggled: v => Prefs.set("reduceMotion", v)
-    }
-    SettingToggle {
-        title: "Left-handed mouse"
-        checked: Prefs.get("leftHanded", false)
-        onToggled: v => Prefs.set("leftHanded", v)
-    }
-    SettingAction {
-        title: "Keyboard and touchpad"
-        detail: "Repeat timing, Caps Lock behavior, scrolling and pointer sensitivity."
-        buttonText: "Configure"
-        onActivated: ShellState.openSettings("input")
     }
     SettingRow {
         title: "Additional assistive technology"

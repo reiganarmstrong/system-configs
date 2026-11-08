@@ -26,10 +26,10 @@ class SettingsTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_hyprland_preferences_and_monitors(self):
-        text = s.settings_lua(s.validate({"gaps": 8, "reduceMotion": True, "keyboardLayout": "us,gb"}), {})
-        self.assertIn('["gaps_in"]=8', text)
-        self.assertIn('["enabled"]=false', text)
-        self.assertIn('["kb_layout"]="us,gb"', text)
+        text = s.settings_lua(s.validate({"cursorSize": 32, "reduceMotion": True}), {})
+        self.assertIn('hl.env("XCURSOR_SIZE", "32")', text)
+        # Hyprland's own options belong to hyprland.lua and HyprMod.
+        self.assertNotIn("hl.config", text)
         s.check_lua(text)
         self.assertEqual(s.normalize_hypr_mode("2560x1440@144.00000Hz"), "2560x1440@144.000Hz")
         monitor = {"name":"DP-1", "width":2560, "height":1440, "refreshRate":143.998,
@@ -47,15 +47,16 @@ class SettingsTests(unittest.TestCase):
         self.assertIn("desktop-compositor power-off", text)
 
     def test_hyprland_reload_failure_restores_saved_files(self):
-        with patch.dict(os.environ, {"HYPRLAND_INSTANCE_SIGNATURE":"audit"}), patch.object(s, "reload_hyprland", side_effect=[RuntimeError("IPC failure"), None]):
+        with patch.dict(os.environ, {"HYPRLAND_INSTANCE_SIGNATURE":"audit"}), patch.object(s, "reload_hyprland", side_effect=[RuntimeError("IPC failure"), None]), \
+                patch.object(s, "apply_appearance"):
             with self.assertRaisesRegex(RuntimeError, "IPC failure"):
-                s.save({"gaps": 9})
+                s.save({"cursorSize": 32})
         for name in s.ARTIFACTS:
             self.assertFalse((s.state_dir() / name).exists(), name)
 
     def test_rejects_invalid_preferences_before_writing(self):
-        for value in [{"pointerSpeed": True}, {"repeatRate": 1000}, {"panelOpacity": float("nan")},
-                      {"keyboardLayout": "us\";os.execute('bad')"}, {"unrecognized": 1}, {"reduceMotion": 1}]:
+        for value in [{"bannerSeconds": True}, {"lockMinutes": 1000}, {"panelOpacity": float("nan")},
+                      {"wallpaper": "/tmp/x\";os.execute('bad')"}, {"unrecognized": 1}, {"reduceMotion": 1}]:
             with self.assertRaises(ValueError):
                 s.save(value)
         self.assertFalse((s.state_dir() / "preferences.json").exists())
@@ -69,20 +70,18 @@ class SettingsTests(unittest.TestCase):
         self.assertNotIn("systemctl suspend", s.idle_config(result))
 
     def test_compositor_rejection_preserves_saved_state(self):
-        s.write_json("preferences.json", {"pointerSpeed": 0.2})
+        s.write_json("preferences.json", {"cursorSize": 32})
         with patch.object(s, "check_lua", side_effect=RuntimeError("Hyprland rejected the settings")):
             with self.assertRaises(RuntimeError):
-                s.save({"pointerSpeed": 0.5})
-        self.assertEqual(s.read_json("preferences.json", {}), {"pointerSpeed": 0.2})
+                s.save({"cursorSize": 40})
+        self.assertEqual(s.read_json("preferences.json", {}), {"cursorSize": 32})
         self.assertFalse((s.state_dir() / "settings.lua").exists())
 
     def test_generated_settings_are_accepted_by_hyprland(self):
         flipped = {key: not value for key, value in s.defaults().items() if type(value) is bool}
-        for values in [{}, flipped, {"capsLock": "ctrl:nocaps", "keyboardLayout": "us,gb", "pointerAcceleration": "flat",
-                                     "pointerSpeed": -1, "scrollFactor": 3, "gaps": 0, "rounding": 30}]:
+        for values in [{}, flipped, {"cursorSize": 64}]:
             with self.subTest(values=values):
                 s.check_lua(s.settings_lua(s.validate(values)))
-        self.assertIn('["enabled"]=false', s.settings_lua(s.validate({"reduceMotion": True})))
         with self.assertRaises(RuntimeError):
             s.check_lua('hl.config({input={nonexistent_option=true}})')
 
@@ -102,19 +101,20 @@ class SettingsTests(unittest.TestCase):
             self.assertNotIn('hl.monitor(', s.settings_lua(s.defaults(), {}))
 
     def test_saved_overrides_do_not_freeze_nix_defaults(self):
-        s.save({"pointerSpeed": 0.3})
-        self.assertEqual(s.read_json("preferences.json", {}), {"pointerSpeed": 0.3})
-        self.assertIn('["sensitivity"]=0.3', (s.state_dir() / "settings.lua").read_text())
+        with patch.object(s, "apply_appearance"):
+            s.save({"cursorSize": 32})
+        self.assertEqual(s.read_json("preferences.json", {}), {"cursorSize": 32})
+        self.assertIn('"XCURSOR_SIZE", "32"', (s.state_dir() / "settings.lua").read_text())
         defaults_file = Path(self.tmp.name) / "defaults.json"
-        defaults_file.write_text(json.dumps({"rounding": 20, "suspendMinutes": 0}))
+        defaults_file.write_text(json.dumps({"bannerSeconds": 9, "suspendMinutes": 0}))
         with patch.dict(os.environ, {"DESKTOP_SETTINGS_DEFAULTS": str(defaults_file)}):
             values = s.validate(s.read_json("preferences.json", {}))
-        self.assertEqual(values["pointerSpeed"], 0.3)
-        self.assertEqual(values["rounding"], 20)
+        self.assertEqual(values["cursorSize"], 32)
+        self.assertEqual(values["bannerSeconds"], 9)
         self.assertEqual(values["suspendMinutes"], 0)
 
     def test_accessibility_values_are_validated(self):
-        for value in [{"textScale":float("nan")},{"textScale":2.0},{"cursorSize":True},{"cursorSize":100},{"leftHanded":1}]:
+        for value in [{"textScale":float("nan")},{"textScale":2.0},{"cursorSize":True},{"cursorSize":100}]:
             with self.assertRaises(ValueError): s.save(value)
 
     def test_appearance_failure_preserves_saved_preferences(self):
@@ -123,10 +123,14 @@ class SettingsTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):s.save({"textScale":1.25})
         self.assertEqual(s.read_json("preferences.json",{}), {"textScale":1.15})
 
-    def test_pointer_handedness_is_a_real_compositor_setting(self):
-        self.assertIn('["left_handed"]=true', s.settings_lua(s.validate({"leftHanded": True})))
-        self.assertIn('["follow_mouse"]=1', s.settings_lua(s.defaults()))
-        self.assertIn('["follow_mouse"]=0', s.settings_lua(s.validate({"focusFollowsMouse": False})))
+    def test_retired_hyprland_options_are_dropped_on_save(self):
+        s.write_json("preferences.json", {"gaps": 12, "keyboardLayout": "gb", "showSeconds": True})
+        s.save(s.validate(s.read_json("preferences.json", {})) | {"clock24h": True})
+        self.assertEqual(s.read_json("preferences.json", {}), {"showSeconds": True, "clock24h": True})
+        defaults_file = Path(self.tmp.name) / "defaults.json"
+        defaults_file.write_text(json.dumps({"rounding": 20}))
+        with patch.dict(os.environ, {"DESKTOP_SETTINGS_DEFAULTS": str(defaults_file)}):
+            self.assertNotIn("rounding", s.defaults())
 
     def test_corrupt_state_is_reported_without_overwriting(self):
         s.atomic_write("preferences.json", "not json")
@@ -174,7 +178,7 @@ class SettingsTests(unittest.TestCase):
     # Restoring settings.lua and reloading reverses compositor changes.
     def seed(self):
         with patch.object(s, "apply_appearance"), patch.object(s, "run"):
-            s.save({"textScale": 1.15, "pointerSpeed": 0.2, "lockMinutes": 4, "screenOffMinutes": 6})
+            s.save({"textScale": 1.15, "cursorSize": 32, "lockMinutes": 4, "screenOffMinutes": 6})
         return {name: (s.state_dir() / name).read_text() for name in s.ARTIFACTS}
 
     def assert_unchanged(self, before):
@@ -196,7 +200,7 @@ class SettingsTests(unittest.TestCase):
                 with patch.object(s, "apply_appearance", side_effect=lambda p: appearance.append(p["textScale"])), \
                      patch.object(s, "run") as run, patch.object(s, "atomic_write", self.failing_write(name)):
                     with self.assertRaisesRegex(OSError, "ENOSPC"):
-                        s.save(s.validate({"textScale": 1.25, "pointerSpeed": 0.5, "lockMinutes": 2, "screenOffMinutes": 6}))
+                        s.save(s.validate({"textScale": 1.25, "cursorSize": 40, "lockMinutes": 2, "screenOffMinutes": 6}))
                     run.assert_not_called()  # hypridle is only restarted after a commit
                 self.assert_unchanged(before)
                 self.assertEqual(appearance, [1.25, 1.15])
@@ -222,7 +226,7 @@ class SettingsTests(unittest.TestCase):
                      patch.object(s, "apply_appearance", side_effect=lambda p: appearance.append(p["textScale"])), \
                      patch.object(s, "atomic_write") as write:
                     with self.assertRaisesRegex(PermissionError, failing_name):
-                        s.save({"textScale": 1.25, "pointerSpeed": 0.5})
+                        s.save({"textScale": 1.25, "cursorSize": 40})
                     write.assert_not_called()
                 self.assert_unchanged(before)
                 self.assertEqual(appearance, [1.25, 1.15])
@@ -242,7 +246,7 @@ class SettingsTests(unittest.TestCase):
         with patch.object(s, "apply_appearance", side_effect=appear), \
              patch.object(s, "atomic_write", side_effect=write):
             with self.assertRaises(RuntimeError) as caught:
-                s.save({"textScale": 1.25, "pointerSpeed": 0.5, "lockMinutes": 4, "screenOffMinutes": 6})
+                s.save({"textScale": 1.25, "cursorSize": 40, "lockMinutes": 4, "screenOffMinutes": 6})
         message = str(caught.exception)
         self.assertIn("disk full", message)
         self.assertIn("desktop gone", message)
@@ -262,7 +266,7 @@ class SettingsTests(unittest.TestCase):
             real(name, text)
         with patch.object(s, "apply_appearance"), patch.object(s, "atomic_write", side_effect=write):
             with self.assertRaisesRegex(RuntimeError, "preferences.json"):
-                s.save({"textScale": 1.25, "gaps": 3})
+                s.save({"textScale": 1.25, "cursorSize": 40})
         # settings.lua was still restored even though preferences.json could not be.
         self.assertEqual((s.state_dir() / "settings.lua").read_text(), before["settings.lua"])
 

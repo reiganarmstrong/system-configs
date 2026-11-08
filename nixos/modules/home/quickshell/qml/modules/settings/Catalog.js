@@ -1,13 +1,12 @@
 .pragma library
 var pages = [
-    {key:"appearance", title:"Appearance", icon:"palette", group:"Personal", words:"wallpaper opacity glass animation motion corners gaps theme"},
+    {key:"appearance", title:"Appearance", icon:"palette", group:"Personal", words:"wallpaper opacity glass animation motion theme"},
     {key:"notifications", title:"Notifications", icon:"bell", group:"Personal", words:"focus disturb banners duration history alerts"},
     {key:"accessibility", title:"Accessibility", icon:"accessibility", group:"Personal", words:"text size scale cursor motion pointer readable handed"},
     {key:"privacy", title:"Privacy", icon:"shield", group:"Personal", words:"clipboard history capture microphone mute lock trash permissions"},
     {key:"accounts", title:"Accounts & calendars", icon:"user-round", group:"Personal", words:"apple icloud google outlook password keys login calendar"},
     {key:"display", title:"Displays", icon:"monitor", group:"Devices", words:"resolution refresh scale rotation brightness screen monitors arrangement"},
     {key:"sound", title:"Sound", icon:"volume-2", group:"Devices", words:"audio microphone volume output input apps speakers headphones mute"},
-    {key:"input", title:"Keyboard & pointer", icon:"keyboard", group:"Devices", words:"touchpad mouse speed acceleration scroll tap caps layout repeat shortcuts handed"},
     {key:"power", title:"Power & lock", icon:"battery-charging", group:"Devices", words:"caffeine battery sleep suspend idle screen saver performance balanced energy"},
     {key:"printers", title:"Printers", icon:"printer", group:"Devices", words:"printing queue default ipp driverless network jobs cancel"},
     {key:"network", title:"Network & VPN", icon:"wifi", group:"Connections", words:"wifi wi-fi ethernet internet vpn ip connections airplane tailscale"},

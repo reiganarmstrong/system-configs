@@ -1,7 +1,9 @@
 """Validated, per-user desktop preferences and reversible monitor changes.
 
 Nix owns the defaults. Only explicit user overrides go in preferences.json.
-Hyprland loads the generated settings.lua and reloads after a successful save.
+Hyprland's own options (input, gaps, corners, animations) live in hyprland.lua
+and HyprMod, not here. The generated settings.lua only carries the cursor size
+and confirmed monitor choices; Hyprland reloads after a successful save.
 File writes and live appearance changes are rolled back together on failure.
 No commands run through a shell; Lua literals quote every user string.
 """
@@ -32,28 +34,19 @@ SCHEMA = {
     "showBatteryPercent": (True, bool, None, None),
     "doNotDisturb": (False, bool, None, None),
     "bannerSeconds": (6, int, 0, 30),
-    "pointerSpeed": (0.0, float, -1.0, 1.0),
-    "pointerAcceleration": ("adaptive", ["adaptive", "flat"]),
-    "naturalScroll": (False, bool, None, None),
-    "touchpadNaturalScroll": (True, bool, None, None),
-    "tapToClick": (True, bool, None, None),
-    "disableWhileTyping": (True, bool, None, None),
-    "twoFingerClick": (True, bool, None, None),
-    "scrollFactor": (1.0, float, 0.2, 3.0),
-    "keyboardLayout": ("us", ["us", "gb", "de", "fr", "es", "us,gb"]),
-    "capsLock": ("", ["", "caps:escape", "ctrl:nocaps", "caps:swapescape"]),
-    "repeatRate": (25, int, 5, 60),
-    "repeatDelay": (600, int, 150, 1000),
-    "leftHanded": (False, bool, None, None),
     "textScale": (1.0, float, 0.85, 1.5),
     "cursorSize": (24, int, 16, 64),
-    "focusFollowsMouse": (True, bool, None, None),
-    "gaps": (5, int, 0, 25),
-    "rounding": (14, int, 0, 30),
     "lockMinutes": (5, int, 1, 60),
     "screenOffMinutes": (6, int, 1, 120),
     "suspendMinutes": (15, int, 0, 120),
 }
+
+# Hyprland options Settings used to manage before HyprMod took them over.
+# Older preferences.json files may still hold them; they are dropped quietly
+# and disappear from the file on the next save.
+RETIRED = {"pointerSpeed", "pointerAcceleration", "naturalScroll", "touchpadNaturalScroll", "tapToClick",
+           "disableWhileTyping", "twoFingerClick", "scrollFactor", "keyboardLayout", "capsLock",
+           "repeatRate", "repeatDelay", "leftHanded", "focusFollowsMouse", "gaps", "rounding"}
 
 
 def state_dir():
@@ -64,12 +57,15 @@ def defaults():
     result = {key: spec[0] for key, spec in SCHEMA.items()}
     path = os.environ.get("DESKTOP_SETTINGS_DEFAULTS")
     if path:
-        result.update(json.loads(Path(path).read_text()))
+        result.update({key: value for key, value in json.loads(Path(path).read_text()).items() if key in SCHEMA})
     return result
 
 
 def validate(values):
-    if not isinstance(values, dict) or set(values) - SCHEMA.keys():
+    if not isinstance(values, dict):
+        raise ValueError("Unknown settings; no changes saved")
+    values = {key: value for key, value in values.items() if key not in RETIRED}
+    if set(values) - SCHEMA.keys():
         raise ValueError("Unknown settings; no changes saved")
     for key, value in values.items():
         spec = SCHEMA[key]
@@ -195,10 +191,7 @@ def run(command, *, check=True):
     return result.stdout.strip()
 
 
-COMPOSITOR_KEYS = ("keyboardLayout", "capsLock", "repeatRate", "repeatDelay", "pointerSpeed",
-                   "pointerAcceleration", "naturalScroll", "leftHanded", "scrollFactor", "focusFollowsMouse",
-                   "touchpadNaturalScroll", "tapToClick", "disableWhileTyping", "twoFingerClick",
-                   "gaps", "rounding", "reduceMotion", "cursorSize")
+COMPOSITOR_KEYS = ("cursorSize",)
 
 
 def compositor_config(p):
@@ -213,18 +206,7 @@ def default_display():
 
 def settings_lua(p, displays=None):
     displays = read_json("displays.json", {}) if displays is None else displays
-    config = {
-        "input": {"kb_layout": p["keyboardLayout"], "kb_options": p["capsLock"],
-                  "repeat_rate": p["repeatRate"], "repeat_delay": p["repeatDelay"],
-                  "sensitivity": p["pointerSpeed"], "accel_profile": p["pointerAcceleration"],
-                  "natural_scroll": p["naturalScroll"], "left_handed": p["leftHanded"],
-                  "scroll_factor": p["scrollFactor"], "follow_mouse": 1 if p["focusFollowsMouse"] else 0,
-                  "touchpad": {"natural_scroll": p["touchpadNaturalScroll"], "tap_to_click": p["tapToClick"],
-                               "disable_while_typing": p["disableWhileTyping"], "clickfinger_behavior": p["twoFingerClick"]}},
-        "general": {"gaps_in": p["gaps"], "gaps_out": p["gaps"] * 2},
-        "decoration": {"rounding": p["rounding"]}, "animations": {"enabled": not p["reduceMotion"]},
-    }
-    lines = ["-- Generated from the shared desktop preferences.", "hl.config(" + lua(config) + ")",
+    lines = ["-- Generated from the shared desktop preferences.",
              "hl.env(\"XCURSOR_SIZE\", " + lua(str(p["cursorSize"])) + ")"]
     outputs = {default_display()["output"]: default_display()} if default_display() else {}
     outputs.update(displays)

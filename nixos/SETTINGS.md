@@ -6,14 +6,13 @@ Open Settings with `Super+,`, the launcher, or the control center gear. The VM a
 
 | Page | Available inside Settings | Uses a maintained external tool |
 | --- | --- | --- |
-| Appearance | Wallpaper, panel opacity, motion, clock, battery percentage, gaps and window corners | File chooser for wallpaper |
+| Appearance | Wallpaper, panel opacity, shell motion, clock and battery percentage | Window gaps, corners and animations are in `hyprland.lua` or HyprMod |
 | Notifications | Do Not Disturb, banner duration and history controls | |
-| Accessibility | Shell text size, GTK text scaling, cursor size, reduced motion and left-handed mouse | Screen reader, magnifier and sticky keys are not integrated |
+| Accessibility | Shell text size, GTK text scaling, cursor size and reduced shell motion | Screen reader, magnifier and sticky keys are not integrated |
 | Privacy | Pause or clear clipboard history, microphone mute, notification suppression, lock settings and app permission navigation | |
 | Accounts & calendars | Current account and connected online-account summaries | Online Accounts for provider authentication, key manager and password change |
 | Displays | Resolution, refresh rate, scale, rotation, brightness and timed confirmation with rollback | Display arrangement on native hardware |
 | Sound | Default input/output devices, microphone and output levels, mute and individual app levels | Advanced routing, balance and device profiles in Volume Control |
-| Keyboard & pointer | Layout, Caps Lock mapping, repeat timing, acceleration, pointer speed, scrolling, touchpad behavior, left-handed mouse and shortcut reference | Custom shortcuts remain in the shared compositor configuration |
 | Power & lock | Power profile, idle inhibitor, lock/display-off/suspend timing and session actions | |
 | Printers | Add driverless IPP printers, remove queues, choose default and cancel your pending jobs | USB discovery, vendor drivers and unusual printer options |
 | Network & VPN | Wi-Fi scanning/joining/forgetting, airplane mode, saved VPN connection toggles, Tailscale state and connection toggle | Ethernet/DNS/proxy/VPN profile editing and enterprise Wi-Fi in NetworkManager's connection editor; initial Tailscale sign-in |
@@ -35,7 +34,7 @@ Nix supplies packages, services, defaults and hardware policy. Ordinary runtime 
 - NetworkManager and BlueZ own connections and pairing; PipeWire owns audio.
 - UDisks owns mounts, CUPS owns printer queues, and systemd-timedated owns the time zone.
 - GIO owns MIME associations. Flatpak owns account-local app installs and overrides. GOA/EDS and the keyring own online accounts and secrets.
-- `~/.local/state/system-configs/preferences.json` holds explicitly chosen desktop preferences. Generated `settings.lua` (loaded by Hyprland and reloaded after saving) and `idle.conf` apply those preferences; `displays.json` holds confirmed monitor choices.
+- `~/.local/state/system-configs/preferences.json` holds explicitly chosen desktop preferences. Generated `settings.lua` (the cursor size and confirmed monitors, loaded by Hyprland and reloaded after saving) and `idle.conf` apply those preferences; `displays.json` holds confirmed monitor choices.
 - `startup.json` in the same private state directory lists desktop-entry IDs. Entries launch once per compositor session, not each time the shell restarts. They use the launcher's normal desktop-entry handling, including terminal applications.
 
 Preference reset preserves monitor modes, startup applications, installed apps and accounts. Copying the state directory transfers desktop choices, but monitor identifiers, selected wallpaper paths and account credentials can differ between machines. Network/account secrets are not Git content.

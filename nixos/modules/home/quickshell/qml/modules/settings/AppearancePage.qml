@@ -18,7 +18,7 @@ Column {
     }
     SettingToggle {
         title: "Reduce motion"
-        detail: "Disable window animations and popup transitions."
+        detail: "Disable popup and panel transitions. Window animations are set in Hyprland's config."
         checked: host.pref("reduceMotion", false)
         onToggled: v => host.set("reduceMotion", v)
     }
@@ -36,24 +36,6 @@ Column {
         title: "Battery percentage"
         checked: host.pref("showBatteryPercent", true)
         onToggled: v => host.set("showBatteryPercent", v)
-    }
-    SettingLevel {
-        title: "Window spacing"
-        value: host.pref("gaps", 5)
-        minimum: 0
-        maximum: 25
-        multiplier: 1
-        suffix: " px"
-        onMoved: v => host.set("gaps", Math.round(v))
-    }
-    SettingLevel {
-        title: "Corner radius"
-        value: host.pref("rounding", 14)
-        minimum: 0
-        maximum: 30
-        multiplier: 1
-        suffix: " px"
-        onMoved: v => host.set("rounding", Math.round(v))
     }
     SettingAction {
         title: "Wallpaper"

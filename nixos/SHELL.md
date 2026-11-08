@@ -167,20 +167,16 @@ columns; vertical swipes change workspaces.
 HyprMod is installed through its upstream Nix flake and pinned in flake.lock.
 Open **HyprMod** from the launcher or press Super+H. Its writable file is
 `~/.config/hypr/hyprland-gui.lua`, loaded last by the main configuration.
-Advanced overrides there take priority over matching Settings values and
-survive Nix rebuilds. HyprMod never touches the Nix store.
+It starts empty and isn't in the repo, so use HyprMod to try things out. To
+keep a change, write it into `hyprland.lua` and clear it in HyprMod. HyprMod
+never touches the Nix store.
 
-The repo keeps a copy of that file at `modules/home/hyprland/hyprland-gui.lua`.
-Home Manager copies it into place when `~/.config/hypr/hyprland-gui.lua` is
-missing or empty, and leaves an existing file alone. After saving new changes in
-HyprMod (Ctrl+S), copy the file back into the repo and commit it:
-
-```sh
-cp ~/.config/hypr/hyprland-gui.lua nixos/modules/home/hyprland/hyprland-gui.lua
-```
+Hyprland's own options (keyboard, pointer, touchpad, gaps, corners,
+animations, cursor hiding) are set only in `hyprland.lua`. The Settings app
+doesn't touch them.
 
 Settings generates `~/.local/state/system-configs/settings.lua` from saved
-preferences. It validates the Lua before saving and restores the previous
+preferences. It holds only the cursor size and the monitor choices you kept. It validates the Lua before saving and restores the previous
 files if activation fails. `modules/home/settings/compositor.py` handles
 monitor power, screenshots and colour picking. The lock screen uses the
 existing PAM service for passwords and fingerprints.
