@@ -32,12 +32,18 @@ PanelWindow {
         width: popup.width
         height: Math.max(0, popup.height - Theme.barHeight)
     }
-    // The window covers the screen, so only the content is blurred.
-    BackgroundEffect.blurRegion: Region {
+    // The window covers the screen, so only the content is blurred. niri
+    // can't fade a blur, so it is on only while the glass is mostly drawn:
+    // off as soon as closing starts, on once opening is three-quarters done.
+    // Otherwise the blur outlives the faded glass and the sharp background
+    // pops back in one frame as the window closes.
+    readonly property bool blurred: open && holder.opacity > 0.75
+    readonly property Region blurShape: Region {
         id: blurRegion
         item: holder
         radius: popup.surfaceRadius
     }
+    BackgroundEffect.blurRegion: blurred ? blurShape : null
     anchors {
         top: true
         bottom: true

@@ -21,6 +21,9 @@ ShellRoot {
     property int burstSent: 0
     property var criticalBanner: null
     property var approvalBanner: null
+    // Every change of the resizing popup's window visibility, with how opaque
+    // its content was at that moment.
+    property var visibilityLog: []
     property real approvalStart: 0
     QtObject { id: first; property string summary: "First" }
     QtObject { id: acceptAction; property string text: "Accept"; function invoke() {} }
@@ -37,6 +40,8 @@ ShellRoot {
         id: resizingPopup
         name: "resize-test"
         Glass { id: surface; width: test.surfaceWidth; height: test.surfaceHeight }
+        onVisibleChanged: test.visibilityLog = [...test.visibilityLog,
+            {visible: visible, opacity: surface.parent.opacity}]
     }
     FloatingWindow {
         visible: true
@@ -71,7 +76,7 @@ ShellRoot {
     }
 
     function checkPopupBounds() {
-        const regionItem = resizingPopup.BackgroundEffect.blurRegion.item;
+        const regionItem = resizingPopup.blurShape.item;
         if (regionItem.width !== surface.width || regionItem.height !== surface.height) {
             console.warn("FAILED: popup blur bounds " + regionItem.width + "x" + regionItem.height
                 + " extend past glass " + surface.width + "x" + surface.height);
@@ -131,9 +136,29 @@ ShellRoot {
                 break;
             case 9:
                 test.checkPopupBounds();
+                if (resizingPopup.BackgroundEffect.blurRegion !== resizingPopup.blurShape) {
+                    console.warn("FAILED: an open popup is not blurred");
+                    Qt.exit(1);
+                    return;
+                }
                 ShellState.toggle("menu-test");
+                if (resizingPopup.BackgroundEffect.blurRegion !== null || !resizingPopup.visible) {
+                    console.warn("FAILED: a closing popup keeps its blur while it fades");
+                    Qt.exit(1);
+                    return;
+                }
                 break;
             case 10:
+                if (resizingPopup.visible) { test.step--; break; }
+                // Opened once, closed once: a hide while the content is still
+                // drawn, or a second show, is a flash on closing.
+                if (test.visibilityLog.length !== 2 || test.visibilityLog[1].visible
+                        || test.visibilityLog[1].opacity > 0.01) {
+                    console.warn("FAILED: popup window hid before its fade finished: "
+                        + JSON.stringify(test.visibilityLog));
+                    Qt.exit(1);
+                    return;
+                }
                 if (!statusMenu.pageItem || statusMenu.pageItem.title !== "Menu test") {
                     console.warn("FAILED: a status menu did not load its page on opening");
                     Qt.exit(1);

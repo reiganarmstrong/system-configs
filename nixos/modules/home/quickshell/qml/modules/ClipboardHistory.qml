@@ -36,19 +36,20 @@ Popup {
         function onCopied() { if (root.open) ShellState.close(); }
     }
 
-    // Boxes (buttons, the search field, rows) fill the padded content width.
+    // Boxes (buttons, the search field, rows) fill the content width, inset
+    // Theme.contentPadding like the text in the control centre's pages.
     // Loose text, such as the title, the clear prompt and the footer, lines up
     // with those boxes' outer edges; text inside a box sits Theme.spacing.inset in.
     readonly property real inset: Theme.spacing.inset
 
     Glass {
         width: 480
-        height: layout.implicitHeight + Theme.spacing.panel * 2
+        height: layout.implicitHeight + Theme.contentPadding * 2
         radius: 24
         ColumnLayout {
             id: layout
             anchors.fill: parent
-            anchors.margins: Theme.spacing.panel
+            anchors.margins: Theme.contentPadding
             spacing: Theme.spacing.tile
             RowLayout {
                 Layout.fillWidth: true

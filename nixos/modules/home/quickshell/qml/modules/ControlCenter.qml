@@ -55,14 +55,17 @@ Popup {
     })
 
     // The panel is a 4-column grid: capsule toggles span two columns, small
-    // toggles one, Now Playing two rows, and the sliders all four. Pages use
-    // the same padding as the grid, so every view has the same margins.
+    // toggles one, Now Playing two rows, and the sliders all four. The grid
+    // sits Theme.contentPadding in. Pages sit Theme.spacing.panel in, with
+    // their text a further inset, so both views show the same margin.
     readonly property real padding: Theme.spacing.panel
+    readonly property real gridPadding: Theme.contentPadding
     readonly property real gap: Theme.spacing.tile
     readonly property real panelWidth: Theme.menuWidth
     readonly property real contentWidth: panelWidth - padding * 2
+    readonly property real gridWidth: panelWidth - gridPadding * 2
     readonly property real cell: 66
-    readonly property real cellWidth: (contentWidth - gap * 3) / 4
+    readonly property real cellWidth: (gridWidth - gap * 3) / 4
     // Width of a tile spanning n columns. The grid places tiles by their
     // spans; this keeps its four columns equal whatever each tile asks for.
     function span(n: int): real {
@@ -73,7 +76,8 @@ Popup {
 
     Glass {
         width: root.panelWidth
-        height: (root.page === "" ? layout.implicitHeight : pageHost.implicitHeight) + root.padding * 2
+        height: root.page === "" ? layout.implicitHeight + root.gridPadding * 2
+            : pageHost.implicitHeight + root.padding * 2
         radius: 26
         fillOpacity: Prefs.get("panelOpacity", Theme.opacity.panel)
         clip: false
@@ -124,9 +128,9 @@ Popup {
 
         GridLayout {
             id: layout
-            x: root.padding + (root.page === "" ? 0 : -12)
-            y: root.padding
-            width: root.contentWidth
+            x: root.gridPadding + (root.page === "" ? 0 : -12)
+            y: root.gridPadding
+            width: root.gridWidth
             columns: 4
             columnSpacing: root.gap
             rowSpacing: root.gap

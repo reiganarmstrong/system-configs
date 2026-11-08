@@ -29,10 +29,13 @@ PanelWindow {
     margins.bottom: 90
     implicitWidth: 280
     implicitHeight: 52
-    BackgroundEffect.blurRegion: Region {
+    // Blurred only while the glass is mostly drawn, like Popup, so the blur
+    // doesn't outlive the fade and pop away when the window closes.
+    readonly property Region blurShape: Region {
         item: glass
         radius: glass.radius
     }
+    BackgroundEffect.blurRegion: shown && glass.opacity > 0.75 ? blurShape : null
 
     Timer {
         id: hide
