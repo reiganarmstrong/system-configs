@@ -98,3 +98,8 @@
 
 - name: Configure the login screen
   ansible.builtin.include_tasks: login.yml
+
+# Finish the normal desktop before attempting a custom build. If a future
+# source rejects the patch, the remaining desktop configuration still lands.
+- name: Configure the floating-panel fade package
+  ansible.builtin.include_tasks: noctalia-fade.yml

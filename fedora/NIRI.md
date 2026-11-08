@@ -4,6 +4,8 @@
 
 Niri 26.04 or newer is required for background blur and for optional config includes, and Noctalia must be the native v5 shell. Fedora 45 ships both (`niri-26.04`, `noctalia-5.4.1`), so the role refuses older releases.
 
+The profile enables small floating-panel fade and quiet Control Center patches by default. Its first provisioning run installs build dependencies and compiles a custom Noctalia RPM from Fedora's signed source. Unchanged runs reuse it. Set `-e niri_noctalia_panel_fade_enabled=false` to use the stock package instead; [NOCTALIA-FADE.md](NOCTALIA-FADE.md) explains updates and rollback.
+
 ## Install
 
 Start from Fedora 45 Workstation (or Everything with GDM), with a normal administrator account that has a password, and log in as that account.
@@ -45,6 +47,7 @@ The playbook needs internet access for Fedora packages, Flatpak apps, developer 
 | --- | --- |
 | Niri layout, widths, shortcuts and blur | `roles/niri/templates/config.kdl.j2` |
 | Top bar, glass menus, dock and idle behavior | `roles/niri/templates/noctalia.toml.j2` |
+| Panel fade, quieter Control Center selection and Fedora RPM rebuild | `roles/niri/tasks/noctalia-fade.yml`, [NOCTALIA-FADE.md](NOCTALIA-FADE.md) |
 | Centered app search | `roles/niri/templates/fuzzel.ini.j2` |
 | Shell colors and terminal appearance | `roles/niri/files/Graphite.json`, `ghostty.config`, `starship.toml` |
 | Approved Fedora/specification wallpaper | `roles/niri/files/wallpaper-fedora.png` and its generation record |
@@ -158,6 +161,10 @@ These values live in `roles/niri/files/Graphite.json` (Noctalia's palette, inclu
 A solid black strip, 34 px tall, runs across the top of every output. It has no transparency, blur, border, shadow or rounded corners. Control center, wallpaper and session menus use native floating placement with translucent bodies, rounded corners, a fine border and blur. They stay near the bar without sharing its fill or layer. Niri's 12 px gap separates the bar from tiled windows.
 
 The bar uses the Top layer, so Niri draws fullscreen content over it automatically. Floating menus explicitly use Overlay and stay accessible over fullscreen without revealing the bar. Leaving fullscreen exposes the bar again. App search, clipboard and polkit stay centered and floating. No hide shortcut or fullscreen watcher is required.
+
+Floating Noctalia panels use a local 150 ms fade patch, leaving their geometry stationary while the whole card changes opacity. The role rebuilds Fedora's signed source RPM and caches the result. Rerun provisioning after a Noctalia package upgrade to reapply it to the new version; an incompatible patch stops the build. Set `niri_noctalia_panel_fade_enabled=false` to restore the stock package and wipe animation. See [build, upgrade and rollback details](NOCTALIA-FADE.md).
+
+Active Control Center shortcut tiles and the active sidebar item stay white with dark icons in the dark theme, including while hovered. Press dims the white surface slightly, keeping the same icon contrast instead of alternating between white and dark tiles. Inactive tiles have a small tonal press response before the actual on/off change. This is a separate scoped patch in the same package; global palette accents and keyboard focus stay unchanged. Restoring the stock package restores its original button styling too.
 
 
 - **Left:** numbered workspace pills. The active one is white with dark text and only half again as long as the round inactive ones. Workspaces with windows use a lighter gray fill than empty ones.

@@ -14,6 +14,13 @@ niri_tailscale_key_fingerprint: 2596A99EAAB33821893C0A79458CA832957F5868
 # its existing features and password fallback. False leaves PAM policy alone.
 niri_fingerprint_pam_enabled: true
 
+# Rebuild Fedora's signed Noctalia source RPM with small floating-panel fade
+# and quiet Control Center patches. Reapplied after distro upgrades; false restores
+# the distribution package. Only a changed source/patch rebuilds the package.
+niri_noctalia_panel_fade_enabled: true
+# Roughly 3 GiB per job, capped at eight and at the available CPU count.
+niri_noctalia_build_jobs: "{{ [ansible_facts.processor_vcpus | int, [1, (ansible_facts.memtotal_mb | int) // 3072] | max, 8] | min }}"
+
 # Stock Fedora drivers and firmware for the Intel Framework 13 Pro. Weak
 # dependencies are disabled, so list the Intel firmware subpackages explicitly.
 niri_hardware_packages:
