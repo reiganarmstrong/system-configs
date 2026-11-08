@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.modules
+import qs.modules.cc
 import qs.services
 
 ShellRoot {
@@ -22,6 +23,10 @@ ShellRoot {
 
     Settings { id: settingsWindow }
     ControlCenter { id: controlCenter }
+    // The bar's status icons open these, separate from the control centre.
+    StatusMenu { id: networkMenu; name: "network"; page: Component { NetworkPage {} } }
+    StatusMenu { id: bluetoothMenu; name: "bluetooth"; page: Component { BluetoothPage {} } }
+    StatusMenu { id: soundMenu; name: "sound"; page: Component { SoundPage {} } }
     Dash {}
     Launcher {}
     ClipboardHistory { id: clipboardHistory }
@@ -90,7 +95,19 @@ ShellRoot {
         }
         function status(): string {
             return JSON.stringify({open: controlCenter.open, visible: controlCenter.visible,
-                page: controlCenter.page, shownPage: controlCenter.shownPage, standalone: controlCenter.standalone, width: controlCenter.full + 28});
+                page: controlCenter.page, shownPage: controlCenter.shownPage, width: controlCenter.full + 28});
+        }
+    }
+    IpcHandler {
+        target: "menu"
+        // name is network, bluetooth or sound.
+        function toggle(name: string): void { ShellState.toggle(name); }
+        function status(): string {
+            const menus = {network: networkMenu, bluetooth: bluetoothMenu, sound: soundMenu};
+            const out = {};
+            for (const key in menus)
+                out[key] = {open: menus[key].open, visible: menus[key].visible, loaded: menus[key].pageItem !== null};
+            return JSON.stringify(out);
         }
     }
     IpcHandler {

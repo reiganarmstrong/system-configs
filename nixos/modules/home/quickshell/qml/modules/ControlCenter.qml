@@ -1,4 +1,4 @@
-// The control centre, dropping from the bar's status icons. Laid out on a grid of
+// The control centre, dropping from the bar's battery icon or Super+S. Laid out on a grid of
 // cells like macOS: capsule toggles span two columns, small toggles one,
 // now playing two rows, and the sliders the full width. Wi-Fi,
 // Bluetooth, Sound and Now Playing open detail pages that replace the grid
@@ -24,25 +24,16 @@ Popup {
     property string page: ""
     // The page still on screen while fading out after going back.
     property string shownPage: ""
-    // Keep the entry route through the closing fade, like the shown page.
-    property bool standalone: false
     readonly property real maxPanelHeight: Math.min(560, root.height - 68)
 
     function openPage(name: string) {
         shownPage = name;
         page = name;
-        if (open)
-            ShellState.controlPage = name;
     }
     function back(): bool {
         if (page === "")
             return false;
-        if (standalone) {
-            ShellState.close();
-            return true;
-        }
         page = "";
-        ShellState.controlPage = "";
         return true;
     }
     function handleEscape(): bool {
@@ -54,28 +45,11 @@ Popup {
     function resetPage() {
         page = "";
         shownPage = "";
-        standalone = false;
     }
     // Preserve the current page and panel height through the outer fade.
     // Deferring the hidden check avoids a transient visible=false before the
     // opacity animation starts. Unloading afterwards stops page discovery.
-    onOpenChanged: if (open) {
-        resetPage();
-        standalone = ShellState.controlStandalone;
-        if (ShellState.controlPage !== "")
-            openPage(ShellState.controlPage);
-    }
-    Connections {
-        target: ShellState
-        function onControlStandaloneChanged() {
-            if (root.open)
-                root.standalone = ShellState.controlStandalone;
-        }
-        function onControlPageChanged() {
-            if (root.open && root.page !== ShellState.controlPage)
-                root.openPage(ShellState.controlPage);
-        }
-    }
+    onOpenChanged: if (open) resetPage()
     onVisibleChanged: if (!visible) Qt.callLater(() => {
         if (!root.visible && !root.open) root.resetPage();
     })
@@ -85,7 +59,7 @@ Popup {
     // the same padding as the grid, so every view has the same margins.
     readonly property real padding: Theme.spacing.panel
     readonly property real gap: Theme.spacing.tile
-    readonly property real panelWidth: 381
+    readonly property real panelWidth: Theme.menuWidth
     readonly property real contentWidth: panelWidth - padding * 2
     readonly property real cell: 66
     readonly property real cellWidth: (contentWidth - gap * 3) / 4

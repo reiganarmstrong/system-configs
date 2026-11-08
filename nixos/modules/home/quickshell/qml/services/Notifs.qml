@@ -20,7 +20,7 @@ Singleton {
     }
     function allowed(notification: var): bool {
         return !doNotDisturb || notification.urgency === NotificationUrgency.Critical
-            || (ShellState.openPanel === "control" && needsResponse(notification));
+            || (["control", "bluetooth"].includes(ShellState.openPanel) && needsResponse(notification));
     }
 
     function replacePopups(next: var) {

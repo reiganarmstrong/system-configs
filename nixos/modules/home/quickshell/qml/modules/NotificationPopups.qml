@@ -9,7 +9,7 @@ import qs.services
 PanelWindow {
     id: notifications
     property list<Region> cardRegions: []
-    readonly property bool held: ["control", "clipboard"].includes(ShellState.openPanel)
+    readonly property bool held: ["control", "network", "bluetooth", "sound", "clipboard"].includes(ShellState.openPanel)
     // Pairing agents ask for approval through notification actions. Keep
     // those reachable while the page that requested pairing stays open.
     readonly property var shownPopups: Notifs.popups.filter(n => !held || (n.actions?.length ?? 0) > 0)

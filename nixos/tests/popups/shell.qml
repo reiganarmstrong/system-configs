@@ -28,6 +28,11 @@ ShellRoot {
     QtObject { id: third; property string summary: "Third" }
     NotificationPopups { id: banners }
     Launcher { id: appLauncher }
+    StatusMenu {
+        id: statusMenu
+        name: "menu-test"
+        page: Component { SubPanel { title: "Menu test"; Item { width: 10; height: 40 } } }
+    }
     Popup {
         id: resizingPopup
         name: "resize-test"
@@ -126,48 +131,64 @@ ShellRoot {
                 break;
             case 9:
                 test.checkPopupBounds();
-                ShellState.close();
+                ShellState.toggle("menu-test");
                 break;
             case 10:
+                if (!statusMenu.pageItem || statusMenu.pageItem.title !== "Menu test") {
+                    console.warn("FAILED: a status menu did not load its page on opening");
+                    Qt.exit(1);
+                    return;
+                }
+                ShellState.close();
+                break;
+            case 11:
+                if (statusMenu.visible) { test.step--; break; }
+                if (statusMenu.pageItem) {
+                    console.warn("FAILED: a closed status menu kept its page loaded");
+                    Qt.exit(1);
+                    return;
+                }
+                break;
+            case 12:
                 if (appLauncher.apps.length < 60) { test.step--; break; }
                 test.launcherList = test.findList(appLauncher.contentItem);
                 ShellState.openPanel = "launcher";
                 break;
-            case 11:
+            case 13:
                 test.launcherList.positionViewAtEnd();
                 appLauncher.selected = test.launcherList.count - 2;
                 break;
-            case 12:
+            case 14:
                 if (test.launcherList.contentY < 1000) {
                     console.warn("FAILED: launcher scroll fixture did not reach the bottom");
                     Qt.exit(1);
                 }
                 ShellState.close();
                 break;
-            case 13:
+            case 15:
                 if (appLauncher.visible) { test.step--; break; }
                 ShellState.openPanel = "launcher";
                 test.checkLauncherAtTop();
                 break;
-            case 14:
+            case 16:
                 test.checkLauncherAtTop();
                 if (++test.reopenSamples < 10) { test.step--; break; }
                 break;
-            case 15:
+            case 17:
                 test.launcherList.positionViewAtEnd();
                 appLauncher.selected = test.launcherList.count - 2;
                 break;
-            case 16:
+            case 18:
                 // Reopen before the closing fade has finished.
                 ShellState.close();
                 ShellState.openPanel = "launcher";
                 test.checkLauncherAtTop();
                 break;
-            case 17:
+            case 19:
                 test.checkLauncherAtTop();
                 test.launcherList.flick(0, -3500);
                 break;
-            case 18:
+            case 20:
                 if (!test.launcherList.flicking) {
                     console.warn("FAILED: launcher flick fixture did not start scrolling");
                     Qt.exit(1);
@@ -180,18 +201,18 @@ ShellRoot {
                     Qt.exit(1);
                 }
                 break;
-            case 19:
+            case 21:
                 test.checkLauncherAtTop();
-                console.log("PASSED: notification blur, resizing popup bounds and launcher reopening");
+                console.log("PASSED: notification blur, resizing popup bounds, status menus and launcher reopening");
                 Prefs.values = Object.assign({}, Prefs.values, {bannerSeconds: 1});
                 test.sendBanner("Burst first");
                 break;
-            case 20:
+            case 22:
                 test.burstFirst = Notifs.popups.find(n => n.summary === "Burst first") ?? null;
                 if (!test.burstFirst) { test.step--; break; }
                 test.burstStart = Date.now();
                 break;
-            case 21: {
+            case 23: {
                 const elapsed = Date.now() - test.burstStart;
                 if (elapsed < 1400) {
                     if (elapsed >= test.burstNext) {
@@ -202,7 +223,7 @@ ShellRoot {
                 }
                 break;
             }
-            case 22:
+            case 24:
                 if (Notifs.popups.includes(test.burstFirst)) {
                     console.warn("FAILED: new notifications reset an older banner's expiry");
                     Qt.exit(1);
@@ -215,7 +236,7 @@ ShellRoot {
                 }
                 Prefs.values = Object.assign({}, Prefs.values, {doNotDisturb: true});
                 break;
-            case 23:
+            case 25:
                 if (Notifs.popups.some(n => n.urgency !== NotificationUrgency.Critical)) {
                     console.warn("FAILED: enabling Focus left ordinary banners visible");
                     Qt.exit(1);
@@ -224,7 +245,7 @@ ShellRoot {
                 test.sendBanner("Muted by Focus");
                 test.sendBanner("Critical through Focus", "critical");
                 break;
-            case 24:
+            case 26:
                 test.criticalBanner = Notifs.popups.find(n => n.summary === "Critical through Focus") ?? null;
                 if (!test.criticalBanner || !Notifs.history.some(n => n.summary === "Muted by Focus")) {
                     test.step--;
@@ -237,7 +258,7 @@ ShellRoot {
                 }
                 test.criticalBanner.dismiss();
                 break;
-            case 25:
+            case 27:
                 if (Notifs.popups.includes(test.criticalBanner)) {
                     console.warn("FAILED: a closed notification remained in the popup stack");
                     Qt.exit(1);
@@ -248,7 +269,7 @@ ShellRoot {
                 ShellState.openPanel = "control";
                 Notifs.popups = [first, second];
                 break;
-            case 26:
+            case 28:
                 if (!banners.visible) {
                     console.warn("FAILED: control centre hides actionable pairing notifications");
                     Qt.exit(1);
@@ -262,12 +283,12 @@ ShellRoot {
                 ShellState.openPanel = "control";
                 Quickshell.execDetached(["notify-send", "--app-name=popup-regression", "--expire-time=0", "--action=confirm=Confirm", "Approval request"]);
                 break;
-            case 27:
+            case 29:
                 test.approvalBanner = Notifs.popups.find(n => n.summary === "Approval request") ?? null;
                 if (!test.approvalBanner) { test.step--; break; }
                 test.approvalStart = Date.now();
                 break;
-            case 28:
+            case 30:
                 if (Date.now() - test.approvalStart < 1400) { test.step--; break; }
                 if (!Notifs.popups.includes(test.approvalBanner)) {
                     console.warn("FAILED: approval request expired before the user answered");
@@ -276,7 +297,7 @@ ShellRoot {
                 }
                 Prefs.values = Object.assign({}, Prefs.values, {doNotDisturb: true});
                 break;
-            case 29:
+            case 31:
                 if (!Notifs.popups.includes(test.approvalBanner)) {
                     console.warn("FAILED: Focus hid approval for a control centre action");
                     Qt.exit(1);

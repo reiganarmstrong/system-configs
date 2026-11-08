@@ -26,19 +26,19 @@ PanelWindow {
         enabled: Session.caffeine
     }
 
-    // One status icon. Each opens the control centre, straight to its page
-    // when it has one.
+    // One status icon. Each toggles its own popup: a StatusMenu for Wi-Fi,
+    // Bluetooth and Sound, or the control centre.
     component StatusButton: Pill {
         id: button
         property string icon
-        property string page: ""
+        property string menu: "control"
         property string tip
         clickable: true
         padding: 7
-        onClicked: ShellState.openControl(page)
+        onClicked: ShellState.toggle(menu)
         Accessible.role: Accessible.Button
         Accessible.name: tip
-        Accessible.onPressAction: ShellState.openControl(page)
+        Accessible.onPressAction: ShellState.toggle(menu)
         BarTip { parent: button; visible: button.hovered; text: button.tip }
         Icon {
             anchors.verticalCenter: parent.verticalCenter
@@ -158,20 +158,20 @@ PanelWindow {
         StatusButton {
             anchors.verticalCenter: parent.verticalCenter
             icon: Net.icon
-            page: "network"
+            menu: "network"
             tip: "Network"
         }
         StatusButton {
             anchors.verticalCenter: parent.verticalCenter
             visible: Bt.available
             icon: !Bt.enabled ? "bluetooth-off" : Bt.connected.length > 0 ? "bluetooth-connected" : "bluetooth"
-            page: "bluetooth"
+            menu: "bluetooth"
             tip: "Bluetooth"
         }
         StatusButton {
             anchors.verticalCenter: parent.verticalCenter
             icon: Audio.icon
-            page: "sound"
+            menu: "sound"
             tip: "Sound"
         }
 
@@ -182,10 +182,10 @@ PanelWindow {
             clickable: true
             padding: 7
             spacing: 5
-            onClicked: ShellState.openControl("")
+            onClicked: ShellState.toggle("control")
             Accessible.role: Accessible.Button
             Accessible.name: "Battery " + Math.round(Battery.level * 100) + "%"
-            Accessible.onPressAction: ShellState.openControl("")
+            Accessible.onPressAction: ShellState.toggle("control")
             Icon { anchors.verticalCenter: parent.verticalCenter; name: Battery.icon; size: 17 }
             Label {
                 anchors.verticalCenter: parent.verticalCenter

@@ -42,6 +42,8 @@ Singleton {
     readonly property color barFill: "#000000"
     readonly property int popupGap: 6
     readonly property int popupTop: barHeight + popupGap
+    // Width of the control centre and the bar's status menus.
+    readonly property int menuWidth: 381
 
     function withAlpha(hex: string, alpha: real): color {
         const c = Qt.color(hex);

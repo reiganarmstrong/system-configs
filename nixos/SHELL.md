@@ -1,6 +1,6 @@
 # Working on the shell
 
-Everything you see on the desktop that isn't an app window is one Quickshell config: the bar, the dock, the control centre and its pages, the clipboard menu, the launcher, notifications, the volume and brightness pop-ups, and the lock screen. Quickshell runs QML files, the same language Qt apps use for their interfaces. This guide covers where those files are, how they reach the running desktop, and how to change them without rebuilding the whole system each time you nudge a pixel.
+Everything you see on the desktop that isn't an app window is one Quickshell config: the bar, the dock, the control centre and its pages, the Wi-Fi, Bluetooth and Sound menus, the clipboard menu, the launcher, notifications, the volume and brightness pop-ups, and the lock screen. Quickshell runs QML files, the same language Qt apps use for their interfaces. This guide covers where those files are, how they reach the running desktop, and how to change them without rebuilding the whole system each time you nudge a pixel.
 
 ## How the pieces connect
 
@@ -20,10 +20,18 @@ Inside `modules/home/quickshell/qml/`:
 | Path | What's in it |
 | --- | --- |
 | `shell.qml` | The entry point. It creates a bar, dock and wallpaper for each monitor, one of each popup, and the `qs ipc` commands that niri's key bindings call. |
-| `modules/` | Whole surfaces. `Bar.qml`, `Dock.qml`, `ControlCenter.qml`, `ClipboardHistory.qml`, `Launcher.qml`, `Lock.qml`, `Osd.qml`, `Settings.qml` and so on. |
-| `modules/cc/` | The control centre's pages. `NetworkPage.qml` is Wi-Fi, then `BluetoothPage.qml`, `SoundPage.qml` and `MediaPage.qml`. |
+| `modules/` | Whole surfaces. `Bar.qml`, `Dock.qml`, `ControlCenter.qml`, `StatusMenu.qml`, `ClipboardHistory.qml`, `Launcher.qml`, `Lock.qml`, `Osd.qml`, `Settings.qml` and so on. |
+| `modules/cc/` | The pages. `NetworkPage.qml` is Wi-Fi, then `BluetoothPage.qml`, `SoundPage.qml` and `MediaPage.qml`. Each is one self-contained component that works in more than one place. |
 | `components/` | Pieces used in many places. Change one of these and every panel that uses it changes too. |
 | `services/` | Singletons that hold state and talk to the system. QML files use them by name, like `Net.wifiOn` or `Audio.volume`. |
+
+Each page lives in two places. Inside the control centre, the arrow on the Wi-Fi tile slides `NetworkPage` in over the grid. On the bar, the Wi-Fi icon opens a separate popup, a `StatusMenu`, that holds its own copy of `NetworkPage`. Bluetooth and Sound work the same way. `shell.qml` creates the three menus:
+
+```qml
+StatusMenu { id: networkMenu; name: "network"; page: Component { NetworkPage {} } }
+```
+
+So to change what the Wi-Fi menu shows, edit `NetworkPage.qml`, and both places pick it up. To give another bar icon its own menu, write a page whose root is a `SubPanel`, add a `StatusMenu` line like the one above, and set `menu: "yourname"` on its button in `Bar.qml`.
 
 The components you'll touch most:
 
@@ -36,7 +44,7 @@ The components you'll touch most:
 The services worth knowing:
 
 - `Theme.qml` reads `theme.json`. Use `Theme.colors.text`, `Theme.spacing.panel` and friends instead of typing colours and sizes by hand.
-- `ShellState.qml` tracks which popup is open. Only one is open at a time.
+- `ShellState.qml` tracks which popup is open by name, such as `"control"` or `"network"`. Only one is open at a time, and `ShellState.toggle(name)` opens or closes one.
 - `Net`, `Bt`, `Audio`, `Brightness`, `Media`, `Notifs` and `Clipboard` wrap NetworkManager, BlueZ, PipeWire and the rest.
 - `Prefs.qml` stores choices made in Settings, such as panel opacity and Focus mode.
 
@@ -102,7 +110,8 @@ To open the thing you're working on without clicking around, use a second termin
 
 ```bash
 qs ipc -p . call control toggle
-qs ipc -p . call control openPage network   # also bluetooth, sound and media
+qs ipc -p . call control openPage network   # a page inside the control centre: also bluetooth, sound and media
+qs ipc -p . call menu toggle network        # the bar's own menu: also bluetooth and sound
 qs ipc -p . call clipboard toggle
 qs ipc -p . call launcher toggle
 ```
