@@ -64,6 +64,9 @@ if settings then settings:close(); dofile("@SETTINGS@") end
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("qs")
+    -- btop on the first workspace at login, in its second layout (preset 1
+    -- in monitor.nix): CPU, memory, network and processes together.
+    hl.exec_cmd("@TERMINAL@ -e btop --preset 1", { workspace = "1 silent" })
 end)
 hl.gesture({ fingers = 3, direction = "horizontal", action = "scroll_move" })
 hl.gesture({ fingers = 3, direction = "vertical", action = "workspace" })

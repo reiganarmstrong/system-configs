@@ -4,6 +4,7 @@
 # btop won't draw a layout wider than the window, and the full one needs 80
 # columns, which a half-screen window misses. It opens with CPU and processes
 # (60 columns); p switches to the full layout, and 1-4 toggle single boxes.
+# The copy Hyprland opens at login starts on the full layout (preset 1).
 { ... }:
 {
   programs.btop = {
