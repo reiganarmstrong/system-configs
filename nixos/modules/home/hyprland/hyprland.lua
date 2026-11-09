@@ -50,6 +50,9 @@ hl.config({
     },
 })
 hl.animation({ leaf = "global", enabled = true, speed = 5, bezier = "default" })
+-- Switching tabs in a tabbed column is instant. fadeSwitch also fades
+-- between active and inactive opacity, which this config leaves equal.
+hl.animation({ leaf = "fadeSwitch", enabled = false })
 hl.window_rule({ name = "settings", match = { class = "org.quickshell", title = "Settings" }, float = true, size = "960 680", center = true })
 hl.window_rule({ name = "file-dialogs", match = { title = "^(Open File|Open Folder|Save As|Save File|Choose Files?|Select a File)$" }, float = true })
 hl.layer_rule({ name = "shell-glass", match = { namespace = "^shell-.*" }, blur = true, ignore_alpha = 0.01 })
