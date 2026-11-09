@@ -161,7 +161,14 @@ Super+T opens Ghostty, Super+Space or Super+D opens the launcher, Super+E opens
 Files, Super+Comma opens Settings, and Super+S opens the control centre.
 Super+L locks the screen. Super+arrows changes focus and Super+Shift+arrows
 moves windows. Super+R cycles column widths, Super+C centres a column, and
-Super+number changes workspaces. Three-finger horizontal swipes scroll
+Super+number changes workspaces.
+
+Columns stack and tab like niri. Super+[ and Super+] move the focused window
+out of its column to that side, or into the neighbouring column if it was
+alone. Super+W turns the focused column into tabs, and pressing it again
+stacks them back. In a tabbed column Super+Up and Super+Down switch tabs,
+and adding Shift reorders them. Tabs are Hyprland groups, so the tab bar's
+look is the `group` block in `hyprland.lua`. Three-finger horizontal swipes scroll
 columns; vertical swipes change workspaces.
 
 HyprMod is installed through its upstream Nix flake and pinned in flake.lock.

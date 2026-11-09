@@ -43,7 +43,7 @@ NixOS 26.05 with the [Hyprland](https://hypr.land/) compositor with native scrol
 | Lock screen | At boot, `Super+L`, or the lock button. |
 | Volume and brightness pop-ups | The hardware keys. |
 
-Other bindings: `Super+T` terminal, `Super+E` Files, `Super+Q` close, `Super+F` fullscreen, `Super+V` float, `Super+O` overview, `Super+R` cycle column widths, `Super+arrows` focus (with `Shift` to move), `Super+1`–`0` workspaces (with `Shift` to move the column), and `Print` for screenshots. `Super+Shift+/` lists every binding.
+Other bindings: `Super+T` terminal, `Super+E` Files, `Super+Q` close, `Super+F` fullscreen, `Super+V` float, `Super+O` overview, `Super+R` cycle column widths, `Super+[`/`Super+]` move a window into or out of a column, `Super+W` tabbed column (then `Super+Up`/`Down` switch tabs), `Super+arrows` focus (with `Shift` to move), `Super+1`–`0` workspaces (with `Shift` to move the column), and `Print` for screenshots. `Super+Shift+/` lists every binding.
 
 Unlocking the lock screen also unlocks GNOME Keyring, which autologin can't do. Without it, apps that store secrets ask for the keyring password.
 
