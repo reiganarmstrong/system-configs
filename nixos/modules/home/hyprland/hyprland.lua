@@ -13,7 +13,8 @@ hl.env("TZDIR", "/etc/zoneinfo")
 hl.config({
     general = {
         layout = "scrolling", gaps_in = 8, gaps_out = 24, border_size = 1,
-        col = { active_border = "rgba(f6f5f4ff)", inactive_border = "rgba(ffffff22)" },
+        -- The focused window gets the same faint border as the rest.
+        col = { active_border = "rgba(ffffff22)", inactive_border = "rgba(ffffff22)" },
     },
     scrolling = { column_width = 1.0, focus_fit_method = 1, fullscreen_on_one_column = false, explicit_column_widths = "0.5,0.66667,1.0" },
     decoration = { rounding = 14, blur = { enabled = true, size = 5, passes = 3 } },
@@ -26,8 +27,8 @@ hl.config({
         -- joining the focused tabbed column.
         auto_group = false,
         col = {
-            border_active = "rgba(f6f5f4ff)", border_inactive = "rgba(ffffff22)",
-            border_locked_active = "rgba(f6f5f4ff)", border_locked_inactive = "rgba(ffffff22)",
+            border_active = "rgba(ffffff22)", border_inactive = "rgba(ffffff22)",
+            border_locked_active = "rgba(ffffff22)", border_locked_inactive = "rgba(ffffff22)",
         },
         groupbar = {
             font_family = "Inter", font_size = 12, font_weight_active = "semibold", font_weight_inactive = "normal",
