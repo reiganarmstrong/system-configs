@@ -39,6 +39,9 @@
     # over 9p. GTK apps stat thousands of icon files as they start, and each
     # one is a round trip to the host over 9p: Ghostty took 11 s to open.
     useNixStoreImage = true;
+    # A writable layer over the image, cleared on each boot. Home Manager's
+    # activation registers its generation in the store and fails without it.
+    writableStore = true;
     diskSize = 20480;
     resolution = {
       x = 1440;
