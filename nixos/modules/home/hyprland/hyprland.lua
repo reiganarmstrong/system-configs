@@ -22,6 +22,9 @@ hl.config({
     cursor = { hide_on_key_press = false, inactive_timeout = 5 },
     -- Tabbed columns are Hyprland groups, styled to match the bar and menus.
     group = {
+        -- New windows open in a column of their own, as in niri, instead of
+        -- joining the focused tabbed column.
+        auto_group = false,
         col = {
             border_active = "rgba(f6f5f4ff)", border_inactive = "rgba(ffffff22)",
             border_locked_active = "rgba(f6f5f4ff)", border_locked_inactive = "rgba(ffffff22)",
