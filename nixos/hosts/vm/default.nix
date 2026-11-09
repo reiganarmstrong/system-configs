@@ -35,6 +35,10 @@
   virtualisation.vmVariant.virtualisation = {
     memorySize = 8192;
     cores = 4;
+    # Boot from a disk image of the system's store, not the host's /nix/store
+    # over 9p. GTK apps stat thousands of icon files as they start, and each
+    # one is a round trip to the host over 9p: Ghostty took 11 s to open.
+    useNixStoreImage = true;
     diskSize = 20480;
     resolution = {
       x = 1440;
