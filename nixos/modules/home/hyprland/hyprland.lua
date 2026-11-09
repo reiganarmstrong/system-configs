@@ -28,7 +28,10 @@ hl.config({
         },
         groupbar = {
             font_family = "Inter", font_size = 12, font_weight_active = "semibold", font_weight_inactive = "normal",
-            height = 24, indicator_height = 0, gradients = true, gradient_rounding = 8,
+            -- Each tab is a pill: rounding is half the height, on every tab
+            -- rather than only the bar's two outer ends.
+            height = 24, indicator_height = 0, gradients = true, gradient_rounding = 12,
+            gradient_round_only_edges = false, round_only_edges = false,
             gaps_in = 6, gaps_out = 0, keep_upper_gap = true, blur = true,
             text_color = "rgba(f6f5f4ff)", text_color_inactive = "rgba(ffffff8c)",
             col = {
