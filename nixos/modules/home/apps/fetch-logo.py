@@ -2,14 +2,14 @@
 
 The wallpaper logo (assets/nixos.txt) is ASCII art in fastfetch format, with
 $1 and $2 switching between its two greys. This script turns that art into
-shapes, turns the shapes about the vertical axis, and draws each angle as
-smaller ASCII in the same style: # inside, / and \\ along slopes, _ and -
-on flat edges.
+shapes, turns them like a wheel, and draws each angle as smaller ASCII in
+the same style: # inside, / and \\ along slopes, _ and - on flat edges.
 
     python3 fetch-logo.py nixos.txt OUT COLOUR1 COLOUR2
 
-with each COLOUR an SGR code such as 38;2;94;98;104, writes OUT/logo.txt, the still logo for fastfetch, and OUT/frames.zsh, a zsh
-array of frames for the spin (fetch-spin.zsh).
+with each COLOUR an SGR code such as 38;2;94;98;104, writes OUT/logo.txt,
+the still logo for fastfetch, and OUT/frames.zsh, a zsh array of frames for
+the spin (fetch-spin.zsh).
 """
 
 import math
@@ -17,8 +17,14 @@ import re
 import sys
 from pathlib import Path
 
-FRAMES = 96  # a full turn, 3.75 degrees apart
+FRAMES = 192  # a full turn, 1.875 degrees apart
+# The logo looks the same after a third of a turn, so the spin can come to
+# rest every this many frames.
+REST = FRAMES // 3
 SX, SY = 4, 8  # samples per source cell; a terminal cell is twice as tall as wide
+# A sample's height over its width in the art's own proportions. With this,
+# a third of a turn about the centre lands the art closest to itself.
+ASPECT = 0.95
 
 
 def parse(path):
@@ -95,27 +101,45 @@ for name, ch, l, r in [
     )
 
 
+def centre(grid):
+    """The logo's middle: the average of its filled samples."""
+    pts = [(x, y) for y, row in enumerate(grid) for x, v in enumerate(row) if v is not None]
+    return (sum(p[0] for p in pts) / len(pts) + 0.5, sum(p[1] for p in pts) / len(pts) + 0.5)
+
+
+def pad(grid):
+    """Add blank space around the art so it can turn without clipping.
+
+    The padding comes in whole output cells, keeping the art lined up with
+    them as it is at rest.
+    """
+    gh, gw = len(grid), len(grid[0])
+    reach = math.hypot(gw, gh * ASPECT)
+    ry = math.ceil(reach / ASPECT / 2 / TH) * TH
+    rx = math.ceil(reach / 2 / TW) * TW
+    blank = [None] * (gw + 2 * rx)
+    return [blank] * ry + [[None] * rx + row + [None] * rx for row in grid] + [blank] * ry
+
+
 def frame(grid, angle):
-    """Draw the logo turned by angle (radians) as rows of (char, colour)."""
+    """Draw the logo turned clockwise by angle (radians) as rows of (char, colour)."""
     gh, gw = len(grid), len(grid[0])
     cols, rows = gw // TW, gh // TH
-    half = gw / 2
-    scale = math.cos(angle)
+    cx, cy = centre(grid)
+    cos, sin = math.cos(angle), math.sin(angle)
     out = []
     for r in range(rows):
         line = []
         for c in range(cols):
             samples, votes = [], [0, 0]
             for j in range(TH):
-                y = r * TH + j
+                y = (r * TH + j + 0.5 - cy) * ASPECT
                 for i in range(TW):
-                    x = c * TW + i + 0.5 - half
-                    # Undo the turn: which point of the flat logo lands here.
-                    src = None
-                    if abs(scale) > 1e-3:
-                        sx = int(half + x / scale)
-                        if 0 <= sx < gw:
-                            src = grid[y][sx]
+                    x = c * TW + i + 0.5 - cx
+                    # Undo the turn: which point of the still logo lands here.
+                    sx = int(cx + x * cos + y * sin)
+                    sy = int(cy + (y * cos - x * sin) / ASPECT)
+                    src = grid[sy][sx] if 0 <= sx < gw and 0 <= sy < gh else None
                     samples.append(src is not None)
                     if src is not None:
                         votes[src] += 1
@@ -132,14 +156,13 @@ def frame(grid, angle):
 
 
 def trim(frames):
-    """Drop columns and rows that every frame leaves blank, evenly."""
+    """Drop columns and rows that every frame leaves blank."""
     rows, cols = len(frames[0]), len(frames[0][0])
     used_rows = [r for r in range(rows) if any(f[r][c][0] != " " for f in frames for c in range(cols))]
     used_cols = [c for c in range(cols) if any(f[r][c][0] != " " for f in frames for r in range(rows))]
     top, bottom = used_rows[0], used_rows[-1] + 1
-    # Keep the axis centred so the spin doesn't wobble.
-    pad = min(used_cols[0], cols - 1 - used_cols[-1])
-    return [[row[pad : cols - pad] for row in f[top:bottom]] for f in frames]
+    left, right = used_cols[0], used_cols[-1] + 1
+    return [[row[left:right] for row in f[top:bottom]] for f in frames]
 
 
 def fastfetch_text(f):
@@ -183,13 +206,14 @@ def zsh_quote(s):
 
 def main():
     art, out, colours = parse(sys.argv[1]), Path(sys.argv[2]), sys.argv[3:5]
-    grid = raster(art)
+    grid = pad(raster(art))
     frames = trim([frame(grid, 2 * math.pi * k / FRAMES) for k in range(FRAMES)])
     out.mkdir(parents=True, exist_ok=True)
     (out / "logo.txt").write_text(fastfetch_text(frames[0]))
     (out / "frames.zsh").write_text(
         f"fetch_logo_height={len(frames[0])}\n"
         f"fetch_logo_width={len(frames[0][0])}\n"
+        f"fetch_logo_rest={REST}\n"
         "fetch_logo_frames=(\n"
         + "".join(zsh_quote(ansi_frame(f, colours)) + "\n" for f in frames)
         + ")\n"

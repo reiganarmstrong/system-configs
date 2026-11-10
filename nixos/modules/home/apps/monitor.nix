@@ -13,8 +13,9 @@ let
     "38;2;94;98;104"
     "38;2;236;237;239"
   ];
+  # No top padding: the logo has blank rows of its own, room to turn in.
   logoPadding = {
-    top = 1;
+    top = 0;
     left = 2;
     right = 4;
   };

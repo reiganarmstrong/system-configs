@@ -1,10 +1,11 @@
 # Greet a new terminal with fastfetch, and spin its NixOS logo until you type.
 #
 # fastfetch prints the still logo. This then redraws that block of the screen
-# with frames of the logo turning (@frames@, made by fetch-logo.py). A timer
-# process wakes zle 20 times a second, so the prompt works the whole time.
-# The first key starts a wind-down of 1.5 to 4 seconds that ends facing
-# front. Enter, Ctrl+C and Ctrl+L stop it at once.
+# with frames of the logo turning like a wheel (@frames@, made by
+# fetch-logo.py). A timer process wakes zle 20 times a second, so the prompt
+# works the whole time. The first key starts a wind-down of 1.5 to 4 seconds
+# that ends upright; the logo is upright every third of a turn. Enter,
+# Ctrl+C and Ctrl+L stop it at once.
 #
 # The frames go to fixed screen rows, so there is no spin when the summary
 # has scrolled, and it stops if the window shrinks.
@@ -13,7 +14,7 @@ zmodload zsh/mathfunc
 
 typeset -gi _fs_fd=0 _fs_row _fs_col _fs_lines _fs_cols _fs_shown=0
 typeset -gi _fs_tick=-1 _fs_ticks
-# Frames per tick: 96 frames a turn makes one turn every 6 seconds.
+# Frames per tick: 192 frames a turn makes one turn every 12 seconds.
 typeset -gF _fs_speed=0.8 _fs_pos=0 _fs_from _fs_to
 typeset -g _fs_typed
 
@@ -47,10 +48,10 @@ _fs_tick() {
   if (( _fs_tick < 0 )); then
     (( _fs_pos += _fs_speed ))
   elif (( ++_fs_tick >= _fs_ticks )); then
-    _fs_end front
+    _fs_end upright
     return
   else
-    # Ease from the current speed to rest on the next front-facing frame:
+    # Ease from the current speed to rest on the next upright frame:
     # a cubic that starts at _fs_speed and ends at speed 0.
     local -F s=$(( _fs_tick / float(_fs_ticks) ))
     (( _fs_pos = (2*s**3 - 3*s**2 + 1) * _fs_from
@@ -68,7 +69,7 @@ _fs_pre_redraw() {
     _fs_end
     return
   fi
-  local n=${#fetch_logo_frames}
+  local n=$fetch_logo_rest
   _fs_from=$_fs_pos
   _fs_to=$(( (floor(_fs_pos / n) + 1) * n ))
   # As long as slowing down evenly would take, held to 1.5 to 4 seconds.
@@ -81,7 +82,7 @@ _fs_pre_redraw() {
 _fs_line_init() {
   if (( _fs_fd )); then
     # A new prompt (after Ctrl+C) while still spinning.
-    _fs_end front
+    _fs_end upright
     return
   fi
   # Begin only if nothing scrolled: scrolling leaves the cursor on the
@@ -98,10 +99,12 @@ _fs_line_init() {
 }
 
 _fs_line_finish() {
-  (( _fs_fd )) && _fs_end front
+  (( _fs_fd )) && _fs_end upright
 }
 
-# Stop for good. With "front", draw the still logo first.
+# Stop for good. With "upright", first draw the logo at rest. Each third of
+# a turn is upright, but the first frame is drawn straight from the art and
+# reads best, so it always ends there.
 _fs_end() {
   if (( _fs_fd )); then
     zle -F $_fs_fd
@@ -109,8 +112,8 @@ _fs_end() {
     exec {_fs_fd}<&-
     _fs_fd=0
   fi
-  if [[ $1 == front ]]; then
-    _fs_pos=0 _fs_shown=0
+  if [[ $1 == upright ]]; then
+    _fs_pos=0
     _fs_draw
   fi
   add-zle-hook-widget -d line-init _fs_line_init
