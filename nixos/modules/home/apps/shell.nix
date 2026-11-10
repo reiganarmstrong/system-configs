@@ -33,6 +33,12 @@
       ${builtins.readFile ./zsh-functions.zsh}
 
       [[ -r "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+
+      # Greet each new terminal with the system summary, but not shells
+      # started inside another shell or by scripts.
+      if [[ -o interactive && $SHLVL -eq 1 ]] && (( $+commands[fastfetch] )); then
+        fastfetch
+      fi
     '';
   };
 

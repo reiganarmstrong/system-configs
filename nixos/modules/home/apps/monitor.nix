@@ -1,28 +1,73 @@
 # btop uses the Fedora Graphite palette with a transparent background.
 # Fastfetch prints a short NixOS system summary beside a smaller copy of the
-# wallpaper's NixOS logo, which spins until you type (fetch-spin.zsh).
+# wallpaper's NixOS logo.
 #
 # btop won't draw a layout wider than the window, and the full one needs 80
 # columns, which a half-screen window misses. It opens with CPU and processes
 # (60 columns); p switches to the full layout, and 1-4 toggle single boxes.
 # The copy Hyprland opens at login starts on the full layout (preset 1).
-{ lib, pkgs, ... }:
+{ lib, ... }:
 let
-  # The wallpaper generator's two greys for the logo, as SGR colour codes.
-  logoColours = [
-    "38;2;94;98;104"
-    "38;2;236;237;239"
-  ];
-  # No top padding: the logo has blank rows of its own, room to turn in.
+  # A two-thirds-size copy of the wallpaper's NixOS logo, drawn by
+  # assets/fastfetch-logo.py.
+  logo = ../../../assets/fastfetch-logo.txt;
+  logoLines = builtins.length (lib.splitString "\n" (lib.removeSuffix "\n" (builtins.readFile logo)));
   logoPadding = {
-    top = 0;
+    top = 1;
     left = 2;
     right = 4;
   };
-  # logo.txt, the still logo, and frames.zsh, the frames of it spinning.
-  fetchLogo = pkgs.runCommand "fetch-logo" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-    python3 ${./fetch-logo.py} ${../../../assets/nixos.txt} $out ${lib.escapeShellArgs logoColours}
-  '';
+  summary = [
+    {
+      type = "title";
+      format = "{user-name} on {host-name}";
+    }
+    "break"
+    {
+      type = "os";
+      key = "os";
+      format = "{name} {version-id}";
+    }
+    {
+      type = "kernel";
+      key = "kernel";
+      format = "{release}";
+    }
+    {
+      type = "wm";
+      key = "desktop";
+      format = "{pretty-name}";
+    }
+    {
+      type = "uptime";
+      key = "uptime";
+    }
+    {
+      type = "memory";
+      key = "memory";
+      format = "{used} of {total}";
+    }
+    {
+      type = "disk";
+      key = "disk";
+      folders = "/";
+      format = "{size-used} of {size-total}";
+    }
+    {
+      type = "battery";
+      key = "battery";
+      format = "{capacity} {status}";
+    }
+    "break"
+    {
+      type = "colors";
+      symbol = "circle";
+      paddingLeft = 0;
+    }
+  ];
+  # fastfetch can't centre the summary beside the logo, so blank lines above
+  # push it down. Without a battery it is a line short, and half a line high.
+  summaryOffset = logoPadding.top + (logoLines - builtins.length summary) / 2;
 in
 {
   programs.btop = {
@@ -62,10 +107,11 @@ in
     settings = {
       logo = {
         type = "file";
-        source = "${fetchLogo}/logo.txt";
+        source = logo;
+        # The wallpaper generator's two greys.
         color = {
-          "1" = builtins.elemAt logoColours 0;
-          "2" = builtins.elemAt logoColours 1;
+          "1" = "38;2;94;98;104";
+          "2" = "38;2;236;237;239";
         };
         padding = logoPadding;
       };
@@ -82,68 +128,7 @@ in
         };
         percent.type = 0;
       };
-      modules = [
-        "break"
-        {
-          type = "title";
-          format = "{user-name} on {host-name}";
-        }
-        "break"
-        {
-          type = "os";
-          key = "os";
-          format = "{name} {version-id}";
-        }
-        {
-          type = "kernel";
-          key = "kernel";
-          format = "{release}";
-        }
-        {
-          type = "wm";
-          key = "desktop";
-          format = "{pretty-name}";
-        }
-        {
-          type = "uptime";
-          key = "uptime";
-        }
-        {
-          type = "memory";
-          key = "memory";
-          format = "{used} of {total}";
-        }
-        {
-          type = "disk";
-          key = "disk";
-          folders = "/";
-          format = "{size-used} of {size-total}";
-        }
-        {
-          type = "battery";
-          key = "battery";
-          format = "{capacity} {status}";
-        }
-        "break"
-        {
-          type = "colors";
-          symbol = "circle";
-          paddingLeft = 0;
-        }
-      ];
+      modules = lib.replicate summaryOffset "break" ++ summary;
     };
   };
-
-  # Greet each new terminal with the summary, but not shells started inside
-  # another shell or by scripts.
-  programs.zsh.initContent = lib.mkAfter ''
-    ${builtins.replaceStrings
-      [ "@frames@" "@top@" "@left@" ]
-      [ "${fetchLogo}/frames.zsh" (toString logoPadding.top) (toString logoPadding.left) ]
-      (builtins.readFile ./fetch-spin.zsh)
-    }
-    if [[ -o interactive && $SHLVL -eq 1 ]] && (( $+commands[fastfetch] )); then
-      fetch_spin
-    fi
-  '';
 }
